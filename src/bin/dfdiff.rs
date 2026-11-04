@@ -27,14 +27,32 @@ fn main() {
         }
     }
     // GIT_EXTERNAL_DIFF passes: path old-file old-hex old-mode new-file new-hex new-mode.
-    let (name, old_path, new_path) = if files.len() == 7 { (files[0].clone(), files[1].clone(), files[4].clone()) } else { (files[1].clone(), files[0].clone(), files[1].clone()) };
+    let (name, old_path, new_path) = if files.len() == 7 {
+        (files[0].clone(), files[1].clone(), files[4].clone())
+    } else {
+        (files[1].clone(), files[0].clone(), files[1].clone())
+    };
     let (old_absent, new_absent) = (old_path == "/dev/null", new_path == "/dev/null");
-    let old = if old_absent { Vec::new() } else { std::fs::read(&old_path).expect("read old") };
-    let new = if new_absent { Vec::new() } else { std::fs::read(&new_path).expect("read new") };
+    let old = if old_absent {
+        Vec::new()
+    } else {
+        std::fs::read(&old_path).expect("read old")
+    };
+    let new = if new_absent {
+        Vec::new()
+    } else {
+        std::fs::read(&new_path).expect("read new")
+    };
     // GIT_EXTERNAL_DIFF passes the modes as the fourth and seventh arguments.
     let (kind, mode) = match (old_absent, new_absent) {
-        (true, _) => (difffold::unified::Kind::Create, files.get(6).cloned().unwrap_or_else(|| "100644".into())),
-        (_, true) => (difffold::unified::Kind::Delete, files.get(3).cloned().unwrap_or_else(|| "100644".into())),
+        (true, _) => (
+            difffold::unified::Kind::Create,
+            files.get(6).cloned().unwrap_or_else(|| "100644".into()),
+        ),
+        (_, true) => (
+            difffold::unified::Kind::Delete,
+            files.get(3).cloned().unwrap_or_else(|| "100644".into()),
+        ),
         _ => (difffold::unified::Kind::Modify, "100644".into()),
     };
     let patch = difffold::unified::unified_with(&old, &new, &name, ctx, algo, kind, &mode);

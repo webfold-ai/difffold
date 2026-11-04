@@ -46,7 +46,10 @@ struct Interner(HashMap<(u16, Option<Vec<u8>>), u32>);
 impl Interner {
     fn label(&mut self, kind: u16, text: Option<&[u8]>) -> u32 {
         let next = u32::try_from(self.0.len()).unwrap();
-        *self.0.entry((kind, text.map(<[u8]>::to_vec))).or_insert(next)
+        *self
+            .0
+            .entry((kind, text.map(<[u8]>::to_vec)))
+            .or_insert(next)
     }
 }
 
@@ -56,7 +59,10 @@ fn convert(n: Node, src: &[u8], arena: &mut Arena, it: &mut Interner) -> Id {
         return arena.mk(l, &[]);
     }
     let mut c = n.walk();
-    let kids: Vec<Id> = n.children(&mut c).map(|ch| convert(ch, src, arena, it)).collect();
+    let kids: Vec<Id> = n
+        .children(&mut c)
+        .map(|ch| convert(ch, src, arena, it))
+        .collect();
     let l = it.label(n.kind_id(), None);
     arena.mk(l, &kids)
 }
@@ -71,7 +77,15 @@ fn lang(ext: &str) -> Option<Language> {
 }
 
 fn find(dir: &PathBuf, stem: &str) -> Option<PathBuf> {
-    std::fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).find(|p| p.file_name().and_then(|f| f.to_str()).is_some_and(|f| f.starts_with(stem)))
+    std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| {
+            p.file_name()
+                .and_then(|f| f.to_str())
+                .is_some_and(|f| f.starts_with(stem))
+        })
 }
 
 fn median(v: &mut [f64]) -> f64 {
@@ -81,22 +95,52 @@ fn median(v: &mut [f64]) -> f64 {
 
 fn run(args: Vec<String>) {
     let (dir, base, out) = (PathBuf::from(&args[1]), &args[2], &args[3]);
-    let limit: usize = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(usize::MAX);
+    let limit: usize = args
+        .get(4)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(usize::MAX);
     let reps: usize = args.get(5).and_then(|s| s.parse().ok()).unwrap_or(3);
     let full_cap: u32 = args.get(6).and_then(|s| s.parse().ok()).unwrap_or(3000);
     let text = std::fs::read_to_string(base).unwrap();
-    let mut rows: Vec<Vec<String>> = text.lines().skip(1).map(|l| l.split(',').map(str::to_string).collect()).collect();
+    let mut rows: Vec<Vec<String>> = text
+        .lines()
+        .skip(1)
+        .map(|l| l.split(',').map(str::to_string).collect())
+        .collect();
     rows.retain(|r| r.len() > 10 && r[9] == "ok");
-    rows.sort_by(|a, b| b[10].parse::<f64>().unwrap().total_cmp(&a[10].parse::<f64>().unwrap()));
+    rows.sort_by(|a, b| {
+        b[10]
+            .parse::<f64>()
+            .unwrap()
+            .total_cmp(&a[10].parse::<f64>().unwrap())
+    });
 
     let configs: Vec<(&str, Config)> = vec![
         ("full_structural", Config::FULL_STRUCTURAL),
         ("full_interned", Config::FULL_INTERNED),
         ("full_memo", Config::FULL_MEMO),
         ("threshold_bound_x2", Config::PRODUCTION),
-        ("threshold_one_x2", Config { tau0: Tau0::One, ..Config::PRODUCTION }),
-        ("threshold_bound_x4", Config { growth: 4, ..Config::PRODUCTION }),
-        ("threshold_bound_x2_nomemo", Config { memo: false, ..Config::PRODUCTION }),
+        (
+            "threshold_one_x2",
+            Config {
+                tau0: Tau0::One,
+                ..Config::PRODUCTION
+            },
+        ),
+        (
+            "threshold_bound_x4",
+            Config {
+                growth: 4,
+                ..Config::PRODUCTION
+            },
+        ),
+        (
+            "threshold_bound_x2_nomemo",
+            Config {
+                memo: false,
+                ..Config::PRODUCTION
+            },
+        ),
     ];
 
     let mut f = std::fs::File::create(out).unwrap();
@@ -107,17 +151,32 @@ fn run(args: Vec<String>) {
             break;
         }
         let d = dir.join(&r[2]).join(&r[4]);
-        let (Some(bp), Some(ap)) = (find(&d, "before."), find(&d, "after.")) else { continue };
-        let ext = bp.file_name().unwrap().to_str().unwrap().split('.').nth(1).unwrap_or("");
+        let (Some(bp), Some(ap)) = (find(&d, "before."), find(&d, "after.")) else {
+            continue;
+        };
+        let ext = bp
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .split('.')
+            .nth(1)
+            .unwrap_or("");
         let Some(l) = lang(ext) else { continue };
         let (bs, as_) = (std::fs::read(&bp).unwrap(), std::fs::read(&ap).unwrap());
         let mut parser = Parser::new();
         parser.set_language(&l).unwrap();
-        let (tb, ta) = (parser.parse(&bs, None).unwrap(), parser.parse(&as_, None).unwrap());
+        let (tb, ta) = (
+            parser.parse(&bs, None).unwrap(),
+            parser.parse(&as_, None).unwrap(),
+        );
         let mut arena = Arena::new();
         let mut it = Interner(HashMap::new());
         let t_int = Instant::now();
-        let (x, y) = (convert(tb.root_node(), &bs, &mut arena, &mut it), convert(ta.root_node(), &as_, &mut arena, &mut it));
+        let (x, y) = (
+            convert(tb.root_node(), &bs, &mut arena, &mut it),
+            convert(ta.root_node(), &as_, &mut arena, &mut it),
+        );
         let intern_ms = t_int.elapsed().as_secs_f64() * 1e3;
         let (nb, na) = (arena.size(x), arena.size(y));
         // Deterministic per-fixture shuffle of the config order.
@@ -178,5 +237,10 @@ fn run(args: Vec<String>) {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    std::thread::Builder::new().stack_size(512 << 20).spawn(move || run(args)).unwrap().join().unwrap();
+    std::thread::Builder::new()
+        .stack_size(512 << 20)
+        .spawn(move || run(args))
+        .unwrap()
+        .join()
+        .unwrap();
 }

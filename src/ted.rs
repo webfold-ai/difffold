@@ -77,7 +77,12 @@ impl PostTree {
 
     /// Work estimate of the left-path decomposition against `other`: the product of the keyroot subtree sizes.
     fn cost_against(&self, other: &PostTree) -> u128 {
-        let sum = |t: &PostTree| -> u128 { t.keyroots.iter().map(|&k| u128::from(k - t.lml[k as usize - 1] + 1)).sum() };
+        let sum = |t: &PostTree| -> u128 {
+            t.keyroots
+                .iter()
+                .map(|&k| u128::from(k - t.lml[k as usize - 1] + 1))
+                .sum()
+        };
         sum(self) * sum(other)
     }
 
@@ -111,7 +116,11 @@ fn mirror_expand(t: &PostTree, i: usize, label: &mut Vec<u32>, kids: &mut Vec<Ve
 }
 
 fn expand(arena: &Arena, x: Id, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) -> u32 {
-    let ks: Vec<u32> = arena.kids(x).iter().map(|&k| expand(arena, k, label, kids)).collect();
+    let ks: Vec<u32> = arena
+        .kids(x)
+        .iter()
+        .map(|&k| expand(arena, k, label, kids))
+        .collect();
     label.push(arena.label(x));
     kids.push(ks);
     label.len() as u32 - 1
@@ -197,7 +206,9 @@ fn label_lower_bound(a: &PostTree, b: &PostTree) -> u32 {
 
 fn ted_oriented(a: &PostTree, b: &PostTree, st: &mut Stats) -> u32 {
     let cap = (a.len() + b.len()) as u32;
-    let mut tau = (a.len().abs_diff(b.len()) as u32).max(label_lower_bound(a, b)).max(1);
+    let mut tau = (a.len().abs_diff(b.len()) as u32)
+        .max(label_lower_bound(a, b))
+        .max(1);
     loop {
         // Once the band would cover a third of the table, skip the remaining doubling steps.
         if u64::from(tau) * 3 >= a.len().max(b.len()) as u64 {
@@ -259,7 +270,15 @@ fn within_td(a: &PostTree, b: &PostTree, tau: u32, st: &mut Stats) -> (Option<u3
 
 /// Fill the forest-distance table of the window `(i0, j0)` and record the subtree distances of its
 /// left-path pairs in `td`.
-fn fill_window(a: &PostTree, b: &PostTree, td: &mut [u32], fd: &mut [u32], (i0, j0): (usize, usize), tau: u32, st: &mut Stats) {
+fn fill_window(
+    a: &PostTree,
+    b: &PostTree,
+    td: &mut [u32],
+    fd: &mut [u32],
+    (i0, j0): (usize, usize),
+    tau: u32,
+    st: &mut Stats,
+) {
     let t = tau as usize;
     let inf = tau + 1;
     let w = 2 * t + 1;
@@ -285,7 +304,13 @@ fn fill_window(a: &PostTree, b: &PostTree, td: &mut [u32], fd: &mut [u32], (i0, 
             st.cells += 1;
             let y = lj + q - 1;
             let ly = b.lml[y - 1] as usize;
-            let get = |pp: usize, qq: usize, fd: &[u32]| if pp.abs_diff(qq) <= t { fd[fdi(pp, qq)] } else { inf };
+            let get = |pp: usize, qq: usize, fd: &[u32]| {
+                if pp.abs_diff(qq) <= t {
+                    fd[fdi(pp, qq)]
+                } else {
+                    inf
+                }
+            };
             let del = get(p - 1, q, fd) + 1;
             let ins = get(p, q - 1, fd) + 1;
             let v = if lx == li && ly == lj {
@@ -329,7 +354,10 @@ pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
 pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mapping {
     let cost = ted(a, b);
     if a.is_empty() || b.is_empty() {
-        return Mapping { cost, pairs: Vec::new() };
+        return Mapping {
+            cost,
+            pairs: Vec::new(),
+        };
     }
     let (n, m) = (a.len(), b.len());
     let mut st = Stats::default();
@@ -347,7 +375,13 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
         let fdi = |p: usize, q: usize| p * w + (q + t - p);
         let mut fd = vec![inf; (si + 1) * w];
         fill_window(a, b, &mut td, &mut fd, (i, j), cost, &mut st);
-        let get = |p: usize, q: usize| if p.abs_diff(q) <= t { fd[fdi(p, q)] } else { inf };
+        let get = |p: usize, q: usize| {
+            if p.abs_diff(q) <= t {
+                fd[fdi(p, q)]
+            } else {
+                inf
+            }
+        };
         let (mut p, mut q) = (si, sj);
         while p > 0 || q > 0 {
             let v = get(p, q);
@@ -431,7 +465,8 @@ pub fn check_mapping(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
             }
         }
     };
-    let mut last_child_of: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+    let mut last_child_of: std::collections::HashMap<usize, usize> =
+        std::collections::HashMap::new();
     let mut relabels = 0u32;
     for x in 1..=n {
         let y = to_b[x];
@@ -442,12 +477,16 @@ pub fn check_mapping(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         let by = near(&pb, &|v| to_a[v] != 0, y);
         let ax_in_b = if ax == 0 { 0 } else { to_b[ax] };
         if ax_in_b != by {
-            return Err(format!("ancestor relation broken at ({x}, {y}): parent {ax_in_b} vs {by}"));
+            return Err(format!(
+                "ancestor relation broken at ({x}, {y}): parent {ax_in_b} vs {by}"
+            ));
         }
         // Siblings visited in increasing a-postorder must have increasing b-postorder.
         let prev = last_child_of.insert(by, y).unwrap_or(0);
         if prev > y {
-            return Err(format!("sibling order broken under {by}: {prev} before {y}"));
+            return Err(format!(
+                "sibling order broken under {by}: {prev} before {y}"
+            ));
         }
         relabels += relabel_cost(a, b, x, y);
     }
@@ -481,13 +520,27 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         return Ok(n.max(m) as u32);
     }
     let root_slot = n;
-    let mut nodes: Vec<RNode> = (0..n).map(|i| RNode { label: a.label[i], kids: a.kids[i].iter().map(|&k| k as usize).collect(), parent: root_slot, bid: 0, alive: true }).collect();
+    let mut nodes: Vec<RNode> = (0..n)
+        .map(|i| RNode {
+            label: a.label[i],
+            kids: a.kids[i].iter().map(|&k| k as usize).collect(),
+            parent: root_slot,
+            bid: 0,
+            alive: true,
+        })
+        .collect();
     for i in 0..n {
         for &k in &a.kids[i] {
             nodes[k as usize].parent = i;
         }
     }
-    nodes.push(RNode { label: 0, kids: vec![n - 1], parent: usize::MAX, bid: 0, alive: true });
+    nodes.push(RNode {
+        label: 0,
+        kids: vec![n - 1],
+        parent: usize::MAX,
+        bid: 0,
+        alive: true,
+    });
     let (mut to_b, mut arena_of_b) = (vec![0usize; n + 1], vec![usize::MAX; m + 1]);
     let mut ops = 0u32;
     for &(x, y) in pairs {
@@ -509,7 +562,11 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
             continue;
         }
         let p = nodes[x].parent;
-        let at = nodes[p].kids.iter().position(|&c| c == x).ok_or("deleted node missing from its parent")?;
+        let at = nodes[p]
+            .kids
+            .iter()
+            .position(|&c| c == x)
+            .ok_or("deleted node missing from its parent")?;
         let moved = std::mem::take(&mut nodes[x].kids);
         for &c in &moved {
             nodes[c].parent = p;
@@ -554,7 +611,10 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
                 (s, e)
             }
             None => {
-                let s = kids.iter().position(|&c| b.lml[nodes[c].bid - 1] as usize > v).unwrap_or(kids.len());
+                let s = kids
+                    .iter()
+                    .position(|&c| b.lml[nodes[c].bid - 1] as usize > v)
+                    .unwrap_or(kids.len());
                 (s, s)
             }
         };
@@ -563,7 +623,13 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         for &c in &run {
             nodes[c].parent = id;
         }
-        nodes.push(RNode { label: b.label[v - 1], kids: run, parent: p, bid: v, alive: true });
+        nodes.push(RNode {
+            label: b.label[v - 1],
+            kids: run,
+            parent: p,
+            bid: v,
+            alive: true,
+        });
         nodes[p].kids.splice(start..end, [id]);
         arena_of_b[v] = id;
         ops += 1;
@@ -580,7 +646,9 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         let want: Vec<usize> = b.kids[v - 1].iter().map(|&k| k as usize + 1).collect();
         let got: Vec<usize> = nodes[x].kids.iter().map(|&c| nodes[c].bid).collect();
         if want != got {
-            return Err(format!("children of node {v} differ: expected {want:?}, got {got:?}"));
+            return Err(format!(
+                "children of node {v} differ: expected {want:?}, got {got:?}"
+            ));
         }
         stack.extend(nodes[x].kids.iter().map(|&c| (c, nodes[c].bid)));
     }

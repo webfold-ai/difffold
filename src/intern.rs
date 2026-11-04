@@ -101,13 +101,16 @@ impl Arena {
         let size = 1 + kids.iter().map(|k| self.size[k.0 as usize]).sum::<u32>();
         let prev = u32::try_from(*self.head.get(&key)).expect("chain head is a node id");
         self.label.push(label);
-        self.span.push((start, u32::try_from(kids.len()).expect("arena overflow")));
+        self.span
+            .push((start, u32::try_from(kids.len()).expect("arena overflow")));
         self.size.push(size);
         self.chain.push(prev);
         // Last write wins: the new node becomes the chain head. The merge is new-first, so
         // `|new, _old| new`. A storage refusal leaves the table unchanged; panicking keeps I1 true
         // of every id that is returned, because the new node is then never returned.
-        self.head.insert_with(&|new: i64, _old: i64| new, key, i64::from(id)).expect("head table refused an insert");
+        self.head
+            .insert_with(&|new: i64, _old: i64| new, key, i64::from(id))
+            .expect("head table refused an insert");
         Id(id)
     }
 
@@ -123,7 +126,11 @@ impl Arena {
     pub fn deep_eq(&self, x: Id, y: Id) -> bool {
         self.label(x) == self.label(y)
             && self.kids(x).len() == self.kids(y).len()
-            && self.kids(x).iter().zip(self.kids(y)).all(|(&p, &q)| self.deep_eq(p, q))
+            && self
+                .kids(x)
+                .iter()
+                .zip(self.kids(y))
+                .all(|(&p, &q)| self.deep_eq(p, q))
     }
 
     /// Label of a node.

@@ -17,8 +17,5 @@ path = "src/bin/gen_corpus.rs"
 name = "validate_corpus"
 path = "src/bin/validate_corpus.rs"
 
-# Standalone: not a member of the enclosing difffold package or any workspace.
+# Standalone: corpus/ is excluded from the root workspace.
 [workspace]
-
-[profile.release]
-debug = 0

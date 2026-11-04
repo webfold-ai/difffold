@@ -102,27 +102,79 @@ fn main() {
     let root = PathBuf::from(&args[1]);
     let cap: usize = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(800);
     let mut out = std::fs::File::create(&args[2]).unwrap();
-    writeln!(out, "fixture,bytes_before,bytes_after,tool,delta_bytes,deflated_bytes,side_bytes,us,verified").unwrap();
+    writeln!(
+        out,
+        "fixture,bytes_before,bytes_after,tool,delta_bytes,deflated_bytes,side_bytes,us,verified"
+    )
+    .unwrap();
     let mut n = 0;
-    'all: for ds in std::fs::read_dir(&root).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
-        for fx in std::fs::read_dir(&ds).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
-            let find = |p: &str| std::fs::read_dir(&fx).unwrap().flatten().map(|e| e.path()).find(|x| x.file_name().and_then(|f| f.to_str()).is_some_and(|f| f.starts_with(p)));
-            let (Some(bp), Some(ap)) = (find("before."), find("after.")) else { continue };
-            let (Ok(a), Ok(b)) = (std::fs::read(bp), std::fs::read(ap)) else { continue };
+    'all: for ds in std::fs::read_dir(&root)
+        .unwrap()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+    {
+        for fx in std::fs::read_dir(&ds)
+            .unwrap()
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.is_dir())
+        {
+            let find = |p: &str| {
+                std::fs::read_dir(&fx)
+                    .unwrap()
+                    .flatten()
+                    .map(|e| e.path())
+                    .find(|x| {
+                        x.file_name()
+                            .and_then(|f| f.to_str())
+                            .is_some_and(|f| f.starts_with(p))
+                    })
+            };
+            let (Some(bp), Some(ap)) = (find("before."), find("after.")) else {
+                continue;
+            };
+            let (Ok(a), Ok(b)) = (std::fs::read(bp), std::fs::read(ap)) else {
+                continue;
+            };
             if a.len() > 3_000_000 || b.len() > 3_000_000 || a == b {
                 continue;
             }
-            let name = format!("{}/{}", ds.file_name().unwrap().to_string_lossy(), fx.file_name().unwrap().to_string_lossy());
-            let mut row = |tool: &str, delta: usize, defl: usize, side: usize, us: f64, ok: bool| {
-                writeln!(out, "{name},{},{},{tool},{delta},{defl},{side},{us:.0},{ok}", a.len(), b.len()).unwrap();
-            };
+            let name = format!(
+                "{}/{}",
+                ds.file_name().unwrap().to_string_lossy(),
+                fx.file_name().unwrap().to_string_lossy()
+            );
+            let mut row =
+                |tool: &str, delta: usize, defl: usize, side: usize, us: f64, ok: bool| {
+                    writeln!(
+                        out,
+                        "{name},{},{},{tool},{delta},{defl},{side},{us:.0},{ok}",
+                        a.len(),
+                        b.len()
+                    )
+                    .unwrap();
+                };
             let t = Instant::now();
             let d = line_delta(&a, &b);
             let us = t.elapsed().as_secs_f64() * 1e6;
-            row("difffold-line-delta", d.len(), deflated(&d), 0, us, line_apply(&a, &d) == b);
+            row(
+                "difffold-line-delta",
+                d.len(),
+                deflated(&d),
+                0,
+                us,
+                line_apply(&a, &d) == b,
+            );
 
             let t = Instant::now();
-            let sig = Signature::calculate(&a, SignatureOptions { block_size: 512, crypto_hash_size: 8 });
+            let sig = Signature::calculate(
+                &a,
+                SignatureOptions {
+                    block_size: 512,
+                    crypto_hash_size: 8,
+                },
+            );
             let sigbytes = sig.serialized().len();
             let isig = sig.index();
             let mut delta = Vec::new();
@@ -130,15 +182,32 @@ fn main() {
             let us = t.elapsed().as_secs_f64() * 1e6;
             let mut rebuilt = Vec::new();
             apply(&a, &delta, &mut rebuilt).unwrap();
-            row("rsync-fast_rsync-512", delta.len(), deflated(&delta), sigbytes, us, rebuilt == b);
+            row(
+                "rsync-fast_rsync-512",
+                delta.len(),
+                deflated(&delta),
+                sigbytes,
+                us,
+                rebuilt == b,
+            );
 
             let t = Instant::now();
             let mut patch = Vec::new();
             qbsdiff::Bsdiff::new(&a, &b).compare(&mut patch).unwrap();
             let us = t.elapsed().as_secs_f64() * 1e6;
             let mut rebuilt = Vec::new();
-            qbsdiff::Bspatch::new(&patch).unwrap().apply(&a, &mut rebuilt).unwrap();
-            row("bsdiff-qbsdiff", patch.len(), deflated(&patch), 0, us, rebuilt == b);
+            qbsdiff::Bspatch::new(&patch)
+                .unwrap()
+                .apply(&a, &mut rebuilt)
+                .unwrap();
+            row(
+                "bsdiff-qbsdiff",
+                patch.len(),
+                deflated(&patch),
+                0,
+                us,
+                rebuilt == b,
+            );
             n += 1;
             if n >= cap {
                 break 'all;

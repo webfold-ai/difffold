@@ -42,7 +42,13 @@ fn bracket(f: &Flat, i: usize, out: &mut String) {
 fn canon(f: &Flat, table: &mut HashMap<(u32, Vec<u32>), u32>) -> Vec<u32> {
     let mut ids = vec![0u32; f.label.len()];
     for i in 0..f.label.len() {
-        let key = (f.label[i], f.kids[i].iter().map(|&k| ids[k as usize]).collect::<Vec<_>>());
+        let key = (
+            f.label[i],
+            f.kids[i]
+                .iter()
+                .map(|&k| ids[k as usize])
+                .collect::<Vec<_>>(),
+        );
         let next = table.len() as u32;
         ids[i] = *table.entry(key).or_insert(next);
     }
@@ -73,33 +79,84 @@ fn run(args: Vec<String>) {
     writeln!(out, "fixture,nodes_before,nodes_after,dist,norm_dist,unique_before,shared_fraction,cells,windows,skipped,attempts,mirrored,difffold_us,unpruned_us,apted_us,mapping_us,mapping_pairs").unwrap();
     let mut done = 0;
     let mut dirs: Vec<PathBuf> = Vec::new();
-    for ds in std::fs::read_dir(&root).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
-        dirs.extend(std::fs::read_dir(&ds).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_dir()));
+    for ds in std::fs::read_dir(&root)
+        .unwrap()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+    {
+        dirs.extend(
+            std::fs::read_dir(&ds)
+                .unwrap()
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.is_dir()),
+        );
     }
     dirs.sort();
     for fx in dirs {
-        let find = |pre: &str| std::fs::read_dir(&fx).unwrap().flatten().map(|e| e.path()).find(|x| x.file_name().and_then(|f| f.to_str()).is_some_and(|f| f.starts_with(pre)));
-        let (Some(bp), Some(ap)) = (find("before."), find("after.")) else { continue };
-        let ext = bp.file_name().unwrap().to_str().unwrap().split('.').nth(1).unwrap_or("").to_string();
+        let find = |pre: &str| {
+            std::fs::read_dir(&fx)
+                .unwrap()
+                .flatten()
+                .map(|e| e.path())
+                .find(|x| {
+                    x.file_name()
+                        .and_then(|f| f.to_str())
+                        .is_some_and(|f| f.starts_with(pre))
+                })
+        };
+        let (Some(bp), Some(ap)) = (find("before."), find("after.")) else {
+            continue;
+        };
+        let ext = bp
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .split('.')
+            .nth(1)
+            .unwrap_or("")
+            .to_string();
         let Some(l) = lang(&ext) else { continue };
-        let (Ok(bs), Ok(as_)) = (std::fs::read(&bp), std::fs::read(&ap)) else { continue };
+        let (Ok(bs), Ok(as_)) = (std::fs::read(&bp), std::fs::read(&ap)) else {
+            continue;
+        };
         let mut parser = Parser::new();
         parser.set_language(&l).unwrap();
-        let (Some(tb), Some(ta)) = (parser.parse(&bs, None), parser.parse(&as_, None)) else { continue };
+        let (Some(tb), Some(ta)) = (parser.parse(&bs, None), parser.parse(&as_, None)) else {
+            continue;
+        };
         let mut it = HashMap::new();
-        let (mut fb, mut fa) = (Flat { label: vec![], kids: vec![] }, Flat { label: vec![], kids: vec![] });
+        let (mut fb, mut fa) = (
+            Flat {
+                label: vec![],
+                kids: vec![],
+            },
+            Flat {
+                label: vec![],
+                kids: vec![],
+            },
+        );
         let rb = walk(tb.root_node(), &bs, &mut it, &mut fb);
         let ra = walk(ta.root_node(), &as_, &mut it, &mut fa);
         let (nb, na) = (fb.label.len(), fa.label.len());
         if nb > max_nodes || na > max_nodes || nb < min_nodes {
             continue;
         }
-        let (pb, pa) = (PostTree::from_kids(fb.label.clone(), &fb.kids), PostTree::from_kids(fa.label.clone(), &fa.kids));
+        let (pb, pa) = (
+            PostTree::from_kids(fb.label.clone(), &fb.kids),
+            PostTree::from_kids(fa.label.clone(), &fa.kids),
+        );
         let (mut sb, mut sa) = (String::new(), String::new());
         bracket(&fb, rb as usize, &mut sb);
         bracket(&fa, ra as usize, &mut sa);
         if let Ok(path) = std::env::var("TED_DUMP") {
-            let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
+            let mut f = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .unwrap();
             writeln!(f, "{sb}\n{sa}").unwrap();
         }
         let parser = BracketStringInputParser::new();
@@ -133,11 +190,28 @@ fn run(args: Vec<String>) {
         let tm = Instant::now();
         let mp = ted_mapping(&pb, &pa);
         let map_us = tm.elapsed().as_secs_f64() * 1e6;
-        let script = check_mapping(&pb, &pa, &mp.pairs).unwrap_or_else(|e| panic!("illegal mapping on {}: {e}", fx.display()));
-        assert_eq!(script, d_ours, "mapping script cost differs from the distance on {}", fx.display());
-        let replayed = replay_script(&pb, &pa, &mp.pairs).unwrap_or_else(|e| panic!("script replay failed on {}: {e}", fx.display()));
-        assert_eq!(replayed, d_ours, "replayed operation count differs from the distance on {}", fx.display());
-        assert_eq!(d_ours as f32, d_apted, "distance mismatch on {}", fx.display());
+        let script = check_mapping(&pb, &pa, &mp.pairs)
+            .unwrap_or_else(|e| panic!("illegal mapping on {}: {e}", fx.display()));
+        assert_eq!(
+            script,
+            d_ours,
+            "mapping script cost differs from the distance on {}",
+            fx.display()
+        );
+        let replayed = replay_script(&pb, &pa, &mp.pairs)
+            .unwrap_or_else(|e| panic!("script replay failed on {}: {e}", fx.display()));
+        assert_eq!(
+            replayed,
+            d_ours,
+            "replayed operation count differs from the distance on {}",
+            fx.display()
+        );
+        assert_eq!(
+            d_ours as f32,
+            d_apted,
+            "distance mismatch on {}",
+            fx.display()
+        );
         writeln!(out, "{},{nb},{na},{d_ours},{:.4},{},{shared:.4},{},{},{},{},{},{:.0},{ut:.0},{:.0},{map_us:.0},{}", fx.file_name().unwrap().to_string_lossy(), f64::from(d_ours) / (nb + na) as f64, uniq_b.len(), stats.cells, stats.windows, stats.skipped, stats.attempts, u8::from(stats.mirrored), med(&mut dt), med(&mut at), mp.pairs.len()).unwrap();
         done += 1;
         if done >= cap {
@@ -149,5 +223,10 @@ fn run(args: Vec<String>) {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    std::thread::Builder::new().stack_size(256 << 20).spawn(move || run(args)).unwrap().join().unwrap();
+    std::thread::Builder::new()
+        .stack_size(256 << 20)
+        .spawn(move || run(args))
+        .unwrap()
+        .join()
+        .unwrap();
 }

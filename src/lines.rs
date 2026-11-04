@@ -50,7 +50,9 @@ fn fold_words(h: u64, bytes: &[u8]) -> u64 {
     if bytes.len() < 8 {
         fold_tail(h, bytes, 0, 0)
     } else {
-        let w = u64::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]]);
+        let w = u64::from_le_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ]);
         fold_words((h ^ w).wrapping_mul(K).rotate_left(29), &bytes[8..])
     }
 }
@@ -71,7 +73,10 @@ fn fold_bytes(h: u64, bytes: &[u8]) -> u64 {
         fold_words(h, bytes)
     } else {
         let mid = (bytes.len() / 2) & !7;
-        let (l, r) = (fold_bytes(h, &bytes[..mid]), fold_bytes(h ^ K, &bytes[mid..]));
+        let (l, r) = (
+            fold_bytes(h, &bytes[..mid]),
+            fold_bytes(h ^ K, &bytes[mid..]),
+        );
         (l.rotate_left(17) ^ r).wrapping_mul(K).rotate_left(29)
     }
 }
@@ -233,7 +238,9 @@ fn last_nl(t: &[u8]) -> Option<usize> {
     if t.len() <= 64 {
         last_in_block(t)
     } else {
-        last_nl(&t[t.len() / 2..]).map(|i| i + t.len() / 2).or_else(|| last_nl(&t[..t.len() / 2]))
+        last_nl(&t[t.len() / 2..])
+            .map(|i| i + t.len() / 2)
+            .or_else(|| last_nl(&t[..t.len() / 2]))
     }
 }
 
@@ -266,7 +273,10 @@ fn split_into<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
     } else {
         let mid = t.len() / 2;
         // Cut after the first newline at or past the middle; fall back to the last newline before it.
-        let cut = first_nl(&t[mid..]).map(|i| mid + i + 1).filter(|&c| c < t.len()).or_else(|| last_nl(&t[..mid]).map(|i| i + 1));
+        let cut = first_nl(&t[mid..])
+            .map(|i| mid + i + 1)
+            .filter(|&c| c < t.len())
+            .or_else(|| last_nl(&t[..mid]).map(|i| i + 1));
         match cut {
             Some(c) => {
                 split_into(&t[..c], out);
@@ -289,7 +299,8 @@ pub fn split_lines(t: &[u8]) -> Vec<&[u8]> {
 // ------------------------------------------------------------------ interning
 
 fn intern<'a>(a: &[&'a [u8]], b: &[&'a [u8]]) -> (Vec<u32>, Vec<u32>, usize) {
-    let mut map: FoldMap<'a> = HashMap::with_capacity_and_hasher(a.len() + b.len(), FoldState::random());
+    let mut map: FoldMap<'a> =
+        HashMap::with_capacity_and_hasher(a.len() + b.len(), FoldState::random());
     let mut ia = vec![0u32; a.len()];
     let mut ib = vec![0u32; b.len()];
     let mut take = |l: &'a [u8]| -> u32 {
@@ -328,7 +339,11 @@ pub fn diff_text_with(old: &[u8], new: &[u8], algo: Algo) -> LineDiff {
     // Suffix: advance to the first full line of the common tail, in both texts.
     let q = suffix_on_line_start(ro, rn, common_suffix(ro, rn));
     let (mo, mn) = (&ro[..ro.len() - q], &rn[..rn.len() - q]);
-    let (pre_lines, suf_old, suf_new) = (count_lines(&old[..p]), count_lines(&ro[ro.len() - q..]), count_lines(&rn[rn.len() - q..]));
+    let (pre_lines, suf_old, suf_new) = (
+        count_lines(&old[..p]),
+        count_lines(&ro[ro.len() - q..]),
+        count_lines(&rn[rn.len() - q..]),
+    );
     let (la, lb) = (split_lines(mo), split_lines(mn));
     let (ia, ib, n_ids) = intern(&la, &lb);
     let mid = match algo {
@@ -402,7 +417,16 @@ pub fn diff_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
 
 /// Mark the minimal edits between `a` and `b`; `ao`/`bo` are the offsets of the slices in `ra`/`rb`.
 #[allow(clippy::too_many_arguments)]
-fn solve(a: &[u32], b: &[u32], ao: usize, bo: usize, ra: &mut [bool], rb: &mut [bool], vf: &mut [i32], vb: &mut [i32]) {
+fn solve(
+    a: &[u32],
+    b: &[u32],
+    ao: usize,
+    bo: usize,
+    ra: &mut [bool],
+    rb: &mut [bool],
+    vf: &mut [i32],
+    vb: &mut [i32],
+) {
     let s = common_prefix(a, b);
     let e = common_suffix(&a[s..], &b[s..]);
     let (a, b, ao, bo) = (&a[s..a.len() - e], &b[s..b.len() - e], ao + s, bo + s);
@@ -446,7 +470,17 @@ impl Search<'_> {
 fn middle(a: &[u32], b: &[u32], vf: &mut [i32], vb: &mut [i32]) -> (usize, usize) {
     let n = a.len() as i32;
     let m = b.len() as i32;
-    let mut s = Search { a, b, n, m, delta: n - m, odd: (n - m) & 1 != 0, off: n + m + 1, vf, vb };
+    let mut s = Search {
+        a,
+        b,
+        n,
+        m,
+        delta: n - m,
+        odd: (n - m) & 1 != 0,
+        off: n + m + 1,
+        vf,
+        vb,
+    };
     let o = s.ix(1);
     s.vf[o] = 0;
     s.vb[o] = 0;
@@ -496,14 +530,18 @@ fn forward_seq(s: &mut Search, d: i32, lo: i32, hi: i32) -> Option<(usize, usize
 
 fn forward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
     let (ikm, ikp) = (s.ix(k - 1), s.ix(k + 1));
-    let x0 = if k == -d || (k != d && s.vf[ikm] < s.vf[ikp]) { s.vf[ikp] } else { s.vf[ikm] + 1 };
+    let x0 = if k == -d || (k != d && s.vf[ikm] < s.vf[ikp]) {
+        s.vf[ikp]
+    } else {
+        s.vf[ikm] + 1
+    };
     let y0 = x0 - k;
     let run = snake(s, x0, y0);
     let (x, y) = (x0 + run, y0 + run);
     let ik = s.ix(k);
     s.vf[ik] = x;
     let kb = s.delta - k;
-    if s.odd && kb >= -(d - 1) && kb <= d - 1 && x + s.vb[s.ix(kb)] >= s.n {
+    if s.odd && kb > -d && kb < d && x + s.vb[s.ix(kb)] >= s.n {
         Some((x as usize, y as usize))
     } else {
         None
@@ -534,7 +572,11 @@ fn backward_seq(s: &mut Search, d: i32, lo: i32, hi: i32) -> Option<(usize, usiz
 
 fn backward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
     let (ikm, ikp) = (s.ix(k - 1), s.ix(k + 1));
-    let x0 = if k == -d || (k != d && s.vb[ikm] < s.vb[ikp]) { s.vb[ikp] } else { s.vb[ikm] + 1 };
+    let x0 = if k == -d || (k != d && s.vb[ikm] < s.vb[ikp]) {
+        s.vb[ikp]
+    } else {
+        s.vb[ikm] + 1
+    };
     let y0 = x0 - k;
     let run = snake_back(s, x0, y0);
     let (x, y) = (x0 + run, y0 + run);
@@ -617,7 +659,10 @@ pub fn diff_histogram_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
         vb: vec![0; size],
     };
     hist(&mut h, (0, a.len()), (0, b.len()), 0);
-    LineDiff { deleted: h.del, inserted: h.ins }
+    LineDiff {
+        deleted: h.del,
+        inserted: h.ins,
+    }
 }
 
 fn hist(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize), depth: u32) {
@@ -655,7 +700,16 @@ fn hist(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize), de
 /// Solve a range with the minimal search.
 fn hist_fallback(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize)) {
     let (a, b) = (h.a, h.b);
-    solve(&a[alo..ahi], &b[blo..bhi], alo, blo, &mut h.del, &mut h.ins, &mut h.vf, &mut h.vb);
+    solve(
+        &a[alo..ahi],
+        &b[blo..bhi],
+        alo,
+        blo,
+        &mut h.del,
+        &mut h.ins,
+        &mut h.vf,
+        &mut h.vb,
+    );
 }
 
 fn index_a(h: &mut Hist, alo: usize, ahi: usize) {
@@ -679,7 +733,9 @@ fn unindex_a(h: &mut Hist, alo: usize, ahi: usize) {
 fn any_common(h: &mut Hist, blo: usize, bhi: usize) -> bool {
     let b = h.b;
     let mut found = false;
-    each(&b[blo..bhi], blo, &mut |_, &id| found |= h.cnt[id as usize] > 0);
+    each(&b[blo..bhi], blo, &mut |_, &id| {
+        found |= h.cnt[id as usize] > 0
+    });
     found
 }
 
@@ -697,19 +753,41 @@ fn find_anchor(h: &Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize))
 }
 
 /// Try every old position of the line, keeping the better anchor. Recursion over the chain.
-fn walk_chain(h: &Hist, at: u32, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize), j: usize, c: u32, best: Option<Anchor>) -> Option<Anchor> {
+fn walk_chain(
+    h: &Hist,
+    at: u32,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+    j: usize,
+    c: u32,
+    best: Option<Anchor>,
+) -> Option<Anchor> {
     if at == NIL {
         best
     } else {
         let i = at as usize;
         let bl = common_suffix(&h.a[alo..i], &h.b[blo..j]);
         let fl = common_prefix(&h.a[i..ahi], &h.b[j..bhi]);
-        let cand = Anchor { cnt: c, len: bl + fl, i, j, bl };
+        let cand = Anchor {
+            cnt: c,
+            len: bl + fl,
+            i,
+            j,
+            bl,
+        };
         let better = match best {
             None => true,
             Some(b0) => cand.cnt < b0.cnt || (cand.cnt == b0.cnt && cand.len > b0.len),
         };
-        walk_chain(h, h.nxt[i], (alo, ahi), (blo, bhi), j, c, if better { Some(cand) } else { best })
+        walk_chain(
+            h,
+            h.nxt[i],
+            (alo, ahi),
+            (blo, bhi),
+            j,
+            c,
+            if better { Some(cand) } else { best },
+        )
     }
 }
 

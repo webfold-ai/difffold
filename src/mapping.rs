@@ -69,15 +69,31 @@ fn walk(arena: &Arena, e: &Edit, b: &mut u32, a: &mut u32, out: &mut Vec<Pair>) 
     match e {
         Edit::Keep(x) => {
             let s = arena.size(*x);
-            out.extend((0..s).map(|k| Pair { before: *b + k, after: *a + k, kind: PairKind::Identical }));
+            out.extend((0..s).map(|k| Pair {
+                before: *b + k,
+                after: *a + k,
+                kind: PairKind::Identical,
+            }));
             *b += s;
             *a += s;
         }
         Edit::Del(x) => *b += arena.size(*x),
         Edit::Ins(y) => *a += arena.size(*y),
-        Edit::Upd { from, to_label, kids } => {
-            let kind = if arena.label(*from) == *to_label { PairKind::Changed } else { PairKind::Relabel };
-            out.push(Pair { before: *b, after: *a, kind });
+        Edit::Upd {
+            from,
+            to_label,
+            kids,
+        } => {
+            let kind = if arena.label(*from) == *to_label {
+                PairKind::Changed
+            } else {
+                PairKind::Relabel
+            };
+            out.push(Pair {
+                before: *b,
+                after: *a,
+                kind,
+            });
             *b += 1;
             *a += 1;
             for k in kids {
@@ -89,11 +105,20 @@ fn walk(arena: &Arena, e: &Edit, b: &mut u32, a: &mut u32, out: &mut Vec<Pair>) 
 
 /// The correspondence of `edit`, a script from `before` to `after` in `arena`.
 #[must_use]
-pub fn correspondence(arena: &Arena, before: crate::Id, after: crate::Id, edit: &Edit) -> Correspondence {
+pub fn correspondence(
+    arena: &Arena,
+    before: crate::Id,
+    after: crate::Id,
+    edit: &Edit,
+) -> Correspondence {
     let (mut b, mut a) = (0, 0);
     let mut pairs = Vec::new();
     walk(arena, edit, &mut b, &mut a, &mut pairs);
     debug_assert_eq!(b, arena.size(before));
     debug_assert_eq!(a, arena.size(after));
-    Correspondence { pairs, before_len: arena.size(before), after_len: arena.size(after) }
+    Correspondence {
+        pairs,
+        before_len: arena.size(before),
+        after_len: arena.size(after),
+    }
 }

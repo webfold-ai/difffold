@@ -25,7 +25,10 @@ struct Plain(u32, Vec<Plain>);
 
 fn gen_plain(r: &mut Rng, depth: u32, labels: u64) -> Plain {
     let n = if depth == 0 { 0 } else { r.below(4) as usize };
-    Plain(r.below(labels) as u32, (0..n).map(|_| gen_plain(r, depth - 1, labels)).collect())
+    Plain(
+        r.below(labels) as u32,
+        (0..n).map(|_| gen_plain(r, depth - 1, labels)).collect(),
+    )
 }
 
 fn build(a: &mut Arena, p: &Plain) -> Id {
@@ -35,7 +38,16 @@ fn build(a: &mut Arena, p: &Plain) -> Id {
 
 /// Copy `p` with random edits: relabel, drop, duplicate, insert a fresh subtree.
 fn mutate(r: &mut Rng, p: &Plain, labels: u64) -> Plain {
-    let mut kids: Vec<Plain> = p.1.iter().map(|c| if r.below(4) == 0 { mutate(r, c, labels) } else { c.clone() }).collect();
+    let mut kids: Vec<Plain> =
+        p.1.iter()
+            .map(|c| {
+                if r.below(4) == 0 {
+                    mutate(r, c, labels)
+                } else {
+                    c.clone()
+                }
+            })
+            .collect();
     match r.below(9) {
         0 if !kids.is_empty() => {
             let i = r.below(kids.len() as u64) as usize;
@@ -56,7 +68,11 @@ fn mutate(r: &mut Rng, p: &Plain, labels: u64) -> Plain {
         }
         _ => {}
     }
-    let label = if r.below(8) == 0 { r.below(labels) as u32 } else { p.0 };
+    let label = if r.below(8) == 0 {
+        r.below(labels) as u32
+    } else {
+        p.0
+    };
     Plain(label, kids)
 }
 
@@ -108,7 +124,11 @@ fn i1_interning_matches_structural_equality() {
     }
     for i in 0..items.len() {
         for j in 0..items.len() {
-            assert_eq!(items[i].0 == items[j].0, items[i].1 == items[j].1, "I1 violated");
+            assert_eq!(
+                items[i].0 == items[j].0,
+                items[i].1 == items[j].1,
+                "I1 violated"
+            );
         }
     }
 }
@@ -125,7 +145,10 @@ fn i1_survives_forced_fold_collisions() {
         if let Some((_, old)) = seen.iter().find(|(q, _)| *q == p) {
             assert_eq!(*old, id);
         } else {
-            assert!(seen.iter().all(|(_, o)| *o != id), "two different trees share an id");
+            assert!(
+                seen.iter().all(|(_, o)| *o != id),
+                "two different trees share an id"
+            );
             seen.push((p, id));
         }
     }
@@ -145,7 +168,10 @@ fn c4_c3_random_pairs_match_oracle_and_replay() {
         let want = oracle(&arena, x, y);
         let got = diff_checked(&mut arena, x, y);
         assert_eq!(got.cost, want, "C4: distance differs from oracle");
-        assert!(got.cost >= arena.size(x).abs_diff(arena.size(y)), "C7: size lower bound");
+        assert!(
+            got.cost >= arena.size(x).abs_diff(arena.size(y)),
+            "C7: size lower bound"
+        );
         assert_eq!(got.cost == 0, x == y, "C6: zero iff equal");
     }
 }
@@ -169,7 +195,11 @@ fn c5_c8_symmetry_and_triangle() {
         let a = gen_plain(&mut r, 3, 3);
         let b = mutate(&mut r, &a, 3);
         let c = mutate(&mut r, &b, 3);
-        let (x, y, z) = (build(&mut arena, &a), build(&mut arena, &b), build(&mut arena, &c));
+        let (x, y, z) = (
+            build(&mut arena, &a),
+            build(&mut arena, &b),
+            build(&mut arena, &c),
+        );
         let (dxy, dyx) = (diff(&arena, x, y).cost, diff(&arena, y, x).cost);
         let (dyz, dxz) = (diff(&arena, y, z).cost, diff(&arena, x, z).cost);
         assert_eq!(dxy, dyx, "C5: symmetry");
@@ -194,7 +224,11 @@ fn identical_first_anchoring_would_be_wrong_here() {
     let y = arena.mk(0, &[small, a_big2]);
     let got = diff_checked(&mut arena, x, y);
     assert_eq!(got.cost, oracle(&arena, x, y));
-    assert!(got.cost < 10, "optimal pairs the two large children (cost {})", got.cost);
+    assert!(
+        got.cost < 10,
+        "optimal pairs the two large children (cost {})",
+        got.cost
+    );
 }
 
 #[test]
@@ -206,17 +240,23 @@ fn c2_threshold_certificate_agrees_with_full_dp() {
     for _ in 0..200 {
         let width = 5 + r.below(30) as usize;
         let mk_list = |r: &mut Rng, arena: &mut Arena| -> Id {
-            let kids: Vec<Id> = (0..width).map(|_| {
-                let p = gen_plain(r, 2, 2);
-                build(arena, &p)
-            }).collect();
+            let kids: Vec<Id> = (0..width)
+                .map(|_| {
+                    let p = gen_plain(r, 2, 2);
+                    build(arena, &p)
+                })
+                .collect();
             arena.mk(0, &kids)
         };
         let x = mk_list(&mut r, &mut arena);
         let y = mk_list(&mut r, &mut arena);
         let got = diff_checked(&mut arena, x, y);
         widened += got.stats.widenings;
-        assert_eq!(got.cost, oracle(&arena, x, y), "C2: certified answer differs from full DP");
+        assert_eq!(
+            got.cost,
+            oracle(&arena, x, y),
+            "C2: certified answer differs from full DP"
+        );
     }
     assert!(widened > 0, "the test never exercised threshold widening");
 }

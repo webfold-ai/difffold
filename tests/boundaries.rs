@@ -27,7 +27,10 @@ fn build(a: &mut Arena, p: &Plain) -> Id {
 
 fn gen(r: &mut Rng, depth: u32, labels: u64) -> Plain {
     let n = if depth == 0 { 0 } else { r.below(4) as usize };
-    Plain(r.below(labels) as u32, (0..n).map(|_| gen(r, depth - 1, labels)).collect())
+    Plain(
+        r.below(labels) as u32,
+        (0..n).map(|_| gen(r, depth - 1, labels)).collect(),
+    )
 }
 
 /// Every ordered labelled tree with exactly `n` nodes over `labels` labels.
@@ -107,9 +110,20 @@ fn oracle_remaining(a: &Arena, ka: &[Id], kb: &[Id]) -> Vec<Vec<u32>> {
     r
 }
 
-fn lists(r: &mut Rng, arena: &mut Arena, labels: u64, depth: u32, max_len: u64) -> (Vec<Id>, Vec<Id>) {
+fn lists(
+    r: &mut Rng,
+    arena: &mut Arena,
+    labels: u64,
+    depth: u32,
+    max_len: u64,
+) -> (Vec<Id>, Vec<Id>) {
     let mk = |r: &mut Rng, arena: &mut Arena| -> Vec<Id> {
-        (0..r.below(max_len + 1)).map(|_| { let p = gen(r, depth, labels); build(arena, &p) }).collect()
+        (0..r.below(max_len + 1))
+            .map(|_| {
+                let p = gen(r, depth, labels);
+                build(arena, &p)
+            })
+            .collect()
     };
     (mk(r, arena), mk(r, arena))
 }
@@ -123,10 +137,18 @@ fn threshold_below_at_and_above_the_optimum() {
         let (a, b) = lists(&mut r, &mut arena, 2, 2, 7);
         let d = oracle_list(&arena, &a, &b);
         if d > 0 {
-            assert_eq!(align_within(&arena, &a, &b, d - 1), None, "tau < d must refuse, d = {d}");
+            assert_eq!(
+                align_within(&arena, &a, &b, d - 1),
+                None,
+                "tau < d must refuse, d = {d}"
+            );
         }
         for extra in [0u32, 1, 3, 40] {
-            assert_eq!(align_within(&arena, &a, &b, d + extra), Some(d), "tau = d + {extra} must return the exact optimum");
+            assert_eq!(
+                align_within(&arena, &a, &b, d + extra),
+                Some(d),
+                "tau = d + {extra} must return the exact optimum"
+            );
         }
         checked += 1;
     }
@@ -134,6 +156,8 @@ fn threshold_below_at_and_above_the_optimum() {
 }
 
 #[test]
+// `i` indexes `rem` and is also passed to `remaining_bound`, so enumerate() would not simplify it.
+#[allow(clippy::needless_range_loop)]
 fn bound_never_exceeds_true_remaining_cost() {
     let mut r = Rng(0xB0_0B);
     let mut arena = Arena::new();
@@ -143,7 +167,11 @@ fn bound_never_exceeds_true_remaining_cost() {
         for i in 0..=a.len() {
             for j in 0..=b.len() {
                 let h = remaining_bound(&arena, &a, &b, i, j);
-                assert!(h <= rem[i][j], "h({i},{j}) = {h} exceeds true remaining cost {}", rem[i][j]);
+                assert!(
+                    h <= rem[i][j],
+                    "h({i},{j}) = {h} exceeds true remaining cost {}",
+                    rem[i][j]
+                );
             }
         }
     }
@@ -164,7 +192,11 @@ fn exhaustive_small_shapes_all_pairs() {
             let want = oracle_tree(&arena, x, y);
             let got = diff_checked(&mut arena, x, y);
             assert_eq!(got.cost, want);
-            for cfg in [Config::FULL_STRUCTURAL, Config::FULL_INTERNED, Config::FULL_MEMO] {
+            for cfg in [
+                Config::FULL_STRUCTURAL,
+                Config::FULL_INTERNED,
+                Config::FULL_MEMO,
+            ] {
                 assert_eq!(diff_with(&arena, cfg, x, y).cost, want, "config {cfg:?}");
             }
             pairs += 1;
@@ -187,14 +219,23 @@ fn constant_bucket_function_keeps_identity_and_distance_exact() {
         match seen.iter().find(|(q, _)| *q == p) {
             Some((_, old)) => assert_eq!(*old, id, "equal trees must share an id"),
             None => {
-                assert!(seen.iter().all(|(_, o)| *o != id), "different trees must not share an id");
+                assert!(
+                    seen.iter().all(|(_, o)| *o != id),
+                    "different trees must not share an id"
+                );
                 seen.push((p, id));
             }
         }
     }
     for _ in 0..300 {
-        let (x, y) = (seen[r.below(seen.len() as u64) as usize].1, seen[r.below(seen.len() as u64) as usize].1);
-        assert_eq!(diff_checked(&mut arena, x, y).cost, oracle_tree(&arena, x, y));
+        let (x, y) = (
+            seen[r.below(seen.len() as u64) as usize].1,
+            seen[r.below(seen.len() as u64) as usize].1,
+        );
+        assert_eq!(
+            diff_checked(&mut arena, x, y).cost,
+            oracle_tree(&arena, x, y)
+        );
     }
 }
 
@@ -204,10 +245,23 @@ fn schedules_and_configs_agree_on_distance() {
     let mut arena = Arena::new();
     let schedules = [
         Config::PRODUCTION,
-        Config { tau0: Tau0::One, ..Config::PRODUCTION },
-        Config { growth: 4, ..Config::PRODUCTION },
-        Config { growth: 8, tau0: Tau0::One, ..Config::PRODUCTION },
-        Config { memo: false, ..Config::PRODUCTION },
+        Config {
+            tau0: Tau0::One,
+            ..Config::PRODUCTION
+        },
+        Config {
+            growth: 4,
+            ..Config::PRODUCTION
+        },
+        Config {
+            growth: 8,
+            tau0: Tau0::One,
+            ..Config::PRODUCTION
+        },
+        Config {
+            memo: false,
+            ..Config::PRODUCTION
+        },
         Config::FULL_STRUCTURAL,
         Config::FULL_INTERNED,
         Config::FULL_MEMO,
@@ -230,5 +284,9 @@ fn identical_subtrees_share_an_id_but_scripts_keep_occurrences_apart() {
     let x = arena.mk(0, &[c, c, c]);
     let y = arena.mk(0, &[c, c]);
     let d = diff_checked(&mut arena, x, y);
-    assert_eq!(d.cost, arena.size(c), "dropping one of three identical children costs one child");
+    assert_eq!(
+        d.cost,
+        arena.size(c),
+        "dropping one of three identical children costs one child"
+    );
 }

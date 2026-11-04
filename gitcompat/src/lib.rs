@@ -11,9 +11,9 @@
 //! This crate is diff and patch compatibility. It does not read or write Git objects, packs, refs
 //! or the index, and it is not a Git server or client.
 
+pub mod edge;
 pub mod extdiff;
+pub mod gitcheck;
 pub mod myers;
 pub mod patch;
 pub mod structural;
-pub mod edge;
-pub mod gitcheck;

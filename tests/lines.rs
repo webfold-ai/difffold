@@ -5,7 +5,11 @@ fn lcs(a: &[u32], b: &[u32]) -> usize {
     let mut t = vec![vec![0usize; b.len() + 1]; a.len() + 1];
     for i in 1..=a.len() {
         for j in 1..=b.len() {
-            t[i][j] = if a[i - 1] == b[j - 1] { t[i - 1][j - 1] + 1 } else { t[i - 1][j].max(t[i][j - 1]) };
+            t[i][j] = if a[i - 1] == b[j - 1] {
+                t[i - 1][j - 1] + 1
+            } else {
+                t[i - 1][j].max(t[i][j - 1])
+            };
         }
     }
     t[a.len()][b.len()]
@@ -26,9 +30,23 @@ fn minimal_on_random_small_inputs() {
         let a: Vec<u32> = (0..n).map(|_| (next() % u64::from(alpha)) as u32).collect();
         let b: Vec<u32> = (0..m).map(|_| (next() % u64::from(alpha)) as u32).collect();
         let d = diff_ids(&a, &b, alpha as usize);
-        assert_eq!(d.cost(), n + m - 2 * lcs(&a, &b), "round {round}: a={a:?} b={b:?}");
-        let ka: Vec<u32> = a.iter().zip(&d.deleted).filter(|(_, &x)| !x).map(|(v, _)| *v).collect();
-        let kb: Vec<u32> = b.iter().zip(&d.inserted).filter(|(_, &x)| !x).map(|(v, _)| *v).collect();
+        assert_eq!(
+            d.cost(),
+            n + m - 2 * lcs(&a, &b),
+            "round {round}: a={a:?} b={b:?}"
+        );
+        let ka: Vec<u32> = a
+            .iter()
+            .zip(&d.deleted)
+            .filter(|(_, &x)| !x)
+            .map(|(v, _)| *v)
+            .collect();
+        let kb: Vec<u32> = b
+            .iter()
+            .zip(&d.inserted)
+            .filter(|(_, &x)| !x)
+            .map(|(v, _)| *v)
+            .collect();
         assert_eq!(ka, kb, "kept lines must agree: a={a:?} b={b:?}");
     }
 }
@@ -114,8 +132,18 @@ fn histogram_is_valid_and_never_beats_minimal() {
         let a: Vec<u32> = (0..n).map(|_| (next() % u64::from(alpha)) as u32).collect();
         let b: Vec<u32> = (0..m).map(|_| (next() % u64::from(alpha)) as u32).collect();
         let d = diff_histogram_ids(&a, &b, alpha as usize);
-        let ka: Vec<u32> = a.iter().zip(&d.deleted).filter(|(_, &x)| !x).map(|(v, _)| *v).collect();
-        let kb: Vec<u32> = b.iter().zip(&d.inserted).filter(|(_, &x)| !x).map(|(v, _)| *v).collect();
+        let ka: Vec<u32> = a
+            .iter()
+            .zip(&d.deleted)
+            .filter(|(_, &x)| !x)
+            .map(|(v, _)| *v)
+            .collect();
+        let kb: Vec<u32> = b
+            .iter()
+            .zip(&d.inserted)
+            .filter(|(_, &x)| !x)
+            .map(|(v, _)| *v)
+            .collect();
         assert_eq!(ka, kb, "histogram kept lines must agree: a={a:?} b={b:?}");
         let min = n + m - 2 * lcs(&a, &b);
         assert!(d.cost() >= min);
