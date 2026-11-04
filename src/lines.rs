@@ -826,13 +826,33 @@ pub mod proof_api {
     /// `snake` of the real source on a search state with the given lists (`tests/myers_core.rs`).
     #[must_use]
     pub fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-        let s = super::Search { a, b, n: a.len() as i32, m: b.len() as i32, delta: 0, odd: false, off: 0, vf: &mut [], vb: &mut [] };
+        let s = super::Search {
+            a,
+            b,
+            n: a.len() as i32,
+            m: b.len() as i32,
+            delta: 0,
+            odd: false,
+            off: 0,
+            vf: &mut [],
+            vb: &mut [],
+        };
         super::snake(&s, x, y)
     }
     /// `snake_back` of the real source on a search state with the given lists.
     #[must_use]
     pub fn snake_back(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-        let s = super::Search { a, b, n: a.len() as i32, m: b.len() as i32, delta: 0, odd: false, off: 0, vf: &mut [], vb: &mut [] };
+        let s = super::Search {
+            a,
+            b,
+            n: a.len() as i32,
+            m: b.len() as i32,
+            delta: 0,
+            odd: false,
+            off: 0,
+            vf: &mut [],
+            vb: &mut [],
+        };
         super::snake_back(&s, x, y)
     }
     /// `line_start` of the real source.

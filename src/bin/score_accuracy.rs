@@ -130,10 +130,24 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
     let mut kind_ids: HashMap<&'static str, u32> = HashMap::new();
     let mut build = |t: &Tree, order: &[u32], pos: &[u32]| -> PostTree {
         let label: Vec<u32> = order.iter().map(|&v| t.label[v as usize]).collect();
-        let kids: Vec<Vec<u32>> = order.iter().map(|&v| t.kids[v as usize].iter().map(|&c| pos[c as usize]).collect()).collect();
+        let kids: Vec<Vec<u32>> = order
+            .iter()
+            .map(|&v| {
+                t.kids[v as usize]
+                    .iter()
+                    .map(|&c| pos[c as usize])
+                    .collect()
+            })
+            .collect();
         let pt = PostTree::from_kids(label, &kids);
         if kinds_on {
-            let kind: Vec<u32> = order.iter().map(|&v| { let n = kind_ids.len() as u32; *kind_ids.entry(t.kind[v as usize]).or_insert(n) }).collect();
+            let kind: Vec<u32> = order
+                .iter()
+                .map(|&v| {
+                    let n = kind_ids.len() as u32;
+                    *kind_ids.entry(t.kind[v as usize]).or_insert(n)
+                })
+                .collect();
             pt.with_kinds(kind)
         } else {
             pt
@@ -142,7 +156,11 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
     let ((oa, pa), (ob, pb)) = (post(bt), post(at));
     let (ta, tb) = (build(bt, &oa, &pa), build(at, &ob, &pb));
     let m = ted_mapping(&ta, &tb);
-    let mut pairs: Vec<(u32, u32)> = m.pairs.iter().map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1])).collect();
+    let mut pairs: Vec<(u32, u32)> = m
+        .pairs
+        .iter()
+        .map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1]))
+        .collect();
     if std::env::var("DFOLD_MOVES").is_ok() {
         recover_moves(bt, at, &mut pairs);
     }
@@ -162,7 +180,10 @@ fn recover_moves(bt: &Tree, at: &Tree, pairs: &mut Vec<(u32, u32)>) {
         }
         let mut by: HashMap<u32, Vec<u32>> = HashMap::new();
         for v in 0..n {
-            if dead[v] && (t.parent[v] == NIL || !dead[t.parent[v] as usize]) && !t.kids[v].is_empty() {
+            if dead[v]
+                && (t.parent[v] == NIL || !dead[t.parent[v] as usize])
+                && !t.kids[v].is_empty()
+            {
                 by.entry(t.id[v].0).or_default().push(v as u32);
             }
         }

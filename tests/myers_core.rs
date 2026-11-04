@@ -34,7 +34,10 @@ fn snake_copies_agree_with_the_real_functions() {
         let mut b = ids(&mut r, m, alpha);
         if r.next() % 3 == 0 && n > 0 && m > 0 {
             let k = (r.next() % (n.min(m) as u64 + 1)) as usize;
-            let (ao, bo) = ((r.next() % (n - k + 1) as u64) as usize, (r.next() % (m - k + 1) as u64) as usize);
+            let (ao, bo) = (
+                (r.next() % (n - k + 1) as u64) as usize,
+                (r.next() % (m - k + 1) as u64) as usize,
+            );
             let common: Vec<u32> = ids(&mut r, k, 50);
             a[ao..ao + k].copy_from_slice(&common);
             b[bo..bo + k].copy_from_slice(&common);
@@ -42,8 +45,16 @@ fn snake_copies_agree_with_the_real_functions() {
         for _ in 0..6 {
             let x = (r.next() % (n as u64 + 3)) as i32;
             let y = (r.next() % (m as u64 + 3)) as i32;
-            assert_eq!(copy::snake(&a, &b, x, y), proof_api::snake(&a, &b, x, y), "snake round {round}");
-            assert_eq!(copy::snake_back(&a, &b, x, y), proof_api::snake_back(&a, &b, x, y), "snake_back round {round}");
+            assert_eq!(
+                copy::snake(&a, &b, x, y),
+                proof_api::snake(&a, &b, x, y),
+                "snake round {round}"
+            );
+            assert_eq!(
+                copy::snake_back(&a, &b, x, y),
+                proof_api::snake_back(&a, &b, x, y),
+                "snake_back round {round}"
+            );
         }
     }
 }
@@ -59,13 +70,41 @@ fn line_helpers_copies_agree_with_the_real_functions() {
             _ => 0,
         };
         let density = 1 + r.next() % 12;
-        let t: Vec<u8> = (0..len).map(|_| if r.next() % density == 0 { b'\n' } else { (r.next() % 3) as u8 + b'a' }).collect();
-        assert_eq!(copy::count_lines(&t), proof_api::count_lines(&t), "count_lines round {round} len {len}");
-        let p = if len == 0 { 0 } else { (r.next() % (len as u64 + 1)) as usize };
-        assert_eq!(copy::line_start(&t, p), proof_api::line_start(&t, p), "line_start round {round}");
+        let t: Vec<u8> = (0..len)
+            .map(|_| {
+                if r.next() % density == 0 {
+                    b'\n'
+                } else {
+                    (r.next() % 3) as u8 + b'a'
+                }
+            })
+            .collect();
+        assert_eq!(
+            copy::count_lines(&t),
+            proof_api::count_lines(&t),
+            "count_lines round {round} len {len}"
+        );
+        let p = if len == 0 {
+            0
+        } else {
+            (r.next() % (len as u64 + 1)) as usize
+        };
+        assert_eq!(
+            copy::line_start(&t, p),
+            proof_api::line_start(&t, p),
+            "line_start round {round}"
+        );
         // Two texts that share a suffix of length q, as `diff_text_with` calls it.
         let k = (r.next() % (len as u64 + 1)) as usize;
-        let mut other: Vec<u8> = (0..(r.next() % 40) as usize).map(|_| if r.next() % density == 0 { b'\n' } else { (r.next() % 3) as u8 + b'a' }).collect();
+        let mut other: Vec<u8> = (0..(r.next() % 40) as usize)
+            .map(|_| {
+                if r.next() % density == 0 {
+                    b'\n'
+                } else {
+                    (r.next() % 3) as u8 + b'a'
+                }
+            })
+            .collect();
         other.extend_from_slice(&t[len - k..]);
         let q = copy::common_suffix(&t, &other);
         assert_eq!(

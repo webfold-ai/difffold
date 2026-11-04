@@ -25,7 +25,10 @@ struct Interner {
 impl Interner {
     fn label(&mut self, kind: u16, text: Option<&[u8]>) -> u32 {
         let next = u32::try_from(self.labels.len()).unwrap();
-        *self.labels.entry((kind, text.map(<[u8]>::to_vec))).or_insert(next)
+        *self
+            .labels
+            .entry((kind, text.map(<[u8]>::to_vec)))
+            .or_insert(next)
     }
 }
 
@@ -38,7 +41,14 @@ struct Tree {
     label: Vec<u32>,
 }
 
-fn convert(n: Node, src: &[u8], arena: &mut Arena, it: &mut Interner, t: &mut Tree, parent: u32) -> Id {
+fn convert(
+    n: Node,
+    src: &[u8],
+    arena: &mut Arena,
+    it: &mut Interner,
+    t: &mut Tree,
+    parent: u32,
+) -> Id {
     let idx = u32::try_from(t.kind.len()).unwrap();
     t.kind.push(n.kind());
     t.range.push((n.start_byte(), n.end_byte()));
@@ -84,12 +94,23 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
     };
     let build = |t: &Tree, order: &[u32], pos: &[u32]| -> PostTree {
         let label: Vec<u32> = order.iter().map(|&v| t.label[v as usize]).collect();
-        let kids: Vec<Vec<u32>> = order.iter().map(|&v| t.kids[v as usize].iter().map(|&c| pos[c as usize]).collect()).collect();
+        let kids: Vec<Vec<u32>> = order
+            .iter()
+            .map(|&v| {
+                t.kids[v as usize]
+                    .iter()
+                    .map(|&c| pos[c as usize])
+                    .collect()
+            })
+            .collect();
         PostTree::from_kids(label, &kids)
     };
     let ((oa, pa), (ob, pb)) = (post(bt), post(at));
     let m = ted_mapping(&build(bt, &oa, &pa), &build(at, &ob, &pb));
-    m.pairs.iter().map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1])).collect()
+    m.pairs
+        .iter()
+        .map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1]))
+        .collect()
 }
 
 /// Anonymous tree-sitter kinds include quotes and backslashes, so kinds need JSON escaping.
@@ -129,11 +150,20 @@ fn main() {
     if files.len() != 2 || !matches!(algo.as_str(), "ted" | "topdown") {
         fail("usage: ted_map [--algo ted|topdown] <before.java> <after.java>");
     }
-    let (bs, as_) = (std::fs::read(&files[0]).unwrap_or_else(|e| fail(&e.to_string())), std::fs::read(&files[1]).unwrap_or_else(|e| fail(&e.to_string())));
+    let (bs, as_) = (
+        std::fs::read(&files[0]).unwrap_or_else(|e| fail(&e.to_string())),
+        std::fs::read(&files[1]).unwrap_or_else(|e| fail(&e.to_string())),
+    );
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
-    let tb = parser.parse(&bs, None).unwrap_or_else(|| fail("parse failed"));
-    let ta = parser.parse(&as_, None).unwrap_or_else(|| fail("parse failed"));
+    parser
+        .set_language(&tree_sitter_java::LANGUAGE.into())
+        .unwrap();
+    let tb = parser
+        .parse(&bs, None)
+        .unwrap_or_else(|| fail("parse failed"));
+    let ta = parser
+        .parse(&as_, None)
+        .unwrap_or_else(|| fail("parse failed"));
     let mut arena = Arena::new();
     let mut it = Interner::default();
     let (mut bt, mut at) = (Tree::default(), Tree::default());
@@ -153,10 +183,28 @@ fn main() {
             out.push(',');
         }
         let ((bs_, be), (as2, ae)) = (bt.range[b as usize], at.range[a as usize]);
-        let _ = write!(out, "[{bs_},{be},{},{as2},{ae},{}]", json_str(bt.kind[b as usize]), json_str(at.kind[a as usize]));
+        let _ = write!(
+            out,
+            "[{bs_},{be},{},{as2},{ae},{}]",
+            json_str(bt.kind[b as usize]),
+            json_str(at.kind[a as usize])
+        );
     }
     // All node ranges of both trees, so adapters can tell which target-tree nodes have no counterpart at all.
-    let ranges = |t: &Tree| t.range.iter().map(|&(s, e)| format!("[{s},{e}]")).collect::<Vec<_>>().join(",");
-    let _ = write!(out, "],\"nb\":{},\"na\":{},\"bn\":[{}],\"an\":[{}]}}", bt.kind.len(), at.kind.len(), ranges(&bt), ranges(&at));
+    let ranges = |t: &Tree| {
+        t.range
+            .iter()
+            .map(|&(s, e)| format!("[{s},{e}]"))
+            .collect::<Vec<_>>()
+            .join(",")
+    };
+    let _ = write!(
+        out,
+        "],\"nb\":{},\"na\":{},\"bn\":[{}],\"an\":[{}]}}",
+        bt.kind.len(),
+        at.kind.len(),
+        ranges(&bt),
+        ranges(&at)
+    );
     println!("{out}");
 }

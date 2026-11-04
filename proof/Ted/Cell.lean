@@ -206,54 +206,88 @@ theorem cell_step
     step as ⟨i1, hi1⟩
     step as ⟨i2, hi2⟩
     step as ⟨ly, hly⟩
+    have hi1v : i1.val = lj.val + q.val - 2 := by omega
+    have hlyv : ly.val = (v2.val[lj.val + q.val - 2]!).val := by
+      have hv2' : lj.val + q.val - 2 < v2.val.length := hv2
+      have hb : i1.val < v2.val.length := by omega
+      have e : v2.val[lj.val + q.val - 2]! = v2.val[i1.val]'hb := by
+        rw [← hi1v]; exact getU_eq _ _ hb
+      rw [e, hly, U32.cast_Usize_val_eq, hi2]
+    have hlyl : lj.val ≤ ly.val := by rw [hlyv]; exact hlylj
     step as ⟨i3, hi3⟩
     step with get_spec fd w t inf i3 q hw (hrow i3.val (by omega)).1 (hrow i3.val (by omega)).2 as ⟨i4, hi4⟩
     step as ⟨del, hdel⟩
     step as ⟨i5, hi5⟩
     step with get_spec fd w t inf p i5 hw (hrow p.val (by omega)).1 (hrow p.val (by omega)).2 as ⟨i6, hi6⟩
     step as ⟨ins, hins⟩
+    have hyv : y.val = lj.val + q.val - 1 := by omega
+    have hxv : x.val - 1 < v.val.length := hv
+    have hv1' : lj.val + q.val - 2 < v1.val.length := hv1
+    have hdelv : del.val = rd fd.val w.val t.val inf.val (p.val - 1) q.val + 1 := by rw [hdel, hi4, hi3]
+    have hinsv : ins.val = rd fd.val w.val t.val inf.val p.val (q.val - 1) + 1 := by rw [hins, hi6, hi5]
     split
     · rename_i hlxeq
       split
       · rename_i hlyeq
         sorry
       · rename_i hlyne
-
         step as ⟨i7, hi7⟩
         step with tdv_if_spec td w t x y inf i7 hw hi7 htdlen htdbig as ⟨tdv, htdv⟩
-        trace_state
+        have htdv_le : tdv.val ≤ inf.val := by rw [htdv]; exact hLtd _
         step as ⟨i8, hi8⟩
         step as ⟨i9, hi9⟩
         step with get_spec fd w t inf i8 i9 hw (hrow i8.val (by omega)).1 (hrow i8.val (by omega)).2 as ⟨i10, hi10⟩
+        have hi10_le : i10.val ≤ inf.val := by rw [hi10]; exact hLfd _ _ (by omega)
         step as ⟨sub, hsub⟩
         step as ⟨i11, hi11⟩
         step as ⟨i12, hi12⟩
         step as ⟨v4, hv4⟩
-        step as ⟨i7', hi7'⟩
-        step as ⟨s, hs⟩
-        step as ⟨s', hs'⟩
-        step as ⟨row_min1, hrm⟩
+        step as ⟨ib, hib⟩
+        have hib_lt : ib.val < fd.val.length := by rw [hib]; unfold bandIdx; omega
+        step as ⟨fd', hfd'⟩
+        step as ⟨rm, hrm⟩
         step as ⟨q1, hq1'⟩
+        have hnot : ¬ (lx.val = li.val ∧ (v2.val[lj.val + q.val - 2]!).val = lj.val) := by
+          intro h; apply hlyne; scalar_tac
         refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
-        all_goals sorry
+        · unfold cellNew cellX
+          rw [if_neg hnot]
+          simp only [hv4, hi12, hi11, hsub, hdelv, hinsv, hi10, hi8, hi9, htdv, hlyv, hyv]
+        · dsimp only
+          rw [hfd', Slice.set_val_eq, hib]
+        · dsimp only
+          rw [if_neg hnot]
+        · dsimp only; exact hq1'
+        · dsimp only; exact hrm
     · rename_i hlxne
-
       step as ⟨i7, hi7⟩
       step with tdv_if_spec td w t x y inf i7 hw hi7 htdlen htdbig as ⟨tdv, htdv⟩
+      have htdv_le : tdv.val ≤ inf.val := by rw [htdv]; exact hLtd _
       step as ⟨i8, hi8⟩
       step as ⟨i9, hi9⟩
       step with get_spec fd w t inf i8 i9 hw (hrow i8.val (by omega)).1 (hrow i8.val (by omega)).2 as ⟨i10, hi10⟩
+      have hi10_le : i10.val ≤ inf.val := by rw [hi10]; exact hLfd _ _ (by omega)
       step as ⟨sub, hsub⟩
       step as ⟨i11, hi11⟩
       step as ⟨i12, hi12⟩
       step as ⟨v4, hv4⟩
-      step as ⟨i7', hi7'⟩
-      step as ⟨s, hs⟩
-      step as ⟨s', hs'⟩
-      step as ⟨row_min1, hrm⟩
+      step as ⟨ib, hib⟩
+      have hib_lt : ib.val < fd.val.length := by rw [hib]; unfold bandIdx; omega
+      step as ⟨fd', hfd'⟩
+      step as ⟨rm, hrm⟩
       step as ⟨q1, hq1'⟩
+      have hnot : ¬ (lx.val = li.val ∧ (v2.val[lj.val + q.val - 2]!).val = lj.val) := by
+        intro h; apply hlxne; scalar_tac
       refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
-      all_goals sorry
+      · unfold cellNew cellX
+        rw [if_neg hnot]
+        simp only [hv4, hi12, hi11, hsub, hdelv, hinsv, hi10, hi8, hi9, htdv, hlyv, hyv]
+      · dsimp only
+        rw [hfd', Slice.set_val_eq, hib]
+      · dsimp only
+        rw [if_neg hnot]
+      · dsimp only; exact hq1'
+      · dsimp only; exact hrm
   · rename_i hn
     exfalso
     scalar_tac

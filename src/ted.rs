@@ -53,7 +53,13 @@ impl PostTree {
         }
         keyroots.reverse();
         let kind = vec![0u32; label.len()];
-        PostTree { label, lml, keyroots, kids: kids.to_vec(), kind }
+        PostTree {
+            label,
+            lml,
+            keyroots,
+            kids: kids.to_vec(),
+            kind,
+        }
     }
 
     /// Attach node kinds (one per node, in postorder). With kinds, relabelling across kinds costs 2.
@@ -107,8 +113,18 @@ impl PostTree {
     }
 }
 
-fn mirror_expand(t: &PostTree, i: usize, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>, kind: &mut Vec<u32>) -> u32 {
-    let ks: Vec<u32> = t.kids[i].iter().rev().map(|&k| mirror_expand(t, k as usize, label, kids, kind)).collect();
+fn mirror_expand(
+    t: &PostTree,
+    i: usize,
+    label: &mut Vec<u32>,
+    kids: &mut Vec<Vec<u32>>,
+    kind: &mut Vec<u32>,
+) -> u32 {
+    let ks: Vec<u32> = t.kids[i]
+        .iter()
+        .rev()
+        .map(|&k| mirror_expand(t, k as usize, label, kids, kind))
+        .collect();
     label.push(t.label[i]);
     kind.push(t.kind[i]);
     kids.push(ks);
@@ -386,14 +402,19 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
         while p > 0 || q > 0 {
             let v = get(p, q);
             let (x, y) = (li + p.max(1) - 1, lj + q.max(1) - 1);
-            let leaf_case = p > 0 && q > 0 && a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj;
+            let leaf_case =
+                p > 0 && q > 0 && a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj;
             // The diagonal candidate: relabel or match a whole pair, or a subtree pair through the table.
             let diag_ok = if p == 0 || q == 0 {
                 false
             } else if leaf_case {
                 relabel_cost(a, b, x, y) < 2 && get(p - 1, q - 1) + relabel_cost(a, b, x, y) == v
             } else {
-                let tdv = if x.abs_diff(y) <= t { td[tdi(x, y)] } else { inf };
+                let tdv = if x.abs_diff(y) <= t {
+                    td[tdi(x, y)]
+                } else {
+                    inf
+                };
                 get(a.lml[x - 1] as usize - li, b.lml[y - 1] as usize - lj) + tdv == v
             };
             if prefer_match && diag_ok {
@@ -666,7 +687,15 @@ pub mod proof_api {
         super::label_lower_bound(a, b)
     }
     /// `fill_window` of the real source.
-    pub fn fill_window(a: &PostTree, b: &PostTree, td: &mut [u32], fd: &mut [u32], i0: usize, j0: usize, tau: u32) {
+    pub fn fill_window(
+        a: &PostTree,
+        b: &PostTree,
+        td: &mut [u32],
+        fd: &mut [u32],
+        i0: usize,
+        j0: usize,
+        tau: u32,
+    ) {
         super::fill_window(a, b, td, fd, (i0, j0), tau, &mut Stats::default());
     }
     /// `within_td` of the real source.

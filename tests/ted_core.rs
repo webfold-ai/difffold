@@ -24,7 +24,13 @@ impl Rng {
 }
 
 /// A random ordered tree with `size` nodes, in postorder: labels and child lists (0-based).
-fn rand_tree(r: &mut Rng, size: usize, alphabet: u64, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) -> u32 {
+fn rand_tree(
+    r: &mut Rng,
+    size: usize,
+    alphabet: u64,
+    label: &mut Vec<u32>,
+    kids: &mut Vec<Vec<u32>>,
+) -> u32 {
     let mut ks = Vec::new();
     let mut rest = size - 1;
     while rest > 0 {
@@ -46,7 +52,11 @@ fn rand_pair_parts(r: &mut Rng, max: u64) -> (Vec<u32>, Vec<Vec<u32>>) {
 }
 
 fn to_copy(t: &PostTree) -> copy::PostTree {
-    copy::PostTree { label: t.label.clone(), lml: t.lml.clone(), keyroots: t.keyroots.clone() }
+    copy::PostTree {
+        label: t.label.clone(),
+        lml: t.lml.clone(),
+        keyroots: t.keyroots.clone(),
+    }
 }
 
 #[test]
@@ -64,10 +74,20 @@ fn from_kids_copy_agrees_with_the_real_function() {
     for round in 0..5_000 {
         let n = r.below(20) as usize;
         let l: Vec<u32> = (0..n).map(|_| r.below(4) as u32).collect();
-        let k: Vec<Vec<u32>> = (0..n).map(|i| (0..if i == 0 { 0 } else { r.below(3) }).map(|_| r.below(i as u64) as u32).collect()).collect();
+        let k: Vec<Vec<u32>> = (0..n)
+            .map(|i| {
+                (0..if i == 0 { 0 } else { r.below(3) })
+                    .map(|_| r.below(i as u64) as u32)
+                    .collect()
+            })
+            .collect();
         let real = PostTree::from_kids(l.clone(), &k);
         let c = copy::from_kids(l, &k);
-        assert_eq!((real.lml, real.keyroots), (c.lml, c.keyroots), "forest round {round}");
+        assert_eq!(
+            (real.lml, real.keyroots),
+            (c.lml, c.keyroots),
+            "forest round {round}"
+        );
     }
 }
 
@@ -78,7 +98,11 @@ fn label_lower_bound_copy_agrees_with_the_real_function() {
         let (la, ka) = rand_pair_parts(&mut r, 25);
         let (lb, kb) = rand_pair_parts(&mut r, 25);
         let (a, b) = (PostTree::from_kids(la, &ka), PostTree::from_kids(lb, &kb));
-        assert_eq!(proof_api::label_lower_bound(&a, &b), copy::label_lower_bound(&to_copy(&a), &to_copy(&b)), "round {round}");
+        assert_eq!(
+            proof_api::label_lower_bound(&a, &b),
+            copy::label_lower_bound(&to_copy(&a), &to_copy(&b)),
+            "round {round}"
+        );
     }
 }
 
@@ -95,8 +119,12 @@ fn fill_window_copy_agrees_with_the_real_function_on_arbitrary_tables() {
         let (t, inf) = (tau as usize, tau + 1);
         let w = 2 * t + 1;
         // Arbitrary table contents, so the writes of every cell are observable.
-        let td0: Vec<u32> = (0..(n + 1) * w).map(|_| r.below(u64::from(inf) + 1) as u32).collect();
-        let fd0: Vec<u32> = (0..(n.max(m) + 1) * w).map(|_| r.below(u64::from(inf) + 1) as u32).collect();
+        let td0: Vec<u32> = (0..(n + 1) * w)
+            .map(|_| r.below(u64::from(inf) + 1) as u32)
+            .collect();
+        let fd0: Vec<u32> = (0..(n.max(m) + 1) * w)
+            .map(|_| r.below(u64::from(inf) + 1) as u32)
+            .collect();
         for &i0 in &a.keyroots {
             for &j0 in &b.keyroots {
                 let (i0, j0) = (i0 as usize, j0 as usize);
@@ -134,7 +162,13 @@ fn within_td_copy_agrees_with_the_real_function() {
     let (l, k) = rand_pair_parts(&mut r, 6);
     let b = PostTree::from_kids(l, &k);
     for tau in 0..8 {
-        assert_eq!(proof_api::within_td(&e, &b, tau), copy::within_td(&to_copy(&e), &to_copy(&b), tau));
-        assert_eq!(proof_api::within_td(&b, &e, tau), copy::within_td(&to_copy(&b), &to_copy(&e), tau));
+        assert_eq!(
+            proof_api::within_td(&e, &b, tau),
+            copy::within_td(&to_copy(&e), &to_copy(&b), tau)
+        );
+        assert_eq!(
+            proof_api::within_td(&b, &e, tau),
+            copy::within_td(&to_copy(&b), &to_copy(&e), tau)
+        );
     }
 }
