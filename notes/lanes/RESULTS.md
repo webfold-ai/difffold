@@ -162,3 +162,6 @@ Not run. The primitive they rely on, content-hash gate plus diff, is covered by 
 ## Not run for other reasons
 - Beyond Compare: proprietary GUI.
 - OmniDiff accuracy head to head: needs a rebuild of its binary (disk was freed by deleting it).
+
+## Accuracy variant E (orphan-update hygiene on top of TED+kinds+moves)
+Measured on 1001 pairs: perfect 66.7% (D: 66.2%), 91.9% (D: 91.7%), F 0.947 (unchanged). A small gain; OmniDiff remains at 81.2% perfect, so the gap (about 14.5 points) is still open.
