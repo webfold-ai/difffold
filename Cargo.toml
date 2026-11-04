@@ -44,8 +44,13 @@ name = "score_accuracy"
 path = "src/bin/score_accuracy.rs"
 required-features = ["ts"]
 
-# Standalone: not a member of any enclosing workspace.
 [workspace]
+resolver = "2"
+members = ["gitcompat", "harness/rust", "linebench"]
+# Excluded, not built: corpus/ (src/lib.rs and both bins are missing from the tree); proof/* are
+# Lean extraction tools with their own [workspace]; tools/omni_dump depends on an absolute local
+# OmniDiff checkout.
+exclude = ["corpus", "proof/extract", "proof/extract-lines", "tools/omni_dump"]
 
 [profile.release]
 debug = 1

@@ -12,6 +12,8 @@
 //!
 //! The contracts are stated in `SPEC.md` and exercised against an independent oracle in `tests/`.
 
+#![forbid(unsafe_code)]
+
 pub mod diff;
 pub mod frontier;
 pub mod intern;
