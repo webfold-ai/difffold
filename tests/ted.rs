@@ -62,7 +62,7 @@ fn random_tree(r: &mut Rng, budget: &mut i32, alpha: u64) -> T {
     *budget -= 1;
     let label = (r.next() % alpha) as u32;
     let mut kids = Vec::new();
-    while *budget > 0 && !r.next().is_multiple_of(3) {
+    while *budget > 0 && r.next() % 3 != 0 {
         kids.push(random_tree(r, budget, alpha));
     }
     T(label, kids)
@@ -247,7 +247,11 @@ fn kind_aware_cost_matches_the_oracle_and_maps_legally() {
             random_tree(&mut r, &mut ba, 5),
             random_tree(&mut r, &mut bb, 5),
         );
-        let want = fd_kind(std::slice::from_ref(&a), std::slice::from_ref(&b), &mut memo);
+        let want = fd_kind(
+            std::slice::from_ref(&a),
+            std::slice::from_ref(&b),
+            &mut memo,
+        );
         let (pa, pb) = (post_kinds(&a), post_kinds(&b));
         assert_eq!(ted(&pa, &pb), want, "round {round}: {a:?} vs {b:?}");
         let m = ted_mapping(&pa, &pb);

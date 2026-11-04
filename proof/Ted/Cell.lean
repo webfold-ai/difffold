@@ -229,7 +229,44 @@ theorem cell_step
     · rename_i hlxeq
       split
       · rename_i hlyeq
-        sorry
+        step as ⟨i7, hi7⟩
+        step as ⟨i8, hi8⟩
+        step as ⟨i9, hi9⟩
+        have hi8v : i8 = v.val[x.val - 1]! := by
+          have hb : i7.val < v.val.length := by have := hxv; omega
+          have e : v.val[x.val - 1]! = v.val[i7.val]'hb := by
+            have h7 : i7.val = x.val - 1 := by omega
+            rw [← h7]; exact getU_eq _ _ hb
+          rw [e, hi8]
+        have hi9v : i9 = v1.val[lj.val + q.val - 2]! := by
+          have hb : i1.val < v1.val.length := by have := hv1'; omega
+          have e : v1.val[lj.val + q.val - 2]! = v1.val[i1.val]'hb := by
+            rw [← hi1v]; exact getU_eq _ _ hb
+          rw [e, hi9]
+        step with ren_spec i8 i9 as ⟨ren, hren⟩
+        step with get_spec fd w t inf i3 i5 hw (hrow i3.val (by omega)).1 (hrow i3.val (by omega)).2 as ⟨i10, hi10⟩
+        have hi10_le : i10.val ≤ inf.val := by rw [hi10]; exact hLfd _ _ (by omega)
+        step as ⟨diag, hdiag⟩
+        step as ⟨i11, hi11⟩
+        step as ⟨i12, hi12⟩
+        step as ⟨v4, hv4⟩
+        step as ⟨i13, hi13⟩
+        step with upd_if_spec td w t x y v4 i13 hw hi13 htdlen htdbig as ⟨s, hs⟩
+        step as ⟨ib, hib⟩
+        have hib_lt : ib.val < fd.val.length := by rw [hib]; unfold bandIdx; omega
+        step as ⟨fd', hfd'⟩
+        step as ⟨rm, hrm⟩
+        step as ⟨q1, hq1'⟩
+        have h1 : lx.val = li.val := by scalar_tac
+        have h2 : (v2.val[lj.val + q.val - 2]!).val = lj.val := by rw [← hlyv]; scalar_tac
+        refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
+        · unfold cellNew cellX
+          rw [if_pos ⟨h1, h2⟩]
+          simp only [hv4, hi12, hi11, hdiag, hren, hdelv, hinsv, hi10, hi3, hi5, hi8v, hi9v]
+        · rw [hfd', Slice.set_val_eq, hib]
+        · simp only [h1, h2, true_and, hs, hyv]
+        · exact hq1'
+        · exact hrm
       · rename_i hlyne
         step as ⟨i7, hi7⟩
         step with tdv_if_spec td w t x y inf i7 hw hi7 htdlen htdbig as ⟨tdv, htdv⟩
@@ -254,7 +291,7 @@ theorem cell_step
           rw [if_neg hnot]
           simp only [hv4, hi12, hi11, hsub, hdelv, hinsv, hi10, hi8, hi9, htdv, hlyv, hyv]
         · rw [hfd', Slice.set_val_eq, hib]
-        · rw [if_neg hnot]
+        · rw [if_neg (fun h => hnot ⟨h.1, h.2.1⟩)]
         · exact hq1'
         · exact hrm
     · rename_i hlxne
@@ -281,7 +318,7 @@ theorem cell_step
         rw [if_neg hnot]
         simp only [hv4, hi12, hi11, hsub, hdelv, hinsv, hi10, hi8, hi9, htdv, hlyv, hyv]
       · rw [hfd', Slice.set_val_eq, hib]
-      · rw [if_neg hnot]
+      · rw [if_neg (fun h => hnot ⟨h.1, h.2.1⟩)]
       · exact hq1'
       · exact hrm
   · rename_i hn
