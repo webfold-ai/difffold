@@ -296,6 +296,13 @@ pub struct Mapping {
 /// An optimal mapping, recovered by tracing back through the forest tables at the exact distance.
 #[must_use]
 pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
+    ted_mapping_with(a, b, true)
+}
+
+/// [`ted_mapping`] with the tie-break made explicit. Among equal-cost optimal mappings, `prefer_match`
+/// picks the one that matches a pair over deleting and inserting it; `false` prefers delete, then insert.
+#[must_use]
+pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mapping {
     let cost = ted(a, b);
     if a.is_empty() || b.is_empty() {
         return Mapping { cost, pairs: Vec::new() };
@@ -321,11 +328,31 @@ pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
         while p > 0 || q > 0 {
             let v = get(p, q);
             let (x, y) = (li + p.max(1) - 1, lj + q.max(1) - 1);
-            if p > 0 && get(p - 1, q) + 1 == v {
+            let leaf_case = p > 0 && q > 0 && a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj;
+            // The diagonal candidate: relabel or match a whole pair, or a subtree pair through the table.
+            let diag_ok = if p == 0 || q == 0 {
+                false
+            } else if leaf_case {
+                get(p - 1, q - 1) + u32::from(a.label[x - 1] != b.label[y - 1]) == v
+            } else {
+                let tdv = if x.abs_diff(y) <= t { td[tdi(x, y)] } else { inf };
+                get(a.lml[x - 1] as usize - li, b.lml[y - 1] as usize - lj) + tdv == v
+            };
+            if prefer_match && diag_ok {
+                if leaf_case {
+                    pairs.push((x as u32, y as u32));
+                    p -= 1;
+                    q -= 1;
+                } else {
+                    stack.push((x, y));
+                    p = a.lml[x - 1] as usize - li;
+                    q = b.lml[y - 1] as usize - lj;
+                }
+            } else if p > 0 && get(p - 1, q) + 1 == v {
                 p -= 1;
             } else if q > 0 && get(p, q - 1) + 1 == v {
                 q -= 1;
-            } else if a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj {
+            } else if leaf_case {
                 pairs.push((x as u32, y as u32));
                 p -= 1;
                 q -= 1;
@@ -335,7 +362,6 @@ pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
                 q = b.lml[y - 1] as usize - lj;
             }
         }
-        let _ = tdi;
     }
     pairs.sort_unstable();
     Mapping { cost, pairs }
@@ -535,4 +561,25 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         stack.extend(nodes[x].kids.iter().map(|&c| (c, nodes[c].bid)));
     }
     Ok(ops)
+}
+
+/// Entry points for the agreement test of the extraction copy in `proof/extract/ted_core.rs`
+/// (`tests/ted_core.rs`). Not part of the API.
+#[doc(hidden)]
+pub mod proof_api {
+    use super::{PostTree, Stats};
+    /// `label_lower_bound` of the real source.
+    #[must_use]
+    pub fn label_lower_bound(a: &PostTree, b: &PostTree) -> u32 {
+        super::label_lower_bound(a, b)
+    }
+    /// `fill_window` of the real source.
+    pub fn fill_window(a: &PostTree, b: &PostTree, td: &mut [u32], fd: &mut [u32], i0: usize, j0: usize, tau: u32) {
+        super::fill_window(a, b, td, fd, (i0, j0), tau, &mut Stats::default());
+    }
+    /// `within_td` of the real source.
+    #[must_use]
+    pub fn within_td(a: &PostTree, b: &PostTree, tau: u32) -> (Option<u32>, Vec<u32>) {
+        super::within_td(a, b, tau, &mut Stats::default())
+    }
 }

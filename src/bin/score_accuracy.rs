@@ -122,7 +122,50 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
     };
     let ((oa, pa), (ob, pb)) = (post(bt), post(at));
     let m = ted_mapping(&build(bt, &oa, &pa), &build(at, &ob, &pb));
-    m.pairs.iter().map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1])).collect()
+    let mut pairs: Vec<(u32, u32)> = m.pairs.iter().map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1])).collect();
+    if std::env::var("DFOLD_MOVES").is_ok() {
+        recover_moves(bt, at, &mut pairs);
+    }
+    pairs
+}
+
+/// Move recovery. Classical edit distance has no move operation, so a moved or reordered subtree is deleted on
+/// one side and inserted on the other. A maximal subtree that is entirely unmapped on both sides and has the same
+/// content (same hash-consed id) is matched node for node.
+fn recover_moves(bt: &Tree, at: &Tree, pairs: &mut Vec<(u32, u32)>) {
+    let roots = |t: &Tree, mapped: &[bool]| -> HashMap<u32, Vec<u32>> {
+        // A node is "dead" when it and its whole subtree are unmapped; preorder indices make children larger than parents.
+        let n = t.kind.len();
+        let mut dead = vec![false; n];
+        for v in (0..n).rev() {
+            dead[v] = !mapped[v] && t.kids[v].iter().all(|&k| dead[k as usize]);
+        }
+        let mut by: HashMap<u32, Vec<u32>> = HashMap::new();
+        for v in 0..n {
+            if dead[v] && (t.parent[v] == NIL || !dead[t.parent[v] as usize]) && !t.kids[v].is_empty() {
+                by.entry(t.id[v].0).or_default().push(v as u32);
+            }
+        }
+        by
+    };
+    let (mut ma, mut mb) = (vec![false; bt.kind.len()], vec![false; at.kind.len()]);
+    for &(x, y) in pairs.iter() {
+        ma[x as usize] = true;
+        mb[y as usize] = true;
+    }
+    let (ra, rb) = (roots(bt, &ma), roots(at, &mb));
+    for (id, xs) in &ra {
+        let Some(ys) = rb.get(id) else { continue };
+        for (&x, &y) in xs.iter().zip(ys.iter()) {
+            let mut stack = vec![(x, y)];
+            while let Some((u, v)) = stack.pop() {
+                pairs.push((u, v));
+                for (&cu, &cv) in bt.kids[u as usize].iter().zip(at.kids[v as usize].iter()) {
+                    stack.push((cu, cv));
+                }
+            }
+        }
+    }
 }
 
 fn lang(ext: &str) -> Option<(&'static str, Language)> {
