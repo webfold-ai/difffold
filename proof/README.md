@@ -146,6 +146,56 @@ edit-script replay (see `notes/lanes/RESULTS.md`).
 The stock Charon and Aeneas releases were used, not apeiron's patched build, so apeiron's `regen.sh` identity
 check would reject these digests. `last_nl`, the line differ's Myers search and the interner are not covered.
 
+## Line search (`src/lines.rs`)
+
+**Part 1 is about a Lean model of the algorithm. It is not a proof of the Rust code.** `Myers/*.lean`
+(about 1,500 lines, plain Lean 4.31.0, no Mathlib, **zero `sorry`, no custom axiom**; `AXIOMS-myers.txt`)
+defines the objective (`lcs`, edit cost `|a| + |b| - 2 lcs`), a functional model of the pipeline of
+`diff_ids` (trim ids, drop one-sided ids, bidirectional Myers `middle`/`sweep`/`solve`, scatter flags
+back) and proves the model optimal. The Rust code is tied to the model only by the extraction of its
+pure helpers (Part 2, small) and by tests; nothing proves that `src/lines.rs` implements the model.
+Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline AxiomAudit`
+(oleans in `build-myers/`).
+
+| obligation | status | theorems (file) |
+|---|---|---|
+| objective, sublist characterisation of `lcs` | proved (model) | `lcs_le`, `lcs_ex` (Lcs) |
+| (a) equal first/last ids can be cut, flags map back | proved (model) | `lcs_prefix`, `lcs_suffix`, `lcs_trim` (Lcs), `opt_trim` (Script) |
+| (b) dropping ids absent from the other side keeps the lcs; flags map back faithfully | proved (model) | `lcs_filter`, `kept_expand`, `filter_optimal` (Script) |
+| (c) a script whose kept lines are equal costs `|a|+|b|-2*kept`, `kept <= lcs`; optimal iff `kept = lcs`; an optimal script exists | proved (model) | `cost_eq`, `cost_ge`, `optimal_iff`, `exists_optimal`, `optimal_min` (Script) |
+| (d) split on an optimal path, solve both halves optimally, whole is optimal | proved (model) | `optimal_append` (Script) |
+| model of `solve` (trim, empty side, split, "no progress" fallback): optimal for any oracle meeting `MidSpec`; never stuck | proved (model) | `solve_optimal`, `solve_total` (Solve) |
+| (e) Myers furthest-reaching recurrence `F`: reached points are within `d` edits; every point within `d` edits is covered | proved (model) | `F_sound` (Reach), `compl_all` (Compl) |
+| (e) middle snake, both parities of `delta`: the first overlap is in the rectangle, on an optimal path, and not a corner; so `MidSpec` holds and the "no progress" branch is dead | proved (model) | `path_point`, `exists_hit` (Path, Mid), `sweep_sound`, `sweep_some` (Mid), `fhit_good`, `bhit_good`, `two_le`, `mid_spec` (Good) |
+| whole pipeline: the flags are a minimal edit script | proved (model) | `line_search_optimal`, `line_search_cost` (Pipeline) |
+| `vf`, `vb` hold `F` / `F` of the reversed lists on the current parity; array indices in bounds; `i32` never overflows (`n + m < 2^31`) | **open** (assumed by the model; tested end to end only) | |
+| diagonals of a round are visited by halving, leftmost hit wins | argued: the model theorems hold for any hit of the first round that has one | |
+| interning is exact (equal ids iff equal lines); the byte-level cut with `line_start`, `suffix_on_line_start`, `split_lines` | **open** (tested only) | `tests/lines.rs` |
+| `Algo::Histogram` | not covered; it is not minimal by design | |
+
+The sweep also stops at `max_d`; the model proves it always succeeds inside `(n + m + 1) / 2 + 1`
+rounds, so the `(0, 0)` returned past `max_d` is never reached. Phantom points (past the end of a list)
+occur in 10 percent of random small cases and never cause a false overlap; `fhit_good` and `bhit_good`
+prove why: a phantom overlap would force `D <= 2d - 2`, contradicting that `d` is the first round
+with an overlap.
+
+### Part 2: extraction of the pure helpers (`extract-myers.sh`, `check-myers.sh`)
+
+`extract/myers_core.rs` holds closure-free copies of `common_prefix`, `common_suffix`, `snake`,
+`snake_back`, `line_start`, `suffix_on_line_start`, `count_block`, `count_byte` and `count_lines`
+(`Search` is replaced by the two lists). Charon 0.1.254 and Aeneas nightly-2026.09.09 translate them
+(`gen/lean-myers/DifffoldMyers.lean`, digests in `gen/RECEIPT-myers.txt`) and Lean accepts the output.
+`tests/myers_core.rs` checks every copy against the real source on random input (through new
+`#[doc(hidden)]` wrappers in `lines::proof_api`; no semantics changed). The copy is not proved equal
+to the source.
+
+| theorem over the extracted copy | status |
+|---|---|
+| `common_prefix_u32`, `common_suffix_u32` (`Myers2/CommonCopy.lean`, the existing proof re-run on the copy) | checked |
+| `snake_spec`: `mcore.snake a b x y` returns exactly `Myers.snake` of the model, for `0 <= x, y` and lists shorter than `2^31` (`Myers2/SnakeSpec.lean`; axioms in `AXIOMS-myers-extract.txt`) | checked |
+| `snake_back`, `line_start`, `suffix_on_line_start`, `count_lines`, `count_byte` | extracted and elaborated, **no spec** (`count_ones` and `trailing_zeros` are unknown external functions to Aeneas) |
+| the `Search` state, `forward_one`, `backward_one`, `sweep`, `solve` | **not extracted** (mutable-slice state, `each` closures) |
+
 ## What is not proved
 
 - `replay_sound`: that `apply` rebuilds the after-tree from a script `edit` produced.
