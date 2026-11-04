@@ -1,0 +1,10 @@
+# cargo-audit policy. CI runs `cargo audit --deny warnings`.
+#
+# RUSTSEC-2026-0183 and RUSTSEC-2026-0184 are "unsound" advisories against git2 0.20.4, pulled in
+# only by the non-published `linebench` benchmark crate. The benchmark calls
+# `git2::Patch::from_buffers` and nothing else from git2; the affected APIs (`Remote::list`,
+# `BlameHunk` built from a buffer) are not called anywhere in this repository. No git2 release
+# within the 0.20 line carries the fix, so the exception is kept here, with this reason, until
+# linebench moves to a patched or newer git2. Remove the entries when that happens.
+[advisories]
+ignore = ["RUSTSEC-2026-0183", "RUSTSEC-2026-0184"]
