@@ -253,12 +253,10 @@ theorem cell_step
         · unfold cellNew cellX
           rw [if_neg hnot]
           simp only [hv4, hi12, hi11, hsub, hdelv, hinsv, hi10, hi8, hi9, htdv, hlyv, hyv]
-        · dsimp only
-          rw [hfd', Slice.set_val_eq, hib]
-        · dsimp only
-          rw [if_neg hnot]
-        · dsimp only; exact hq1'
-        · dsimp only; exact hrm
+        · rw [hfd', Slice.set_val_eq, hib]
+        · rw [if_neg hnot]
+        · exact hq1'
+        · exact hrm
     · rename_i hlxne
       step as ⟨i7, hi7⟩
       step with tdv_if_spec td w t x y inf i7 hw hi7 htdlen htdbig as ⟨tdv, htdv⟩
@@ -282,12 +280,10 @@ theorem cell_step
       · unfold cellNew cellX
         rw [if_neg hnot]
         simp only [hv4, hi12, hi11, hsub, hdelv, hinsv, hi10, hi8, hi9, htdv, hlyv, hyv]
-      · dsimp only
-        rw [hfd', Slice.set_val_eq, hib]
-      · dsimp only
-        rw [if_neg hnot]
-      · dsimp only; exact hq1'
-      · dsimp only; exact hrm
+      · rw [hfd', Slice.set_val_eq, hib]
+      · rw [if_neg hnot]
+      · exact hq1'
+      · exact hrm
   · rename_i hn
     exfalso
     scalar_tac
