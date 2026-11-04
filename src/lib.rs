@@ -19,10 +19,12 @@ pub mod frontier;
 pub mod intern;
 pub mod kernel;
 pub mod lines;
-pub mod merge;
-pub mod unified;
 pub mod mapping;
+pub mod merge;
 pub mod ted;
+pub mod unified;
 
-pub use diff::{apply, diff, diff_checked, diff_with, distance_with, Config, Diff, Edit, Stats, Tau0};
+pub use diff::{
+    apply, diff, diff_checked, diff_with, distance_with, Config, Diff, Edit, Stats, Tau0,
+};
 pub use intern::{Arena, Id};

@@ -76,9 +76,17 @@ pub struct Policy {
 
 impl Policy {
     /// Reproduces `diff.rs`.
-    pub const THRESHOLD: Policy = Policy { algo: Algo::Threshold, orient: Orient::Keep, sym: false };
+    pub const THRESHOLD: Policy = Policy {
+        algo: Algo::Threshold,
+        orient: Orient::Keep,
+        sym: false,
+    };
     /// Best-first with ordered memo keys.
-    pub const ASTAR: Policy = Policy { algo: Algo::AStar, orient: Orient::Keep, sym: false };
+    pub const ASTAR: Policy = Policy {
+        algo: Algo::AStar,
+        orient: Orient::Keep,
+        sym: false,
+    };
 }
 
 /// One step of an alignment as indices into the lists.
@@ -159,7 +167,13 @@ impl<'a> Frontier<'a> {
     /// A fresh differ.
     #[must_use]
     pub fn new(arena: &'a Arena, policy: Policy) -> Self {
-        Self { arena, policy, memo: Memo::default(), stats: FStats::default(), cur_cells: 0 }
+        Self {
+            arena,
+            policy,
+            memo: Memo::default(),
+            stats: FStats::default(),
+            cur_cells: 0,
+        }
     }
 
     /// Number of memoised pairs.
@@ -171,11 +185,18 @@ impl<'a> Frontier<'a> {
     /// Memoised unequal pairs, as `(x, y)` ids.
     #[must_use]
     pub fn memo_pairs(&self) -> Vec<(Id, Id)> {
-        self.memo.keys().map(|&k| (Id((k >> 32) as u32), Id(k as u32))).collect()
+        self.memo
+            .keys()
+            .map(|&k| (Id((k >> 32) as u32), Id(k as u32)))
+            .collect()
     }
 
     fn key(&self, x: Id, y: Id) -> u64 {
-        let (p, q) = if self.policy.sym && y.0 < x.0 { (y, x) } else { (x, y) };
+        let (p, q) = if self.policy.sym && y.0 < x.0 {
+            (y, x)
+        } else {
+            (x, y)
+        };
         (u64::from(p.0) << 32) | u64::from(q.0)
     }
 
@@ -264,7 +285,10 @@ impl<'a> Frontier<'a> {
         loop {
             self.stats.rounds += 1;
             if let Some(rows) = self.fill(a, b, sa, sb, &ra, &rb, tau, a.len(), true) {
-                let cost = rows.last().and_then(|r| r.at(b.len())).expect("final cell kept");
+                let cost = rows
+                    .last()
+                    .and_then(|r| r.at(b.len()))
+                    .expect("final cell kept");
                 return (cost, rows);
             }
             tau = tau.saturating_mul(2).max(tau + 1);
@@ -274,7 +298,18 @@ impl<'a> Frontier<'a> {
     /// Rows `0..=upto`. With `keep_all` false only the last row is returned. `None` when some row
     /// has no kept cell, or (when `upto == n`) the final cell is pruned.
     #[allow(clippy::too_many_arguments)]
-    fn fill(&mut self, a: &[Id], b: &[Id], sa: &[u32], sb: &[u32], ra: &[u32], rb: &[u32], tau: u32, upto: usize, keep_all: bool) -> Option<Vec<Row>> {
+    fn fill(
+        &mut self,
+        a: &[Id],
+        b: &[Id],
+        sa: &[u32],
+        sb: &[u32],
+        ra: &[u32],
+        rb: &[u32],
+        tau: u32,
+        upto: usize,
+        keep_all: bool,
+    ) -> Option<Vec<Row>> {
         let m = b.len();
         let mut v0 = vec![0u32];
         for j in 1..=m {
@@ -301,14 +336,29 @@ impl<'a> Frontier<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn next_row(&mut self, prev: &Row, i: usize, a: &[Id], b: &[Id], sa: &[u32], sb: &[u32], ra: &[u32], rb: &[u32], tau: u32) -> Option<Row> {
+    fn next_row(
+        &mut self,
+        prev: &Row,
+        i: usize,
+        a: &[Id],
+        b: &[Id],
+        sa: &[u32],
+        sb: &[u32],
+        ra: &[u32],
+        rb: &[u32],
+        tau: u32,
+    ) -> Option<Row> {
         let m = b.len();
         let (plo, phi) = (prev.lo, prev.lo + prev.v.len() - 1);
         let mut v: Vec<u32> = Vec::new();
         let mut j = plo;
         loop {
             let del = prev.at(j).map_or(INF, |x| x + sa[i - 1]);
-            let ins = if j > plo { v.last().copied().unwrap_or(INF).saturating_add(sb[j - 1]) } else { INF };
+            let ins = if j > plo {
+                v.last().copied().unwrap_or(INF).saturating_add(sb[j - 1])
+            } else {
+                INF
+            };
             let mut best = del.min(ins);
             if j > 0 {
                 if let Some(diag) = prev.at(j - 1) {
@@ -330,7 +380,10 @@ impl<'a> Frontier<'a> {
         }
         let first = v.iter().position(|&x| x < INF)?;
         let last = v.iter().rposition(|&x| x < INF)?;
-        Some(Row { lo: plo + first, v: v[first..=last].to_vec() })
+        Some(Row {
+            lo: plo + first,
+            v: v[first..=last].to_vec(),
+        })
     }
 
     fn trace(&mut self, a: &[Id], b: &[Id], sa: &[u32], sb: &[u32], rows: &[Row]) -> Vec<Step> {
@@ -361,7 +414,10 @@ impl<'a> Frontier<'a> {
                 out.push(Step::Del(i - 1));
                 i -= 1;
             } else {
-                assert!(j > 0 && get(i, j - 1).saturating_add(sb[j - 1]) == here, "trace invariant");
+                assert!(
+                    j > 0 && get(i, j - 1).saturating_add(sb[j - 1]) == here,
+                    "trace invariant"
+                );
                 out.push(Step::Ins(j - 1));
                 j -= 1;
             }
@@ -394,7 +450,12 @@ impl<'a> Frontier<'a> {
         let mut g = vec![0u32; (n + 1) * w];
         let mut heap: BinaryHeap<Reverse<(u32, u32, u32, u32, bool)>> = BinaryHeap::new();
         // Entry: (f, inverse g for deeper-first ties, cell, g, lazy).
-        let push = |heap: &mut BinaryHeap<Reverse<(u32, u32, u32, u32, bool)>>, stats: &mut FStats, i: usize, j: usize, gv: u32, lazy: bool| {
+        let push = |heap: &mut BinaryHeap<Reverse<(u32, u32, u32, u32, bool)>>,
+                    stats: &mut FStats,
+                    i: usize,
+                    j: usize,
+                    gv: u32,
+                    lazy: bool| {
             let f = gv + h(&ra, &rb, i, j);
             stats.pushes += 1;
             heap.push(Reverse((f, u32::MAX - gv, (i * w + j) as u32, gv, lazy)));
@@ -496,7 +557,16 @@ impl<'a> Frontier<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn hirsch(&mut self, a: &[Id], b: &[Id], c: u32, oi: usize, oj: usize, out: &mut Vec<Step>, peak: &mut usize) {
+    fn hirsch(
+        &mut self,
+        a: &[Id],
+        b: &[Id],
+        c: u32,
+        oi: usize,
+        oj: usize,
+        out: &mut Vec<Step>,
+        peak: &mut usize,
+    ) {
         let (n, m) = (a.len(), b.len());
         if n == 0 {
             out.extend((0..m).map(|j| Step::Ins(oj + j)));
@@ -509,7 +579,9 @@ impl<'a> Frontier<'a> {
         let (sa, sb) = (self.sizes(a), self.sizes(b));
         if n == 1 {
             let (ra, rb) = (suffix_sums(&sa), suffix_sums(&sb));
-            let rows = self.fill(a, b, &sa, &sb, &ra, &rb, c, 1, true).expect("subproblem cost is exact");
+            let rows = self
+                .fill(a, b, &sa, &sb, &ra, &rb, c, 1, true)
+                .expect("subproblem cost is exact");
             *peak = (*peak).max(rows.iter().map(|r| r.v.len()).sum());
             for st in self.trace(a, b, &sa, &sb, &rows) {
                 out.push(match st {
@@ -522,14 +594,18 @@ impl<'a> Frontier<'a> {
         }
         let mid = n / 2;
         let (ra, rb) = (suffix_sums(&sa), suffix_sums(&sb));
-        let fwd = self.fill(a, b, &sa, &sb, &ra, &rb, c, mid, false).expect("forward half within exact cost");
+        let fwd = self
+            .fill(a, b, &sa, &sb, &ra, &rb, c, mid, false)
+            .expect("forward half within exact cost");
         let fwd = fwd.into_iter().next().expect("row");
         let ar: Vec<Id> = a.iter().rev().copied().collect();
         let br: Vec<Id> = b.iter().rev().copied().collect();
         let sar: Vec<u32> = sa.iter().rev().copied().collect();
         let sbr: Vec<u32> = sb.iter().rev().copied().collect();
         let (rar, rbr) = (suffix_sums(&sar), suffix_sums(&sbr));
-        let rev = self.fill(&ar, &br, &sar, &sbr, &rar, &rbr, c, n - mid, false).expect("reverse half within exact cost");
+        let rev = self
+            .fill(&ar, &br, &sar, &sbr, &rar, &rbr, c, n - mid, false)
+            .expect("reverse half within exact cost");
         let rev = rev.into_iter().next().expect("row");
         *peak = (*peak).max(fwd.v.len() + rev.v.len());
         let mut split = None;
@@ -613,17 +689,39 @@ mod tests {
         for case in 0..1500 {
             let mut arena = Arena::new();
             let labels = 1 + r.below(3);
-            let pool: Vec<Id> = (0..6).map(|_| rand_tree(&mut r, &mut arena, 3, labels)).collect();
-            let la = (0..r.below(13)).map(|_| pool[r.below(6) as usize]).collect::<Vec<_>>();
-            let lb = (0..r.below(13)).map(|_| pool[r.below(6) as usize]).collect::<Vec<_>>();
+            let pool: Vec<Id> = (0..6)
+                .map(|_| rand_tree(&mut r, &mut arena, 3, labels))
+                .collect();
+            let la = (0..r.below(13))
+                .map(|_| pool[r.below(6) as usize])
+                .collect::<Vec<_>>();
+            let lb = (0..r.below(13))
+                .map(|_| pool[r.below(6) as usize])
+                .collect::<Vec<_>>();
             let want = oracle_list(&arena, &la, &lb);
-            assert_eq!(align_within(&arena, &la, &lb, 1 << 20), Some(want), "diff.rs vs oracle, case {case}");
+            assert_eq!(
+                align_within(&arena, &la, &lb, 1 << 20),
+                Some(want),
+                "diff.rs vs oracle, case {case}"
+            );
             let policies = [
                 Policy::THRESHOLD,
                 Policy::ASTAR,
-                Policy { algo: Algo::AStar, orient: Orient::ShorterRows, sym: true },
-                Policy { algo: Algo::Threshold, orient: Orient::LongerRows, sym: true },
-                Policy { algo: Algo::Hybrid(3), orient: Orient::SmallerSizeRows, sym: true },
+                Policy {
+                    algo: Algo::AStar,
+                    orient: Orient::ShorterRows,
+                    sym: true,
+                },
+                Policy {
+                    algo: Algo::Threshold,
+                    orient: Orient::LongerRows,
+                    sym: true,
+                },
+                Policy {
+                    algo: Algo::Hybrid(3),
+                    orient: Orient::SmallerSizeRows,
+                    sym: true,
+                },
             ];
             for p in policies {
                 let mut f = Frontier::new(&arena, p);
@@ -636,8 +734,16 @@ mod tests {
                 let (c1, s1, _) = f.align_rows(la_s, lb_s);
                 let (c2, s2, _) = f.align_linear(la_s, lb_s);
                 assert_eq!((c1, c2), (want, want), "rows/linear cost case {case}");
-                assert_eq!(step_cost(&mut f, la_s, lb_s, &s1), want, "rows steps case {case}");
-                assert_eq!(step_cost(&mut f, la_s, lb_s, &s2), want, "linear steps case {case}");
+                assert_eq!(
+                    step_cost(&mut f, la_s, lb_s, &s1),
+                    want,
+                    "rows steps case {case}"
+                );
+                assert_eq!(
+                    step_cost(&mut f, la_s, lb_s, &s2),
+                    want,
+                    "linear steps case {case}"
+                );
                 // The steps must consume both lists in order exactly once.
                 let (mut ci, mut cj) = (0, 0);
                 for s in &s2 {
@@ -670,7 +776,15 @@ mod tests {
             let x = rand_tree(&mut r, &mut arena, 4, 2);
             let y = rand_tree(&mut r, &mut arena, 4, 2);
             let want = oracle_tree(&arena, x, y);
-            for p in [Policy::THRESHOLD, Policy::ASTAR, Policy { algo: Algo::AStar, orient: Orient::ShorterRows, sym: true }] {
+            for p in [
+                Policy::THRESHOLD,
+                Policy::ASTAR,
+                Policy {
+                    algo: Algo::AStar,
+                    orient: Orient::ShorterRows,
+                    sym: true,
+                },
+            ] {
                 let mut f = Frontier::new(&arena, p);
                 assert_eq!(f.dist(x, y), want);
             }

@@ -8,7 +8,11 @@ fn lcs(a: &[u32], b: &[u32]) -> usize {
     for i in 1..=a.len() {
         let mut cur = vec![0usize; b.len() + 1];
         for j in 1..=b.len() {
-            cur[j] = if a[i - 1] == b[j - 1] { prev[j - 1] + 1 } else { prev[j].max(cur[j - 1]) };
+            cur[j] = if a[i - 1] == b[j - 1] {
+                prev[j - 1] + 1
+            } else {
+                prev[j].max(cur[j - 1])
+            };
         }
         prev = cur;
     }
@@ -16,13 +20,20 @@ fn lcs(a: &[u32], b: &[u32]) -> usize {
 }
 
 fn text(ids: &[u32]) -> Vec<u8> {
-    ids.iter().flat_map(|i| format!("line{i}\n").into_bytes()).collect()
+    ids.iter()
+        .flat_map(|i| format!("line{i}\n").into_bytes())
+        .collect()
 }
 
 fn small_stack<R: Send + 'static>(f: impl FnOnce() -> R + Send + 'static) -> R {
     // The default test thread stack is 2 MiB. The sweep recursion must fit for every input the DP
     // reference below can also handle.
-    std::thread::Builder::new().stack_size(2 << 20).spawn(f).unwrap().join().unwrap()
+    std::thread::Builder::new()
+        .stack_size(2 << 20)
+        .spawn(f)
+        .unwrap()
+        .join()
+        .unwrap()
 }
 
 #[test]
@@ -107,7 +118,11 @@ fn odd_bytes_and_line_endings() {
         let d = diff_text(a, b);
         assert!(replay_ok(a, b, &d), "a={a:?} b={b:?}");
     }
-    assert_eq!(diff_text(b"a\r\nb\r\n", b"a\nb\n").cost(), 4, "CRLF differs from LF byte for byte");
+    assert_eq!(
+        diff_text(b"a\r\nb\r\n", b"a\nb\n").cost(),
+        4,
+        "CRLF differs from LF byte for byte"
+    );
     assert_eq!(diff_text(b"same\n", b"same\n").cost(), 0);
 }
 

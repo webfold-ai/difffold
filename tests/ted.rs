@@ -75,14 +75,21 @@ fn matches_the_forest_recursion_on_random_small_trees() {
     for round in 0..6000 {
         let alpha = 1 + r.next() % 3;
         let (mut ba, mut bb) = (1 + (r.next() % 9) as i32, 1 + (r.next() % 9) as i32);
-        let (a, b) = (random_tree(&mut r, &mut ba, alpha), random_tree(&mut r, &mut bb, alpha));
+        let (a, b) = (
+            random_tree(&mut r, &mut ba, alpha),
+            random_tree(&mut r, &mut bb, alpha),
+        );
         let want = fd(&[a.clone()], &[b.clone()], &mut memo);
         let (pa, pb) = (post(&a), post(&b));
         assert_eq!(ted(&pa, &pb), want, "round {round}: {a:?} vs {b:?}");
         // The bounded form must agree with the oracle at and around the true distance.
         for tau in [want.saturating_sub(1), want, want + 1] {
             let got = ted_within(&pa, &pb, tau);
-            assert_eq!(got, (want <= tau).then_some(want), "round {round} tau {tau}: {a:?} vs {b:?}");
+            assert_eq!(
+                got,
+                (want <= tau).then_some(want),
+                "round {round} tau {tau}: {a:?} vs {b:?}"
+            );
         }
     }
 }
@@ -114,15 +121,35 @@ fn mapping_is_legal_and_costs_the_distance() {
     for round in 0..4000 {
         let alpha = 1 + r.next() % 3;
         let (mut ba, mut bb) = (1 + (r.next() % 10) as i32, 1 + (r.next() % 10) as i32);
-        let (a, b) = (random_tree(&mut r, &mut ba, alpha), random_tree(&mut r, &mut bb, alpha));
+        let (a, b) = (
+            random_tree(&mut r, &mut ba, alpha),
+            random_tree(&mut r, &mut bb, alpha),
+        );
         let want = fd(&[a.clone()], &[b.clone()], &mut memo);
         let (pa, pb) = (post(&a), post(&b));
         let m = ted_mapping(&pa, &pb);
         assert_eq!(m.cost, want, "round {round}");
-        let script_cost = check_mapping(&pa, &pb, &m.pairs).unwrap_or_else(|e| panic!("round {round}: illegal mapping {e}: {a:?} vs {b:?} {:?}", m.pairs));
-        assert_eq!(script_cost, want, "round {round}: mapping cost differs from the distance: {a:?} vs {b:?} {:?}", m.pairs);
-        let ops = difffold::ted::replay_script(&pa, &pb, &m.pairs).unwrap_or_else(|e| panic!("round {round}: replay failed: {e}: {a:?} vs {b:?} {:?}", m.pairs));
-        assert_eq!(ops, want, "round {round}: operation count differs from the distance");
+        let script_cost = check_mapping(&pa, &pb, &m.pairs).unwrap_or_else(|e| {
+            panic!(
+                "round {round}: illegal mapping {e}: {a:?} vs {b:?} {:?}",
+                m.pairs
+            )
+        });
+        assert_eq!(
+            script_cost, want,
+            "round {round}: mapping cost differs from the distance: {a:?} vs {b:?} {:?}",
+            m.pairs
+        );
+        let ops = difffold::ted::replay_script(&pa, &pb, &m.pairs).unwrap_or_else(|e| {
+            panic!(
+                "round {round}: replay failed: {e}: {a:?} vs {b:?} {:?}",
+                m.pairs
+            )
+        });
+        assert_eq!(
+            ops, want,
+            "round {round}: operation count differs from the distance"
+        );
     }
 }
 
@@ -139,7 +166,11 @@ fn the_validator_rejects_illegal_mappings() {
     let c = T(0, vec![T(0, vec![T(1, vec![])])]);
     let (pc, pd) = (post(&c), post(&c));
     assert!(check_mapping(&pc, &pd, &[(1, 3), (3, 1)]).is_err());
-    assert_eq!(check_mapping(&pa, &pb, &[(3, 3), (1, 2)]).unwrap(), 2, "two matched nodes; delete y and insert y");
+    assert_eq!(
+        check_mapping(&pa, &pb, &[(3, 3), (1, 2)]).unwrap(),
+        2,
+        "two matched nodes; delete y and insert y"
+    );
 }
 
 #[test]
@@ -150,7 +181,10 @@ fn replay_rejects_a_wrong_mapping() {
     let (pa, pb) = (post(&a), post(&b));
     // Crossing the two leaves (x->x, y->y while the order is swapped) must not execute to b.
     let r = replay_script(&pa, &pb, &[(1, 2), (2, 1), (3, 3)]);
-    assert!(r.is_err(), "a sibling-order-breaking mapping must fail to replay, got {r:?}");
+    assert!(
+        r.is_err(),
+        "a sibling-order-breaking mapping must fail to replay, got {r:?}"
+    );
     // A legal mapping of the same pair replays with the exact cost 2 (delete one leaf, insert it back).
     assert_eq!(replay_script(&pa, &pb, &[(1, 2), (3, 3)]).unwrap(), 2);
 }

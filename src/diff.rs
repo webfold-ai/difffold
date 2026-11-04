@@ -79,13 +79,37 @@ pub struct Config {
 
 impl Config {
     /// Full DP, structural comparison, no memo.
-    pub const FULL_STRUCTURAL: Config = Config { deep_eq: true, memo: false, threshold: false, tau0: Tau0::Bound, growth: 2 };
+    pub const FULL_STRUCTURAL: Config = Config {
+        deep_eq: true,
+        memo: false,
+        threshold: false,
+        tau0: Tau0::Bound,
+        growth: 2,
+    };
     /// Full DP with exact interning (id equality).
-    pub const FULL_INTERNED: Config = Config { deep_eq: false, memo: false, threshold: false, tau0: Tau0::Bound, growth: 2 };
+    pub const FULL_INTERNED: Config = Config {
+        deep_eq: false,
+        memo: false,
+        threshold: false,
+        tau0: Tau0::Bound,
+        growth: 2,
+    };
     /// Full DP with interning and memoisation.
-    pub const FULL_MEMO: Config = Config { deep_eq: false, memo: true, threshold: false, tau0: Tau0::Bound, growth: 2 };
+    pub const FULL_MEMO: Config = Config {
+        deep_eq: false,
+        memo: true,
+        threshold: false,
+        tau0: Tau0::Bound,
+        growth: 2,
+    };
     /// The production configuration: interning, memo, threshold pruning, doubling from `h(0,0)`.
-    pub const PRODUCTION: Config = Config { deep_eq: false, memo: true, threshold: true, tau0: Tau0::Bound, growth: 2 };
+    pub const PRODUCTION: Config = Config {
+        deep_eq: false,
+        memo: true,
+        threshold: true,
+        tau0: Tau0::Bound,
+        growth: 2,
+    };
 }
 
 impl Default for Config {
@@ -150,11 +174,20 @@ fn pair_key(x: Id, y: Id) -> u64 {
 
 impl<'a> Differ<'a> {
     fn new(arena: &'a Arena, cfg: Config) -> Self {
-        Self { arena, cfg, memo: Table::new(), stats: Stats::default() }
+        Self {
+            arena,
+            cfg,
+            memo: Table::new(),
+            stats: Stats::default(),
+        }
     }
 
     fn eq(&self, x: Id, y: Id) -> bool {
-        if self.cfg.deep_eq { self.arena.deep_eq(x, y) } else { x == y }
+        if self.cfg.deep_eq {
+            self.arena.deep_eq(x, y)
+        } else {
+            x == y
+        }
     }
 
     fn dist(&mut self, x: Id, y: Id) -> u32 {
@@ -202,7 +235,10 @@ impl<'a> Differ<'a> {
         for k in 0..s {
             steps.push(Step::Pair(n - s + k, m - s + k));
         }
-        Aligned { cost: mid.cost, steps }
+        Aligned {
+            cost: mid.cost,
+            steps,
+        }
     }
 
     fn align_mid(&mut self, a: &'a [Id], b: &'a [Id]) -> Aligned {
@@ -213,7 +249,10 @@ impl<'a> Differ<'a> {
             let mut steps = Vec::with_capacity(n + m);
             steps.extend((0..n).map(Step::Del));
             steps.extend((0..m).map(Step::Ins));
-            return Aligned { cost: sa.iter().sum::<u32>() + sb.iter().sum::<u32>(), steps };
+            return Aligned {
+                cost: sa.iter().sum::<u32>() + sb.iter().sum::<u32>(),
+                steps,
+            };
         }
         // Reversed accumulation: ra[i] is the total size of a[i..], rb[j] likewise.
         let ra = suffix_sums(&sa);
@@ -250,7 +289,16 @@ impl<'a> Differ<'a> {
     /// Threshold DP. Returns `None` when no path of cost `<= tau` exists. The DP itself is
     /// `kernel::fill`; this supplies the recursive pair cost and collects the counters.
     #[allow(clippy::too_many_arguments)]
-    fn fill(&mut self, a: &'a [Id], b: &'a [Id], sa: &[u32], sb: &[u32], ra: &[u32], rb: &[u32], tau: u32) -> Option<Vec<Row>> {
+    fn fill(
+        &mut self,
+        a: &'a [Id],
+        b: &'a [Id],
+        sa: &[u32],
+        sb: &[u32],
+        ra: &[u32],
+        rb: &[u32],
+        tau: u32,
+    ) -> Option<Vec<Row>> {
         let on = self.cfg.threshold;
         let mut c = Counters::default();
         let rows = {
@@ -263,7 +311,14 @@ impl<'a> Differ<'a> {
         rows
     }
 
-    fn trace(&mut self, a: &'a [Id], b: &'a [Id], sa: &[u32], sb: &[u32], rows: &[Row]) -> Vec<Step> {
+    fn trace(
+        &mut self,
+        a: &'a [Id],
+        b: &'a [Id],
+        sa: &[u32],
+        sb: &[u32],
+        rows: &[Row],
+    ) -> Vec<Step> {
         let (mut i, mut j) = (a.len(), b.len());
         let mut out = Vec::with_capacity(i + j);
         let get = |i: usize, j: usize| rows[i].at(j);
@@ -278,7 +333,11 @@ impl<'a> Differ<'a> {
                         j -= 1;
                         continue;
                     }
-                    let lbound = if self.cfg.threshold { diag + sa[i - 1].abs_diff(sb[j - 1]) } else { diag };
+                    let lbound = if self.cfg.threshold {
+                        diag + sa[i - 1].abs_diff(sb[j - 1])
+                    } else {
+                        diag
+                    };
                     if lbound <= here && diag + self.dist(a[i - 1], b[j - 1]) == here {
                         out.push(Step::Pair(i - 1, j - 1));
                         i -= 1;
@@ -291,7 +350,10 @@ impl<'a> Differ<'a> {
                 out.push(Step::Del(i - 1));
                 i -= 1;
             } else {
-                assert!(j > 0 && get(i, j - 1).saturating_add(sb[j - 1]) == here, "trace invariant");
+                assert!(
+                    j > 0 && get(i, j - 1).saturating_add(sb[j - 1]) == here,
+                    "trace invariant"
+                );
                 out.push(Step::Ins(j - 1));
                 j -= 1;
             }
@@ -315,7 +377,11 @@ impl<'a> Differ<'a> {
                 Step::Ins(j) => Edit::Ins(kb[j]),
             })
             .collect();
-        Edit::Upd { from: x, to_label: self.arena.label(y), kids }
+        Edit::Upd {
+            from: x,
+            to_label: self.arena.label(y),
+            kids,
+        }
     }
 }
 
@@ -342,8 +408,13 @@ pub fn cost(arena: &Arena, e: &Edit) -> u32 {
     match e {
         Edit::Keep(_) => 0,
         Edit::Del(x) | Edit::Ins(x) => arena.size(*x),
-        Edit::Upd { from, to_label, kids } => {
-            u32::from(arena.label(*from) != *to_label) + kids.iter().map(|k| cost(arena, k)).sum::<u32>()
+        Edit::Upd {
+            from,
+            to_label,
+            kids,
+        } => {
+            u32::from(arena.label(*from) != *to_label)
+                + kids.iter().map(|k| cost(arena, k)).sum::<u32>()
         }
     }
 }
@@ -355,10 +426,18 @@ pub fn cost(arena: &Arena, e: &Edit) -> u32 {
 pub fn apply(arena: &mut Arena, before: Id, edit: &Edit) -> Result<Id, String> {
     match edit {
         Edit::Keep(x) => {
-            if *x == before { Ok(before) } else { Err("keep does not match the before-node".into()) }
+            if *x == before {
+                Ok(before)
+            } else {
+                Err("keep does not match the before-node".into())
+            }
         }
         Edit::Del(_) | Edit::Ins(_) => Err("delete or insert at a position with no parent".into()),
-        Edit::Upd { from, to_label, kids } => {
+        Edit::Upd {
+            from,
+            to_label,
+            kids,
+        } => {
             if *from != before {
                 return Err("update does not match the before-node".into());
             }
@@ -378,7 +457,9 @@ pub fn apply(arena: &mut Arena, before: Id, edit: &Edit) -> Result<Id, String> {
                         }
                     }
                     Edit::Upd { from, .. } => {
-                        let Some(&c) = old.get(cur) else { return Err("child missing".into()) };
+                        let Some(&c) = old.get(cur) else {
+                            return Err("child missing".into());
+                        };
                         if c != *from {
                             return Err("update child does not match the before-child".into());
                         }
@@ -407,7 +488,11 @@ pub fn diff_with(arena: &Arena, cfg: Config, before: Id, after: Id) -> Diff {
     let mut d = Differ::new(arena, cfg);
     let cost_ = d.dist(before, after);
     let edit = d.edit(before, after);
-    Diff { cost: cost_, edit, stats: d.stats }
+    Diff {
+        cost: cost_,
+        edit,
+        stats: d.stats,
+    }
 }
 
 /// Distance only, no script. For timing the matcher without script construction.
@@ -465,7 +550,11 @@ pub fn diff_within(arena: &Arena, before: Id, after: Id, tau: u32) -> Option<Dif
 /// Panics if either contract is violated.
 pub fn diff_checked(arena: &mut Arena, before: Id, after: Id) -> Diff {
     let r = diff(arena, before, after);
-    assert_eq!(cost(arena, &r.edit), r.cost, "C3: script cost differs from distance");
+    assert_eq!(
+        cost(arena, &r.edit),
+        r.cost,
+        "C3: script cost differs from distance"
+    );
     let rebuilt = apply(arena, before, &r.edit).expect("C3: script does not apply");
     assert_eq!(rebuilt, after, "C3: script does not rebuild the after-tree");
     r

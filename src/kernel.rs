@@ -239,7 +239,11 @@ pub fn pick(kept: bool, best: u32) -> u32 {
 pub fn count_cell(c: Counters, kept: bool) -> Counters {
     let cells = c.cells.wrapping_add(1);
     let kept_n = if kept { c.kept.wrapping_add(1) } else { c.kept };
-    Counters { cells, kept: kept_n, pruned: c.pruned }
+    Counters {
+        cells,
+        kept: kept_n,
+        pruned: c.pruned,
+    }
 }
 
 /// The raw cells of row `i`, starting at the previous row's first column. Pruned cells hold `INF`.
@@ -298,7 +302,10 @@ pub fn trim_row(v: &Vec<u32>, plo: usize) -> Option<Row> {
             kept_row.push(v[k]);
             k += 1;
         }
-        Some(Row { lo: plo + first, v: kept_row })
+        Some(Row {
+            lo: plo + first,
+            v: kept_row,
+        })
     }
 }
 

@@ -27,7 +27,10 @@ struct Interner {
 impl Interner {
     fn label(&mut self, kind: u16, text: Option<&[u8]>) -> u32 {
         let next = u32::try_from(self.labels.len()).unwrap();
-        *self.labels.entry((kind, text.map(<[u8]>::to_vec))).or_insert(next)
+        *self
+            .labels
+            .entry((kind, text.map(<[u8]>::to_vec)))
+            .or_insert(next)
     }
 }
 
@@ -62,7 +65,14 @@ fn is_visible(n: Node, src: &[u8]) -> bool {
     n.end_byte() > pos && has(pos, n.end_byte())
 }
 
-fn convert(n: Node, src: &[u8], arena: &mut Arena, it: &mut Interner, t: &mut Tree, parent: u32) -> Id {
+fn convert(
+    n: Node,
+    src: &[u8],
+    arena: &mut Arena,
+    it: &mut Interner,
+    t: &mut Tree,
+    parent: u32,
+) -> Id {
     let idx = u32::try_from(t.kind.len()).unwrap();
     t.kind.push(n.kind());
     t.parent.push(parent);
@@ -74,7 +84,8 @@ fn convert(n: Node, src: &[u8], arena: &mut Arena, it: &mut Interner, t: &mut Tr
     let text = &src[n.byte_range()];
     let leaf = n.child_count() == 0;
     let punct = !n.is_named() && !text.iter().any(u8::is_ascii_alphanumeric);
-    t.token.push(leaf && !text.trim_ascii().is_empty() && !n.kind().contains("comment") && !punct);
+    t.token
+        .push(leaf && !text.trim_ascii().is_empty() && !n.kind().contains("comment") && !punct);
     if parent != NIL {
         t.kids[parent as usize].push(idx);
     }
@@ -117,12 +128,23 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
     };
     let build = |t: &Tree, order: &[u32], pos: &[u32]| -> PostTree {
         let label: Vec<u32> = order.iter().map(|&v| t.label[v as usize]).collect();
-        let kids: Vec<Vec<u32>> = order.iter().map(|&v| t.kids[v as usize].iter().map(|&c| pos[c as usize]).collect()).collect();
+        let kids: Vec<Vec<u32>> = order
+            .iter()
+            .map(|&v| {
+                t.kids[v as usize]
+                    .iter()
+                    .map(|&c| pos[c as usize])
+                    .collect()
+            })
+            .collect();
         PostTree::from_kids(label, &kids)
     };
     let ((oa, pa), (ob, pb)) = (post(bt), post(at));
     let m = ted_mapping(&build(bt, &oa, &pa), &build(at, &ob, &pb));
-    m.pairs.iter().map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1])).collect()
+    m.pairs
+        .iter()
+        .map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1]))
+        .collect()
 }
 
 fn lang(ext: &str) -> Option<(&'static str, Language)> {
@@ -132,7 +154,10 @@ fn lang(ext: &str) -> Option<(&'static str, Language)> {
         "c" | "h" => ("c", tree_sitter_c::LANGUAGE.into()),
         "py" => ("python", tree_sitter_python::LANGUAGE.into()),
         "js" | "mjs" => ("javascript", tree_sitter_javascript::LANGUAGE.into()),
-        "ts" => ("typescript", tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+        "ts" => (
+            "typescript",
+            tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+        ),
         "tsx" => ("tsx", tree_sitter_typescript::LANGUAGE_TSX.into()),
         "rs" => ("rust", tree_sitter_rust::LANGUAGE.into()),
         _ => return None,
@@ -231,7 +256,11 @@ fn load_gt(json: &Value, bt: &Tree, at: &Tree) -> Result<Gt, String> {
     if let Some(gs) = json["groups"].as_array() {
         for g in gs {
             let r = |t: &Tree, k: &str| -> Result<Vec<u32>, String> {
-                g[k].as_array().ok_or("group paths")?.iter().map(|p| resolve_fast(t, p)).collect()
+                g[k].as_array()
+                    .ok_or("group paths")?
+                    .iter()
+                    .map(|p| resolve_fast(t, p))
+                    .collect()
             };
             gt.groups.push(Group {
                 before: r(bt, "before_paths")?,
@@ -253,7 +282,10 @@ struct Tool {
 
 impl Tool {
     fn from_pairs(nb: usize, na: usize, pairs: impl Iterator<Item = (u32, u32)>) -> Self {
-        let mut t = Tool { b2a: vec![Vec::new(); nb], a2b: vec![Vec::new(); na] };
+        let mut t = Tool {
+            b2a: vec![Vec::new(); nb],
+            a2b: vec![Vec::new(); na],
+        };
         for (b, a) in pairs {
             t.b2a[b as usize].push(a);
             t.a2b[a as usize].push(b);
@@ -284,7 +316,16 @@ enum Cls {
     Context,
 }
 
-const CLASSES: [Cls; 8] = [Cls::Local, Cls::Sibling, Cls::Repeated, Cls::Reorder, Cls::Move, Cls::Wrap, Cls::Rewrite, Cls::Context];
+const CLASSES: [Cls; 8] = [
+    Cls::Local,
+    Cls::Sibling,
+    Cls::Repeated,
+    Cls::Reorder,
+    Cls::Move,
+    Cls::Wrap,
+    Cls::Rewrite,
+    Cls::Context,
+];
 
 fn cls_name(c: Cls) -> &'static str {
     match c {
@@ -404,7 +445,9 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
             if !on[b as usize] && b != 0 {
                 n_reorder += 1;
                 Cls::Reorder
-            } else if op == Op::Update || bt.label[b as usize] != at.label[a as usize] && bt.kids[b as usize].is_empty() {
+            } else if op == Op::Update
+                || bt.label[b as usize] != at.label[a as usize] && bt.kids[b as usize].is_empty()
+            {
                 Cls::Local
             } else {
                 Cls::Context
@@ -444,7 +487,13 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
         let inherited = bt.parent[b];
         cause[b] = if matches!(c, Cls::Move | Cls::Wrap | Cls::Reorder) {
             c
-        } else if inherited != NIL && matches!(cause[inherited as usize], Cls::Move | Cls::Wrap | Cls::Reorder) && g_b2a[inherited as usize] != NIL {
+        } else if inherited != NIL
+            && matches!(
+                cause[inherited as usize],
+                Cls::Move | Cls::Wrap | Cls::Reorder
+            )
+            && g_b2a[inherited as usize] != NIL
+        {
             cause[inherited as usize]
         } else {
             c
@@ -465,7 +514,11 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
             return Cls::Wrap;
         }
         let p = t.parent[x as usize];
-        if p != NIL && t.kids[p as usize].iter().any(|&s| s != x && t.id[s as usize] == t.id[x as usize]) {
+        if p != NIL
+            && t.kids[p as usize]
+                .iter()
+                .any(|&s| s != x && t.id[s as usize] == t.id[x as usize])
+        {
             return Cls::Repeated;
         }
         let _ = mark;
@@ -477,7 +530,11 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
             continue;
         }
         let p = bt.parent[b];
-        del_cause[b] = if p != NIL && del_mark[p as usize] { del_cause[p as usize] } else { root_cls(bt, b as u32, &pb_pre, &del_mark) };
+        del_cause[b] = if p != NIL && del_mark[p as usize] {
+            del_cause[p as usize]
+        } else {
+            root_cls(bt, b as u32, &pb_pre, &del_mark)
+        };
     }
     let mut ins_cause = vec![Cls::Sibling; na];
     for a in 0..na {
@@ -485,7 +542,11 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
             continue;
         }
         let p = at.parent[a];
-        ins_cause[a] = if p != NIL && ins_mark[p as usize] { ins_cause[p as usize] } else { root_cls(at, a as u32, &pa_pre, &ins_mark) };
+        ins_cause[a] = if p != NIL && ins_mark[p as usize] {
+            ins_cause[p as usize]
+        } else {
+            root_cls(at, a as u32, &pa_pre, &ins_mark)
+        };
     }
     // Wholesale rewrite: under a quarter of all nodes are identical, matched pairs.
     let identical = gt.pairs.iter().filter(|p| p.2 == Op::Identical).count();
@@ -501,9 +562,23 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
     }
     if rewrite {
         present[cls_ix(Cls::Rewrite)] = true;
-        pair.iter_mut().chain(del.iter_mut()).chain(ins.iter_mut()).for_each(|c| *c = Cls::Rewrite);
+        pair.iter_mut()
+            .chain(del.iter_mut())
+            .chain(ins.iter_mut())
+            .for_each(|c| *c = Cls::Rewrite);
     }
-    Classes { pair, del, ins, bound, n_pairs: gt.pairs.len() as u32, n_move, n_wrap, n_reorder, rewrite, present }
+    Classes {
+        pair,
+        del,
+        ins,
+        bound,
+        n_pairs: gt.pairs.len() as u32,
+        n_move,
+        n_wrap,
+        n_reorder,
+        rewrite,
+        present,
+    }
 }
 
 // ---------------------------------------------------------------- scoring
@@ -517,19 +592,36 @@ struct Dec {
 fn evaluate(gt: &Gt, cl: &Classes, bt: &Tree, at: &Tree, tool: &Tool) -> Vec<Dec> {
     let mut out = Vec::new();
     for (i, &(b, a, _)) in gt.pairs.iter().enumerate() {
-        out.push(Dec { cls: cl.pair[i], vis: bt.vis[b as usize], fail: tool.b2a[b as usize] != [a] });
+        out.push(Dec {
+            cls: cl.pair[i],
+            vis: bt.vis[b as usize],
+            fail: tool.b2a[b as usize] != [a],
+        });
     }
     for (i, &b) in gt.del.iter().enumerate() {
-        out.push(Dec { cls: cl.del[i], vis: bt.vis[b as usize], fail: !tool.b2a[b as usize].is_empty() });
+        out.push(Dec {
+            cls: cl.del[i],
+            vis: bt.vis[b as usize],
+            fail: !tool.b2a[b as usize].is_empty(),
+        });
     }
     for (i, &a) in gt.ins.iter().enumerate() {
-        out.push(Dec { cls: cl.ins[i], vis: at.vis[a as usize], fail: !tool.a2b[a as usize].is_empty() });
+        out.push(Dec {
+            cls: cl.ins[i],
+            vis: at.vis[a as usize],
+            fail: !tool.a2b[a as usize].is_empty(),
+        });
     }
     // Groups, following OmniDiff's check without the subtree-closure step.
     for g in &gt.groups {
         let rep = Cls::Repeated;
-        let (bs, as_): (std::collections::HashSet<u32>, std::collections::HashSet<u32>) =
-            (g.before.iter().copied().collect(), g.after.iter().copied().collect());
+        let (bs, as_): (
+            std::collections::HashSet<u32>,
+            std::collections::HashSet<u32>,
+        ) = (
+            g.before.iter().copied().collect(),
+            g.after.iter().copied().collect(),
+        );
         let mut matched = 0usize;
         let mut matched_after = std::collections::HashSet::new();
         for &b in &g.before {
@@ -540,7 +632,11 @@ fn evaluate(gt: &Gt, cl: &Classes, bt: &Tree, at: &Tree, tool: &Tool) -> Vec<Dec
                 matched += 1;
                 matched_after.insert(p[0]);
             }
-            out.push(Dec { cls: rep, vis: bt.vis[b as usize], fail: !(ok_leftover || ok_match) });
+            out.push(Dec {
+                cls: rep,
+                vis: bt.vis[b as usize],
+                fail: !(ok_leftover || ok_match),
+            });
         }
         for &a in &g.after {
             if matched_after.contains(&a) {
@@ -552,11 +648,19 @@ fn evaluate(gt: &Gt, cl: &Classes, bt: &Tree, at: &Tree, tool: &Tool) -> Vec<Dec
             if ok_match {
                 matched += 1;
             }
-            out.push(Dec { cls: rep, vis: at.vis[a as usize], fail: !(ok_leftover || ok_match) });
+            out.push(Dec {
+                cls: rep,
+                vis: at.vis[a as usize],
+                fail: !(ok_leftover || ok_match),
+            });
         }
         if !g.all_to_all {
             let first = g.before.first().map_or(true, |&b| bt.vis[b as usize]);
-            out.push(Dec { cls: rep, vis: first, fail: matched != g.before.len().min(g.after.len()) });
+            out.push(Dec {
+                cls: rep,
+                vis: first,
+                fail: matched != g.before.len().min(g.after.len()),
+            });
         }
     }
     if cl.rewrite {
@@ -574,14 +678,26 @@ struct Prf {
 
 impl Prf {
     fn p(&self) -> f64 {
-        if self.tp + self.fp == 0 { 1.0 } else { self.tp as f64 / (self.tp + self.fp) as f64 }
+        if self.tp + self.fp == 0 {
+            1.0
+        } else {
+            self.tp as f64 / (self.tp + self.fp) as f64
+        }
     }
     fn r(&self) -> f64 {
-        if self.tp + self.fn_ == 0 { 1.0 } else { self.tp as f64 / (self.tp + self.fn_) as f64 }
+        if self.tp + self.fn_ == 0 {
+            1.0
+        } else {
+            self.tp as f64 / (self.tp + self.fn_) as f64
+        }
     }
     fn f1(&self) -> f64 {
         let (p, r) = (self.p(), self.r());
-        if p + r == 0.0 { 0.0 } else { 2.0 * p * r / (p + r) }
+        if p + r == 0.0 {
+            0.0
+        } else {
+            2.0 * p * r / (p + r)
+        }
     }
     fn add(&mut self, o: &Prf) {
         self.tp += o.tp;
@@ -664,7 +780,9 @@ fn span_prf(gt: &Gt, bt: &Tree, at: &Tree, tool: &Tool) -> Prf {
             continue;
         }
         let truth = g_b2a[b] == NIL || at.label[g_b2a[b] as usize] != bt.label[b];
-        let said = tool.b2a[b].iter().all(|&a| at.label[a as usize] != bt.label[b]);
+        let said = tool.b2a[b]
+            .iter()
+            .all(|&a| at.label[a as usize] != bt.label[b]);
         tally(&mut p, truth, said);
     }
     for a in 0..na {
@@ -672,7 +790,9 @@ fn span_prf(gt: &Gt, bt: &Tree, at: &Tree, tool: &Tool) -> Prf {
             continue;
         }
         let truth = g_a2b[a] == NIL || bt.label[g_a2b[a] as usize] != at.label[a];
-        let said = tool.a2b[a].iter().all(|&b| bt.label[b as usize] != at.label[a]);
+        let said = tool.a2b[a]
+            .iter()
+            .all(|&b| bt.label[b as usize] != at.label[a]);
         tally(&mut p, truth, said);
     }
     p
@@ -716,7 +836,11 @@ impl Row {
         self.vis_nodes == 0 || (self.vis_fails as f64) / (self.vis_nodes as f64) <= 0.01
     }
     fn acc(&self) -> f64 {
-        if self.decisions == 0 { 1.0 } else { 1.0 - self.fails as f64 / self.decisions as f64 }
+        if self.decisions == 0 {
+            1.0
+        } else {
+            1.0 - self.fails as f64 / self.decisions as f64
+        }
     }
 }
 
@@ -738,15 +862,32 @@ struct Fx {
 }
 
 fn find(dir: &Path, prefix: &str) -> Option<PathBuf> {
-    std::fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).find(|p| p.file_name().and_then(|f| f.to_str()).is_some_and(|f| f.starts_with(prefix)))
+    std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| {
+            p.file_name()
+                .and_then(|f| f.to_str())
+                .is_some_and(|f| f.starts_with(prefix))
+        })
 }
 
 fn load_omni(path: &Path, nb: usize, na: usize) -> Result<(Tool, i64, i64), String> {
-    let text = std::fs::read_to_string(path).map_err(|e| format!("omnidiff dump unreadable: {e}"))?;
+    let text =
+        std::fs::read_to_string(path).map_err(|e| format!("omnidiff dump unreadable: {e}"))?;
     let mut lines = text.lines();
-    let head: Vec<i64> = lines.next().ok_or("empty dump")?.split(' ').map(|x| x.parse().unwrap_or(-1)).collect();
+    let head: Vec<i64> = lines
+        .next()
+        .ok_or("empty dump")?
+        .split(' ')
+        .map(|x| x.parse().unwrap_or(-1))
+        .collect();
     if head[0] as usize != nb || head[1] as usize != na {
-        return Err(format!("node count differs from OmniDiff's parse ({}/{} vs {}/{})", nb, na, head[0], head[1]));
+        return Err(format!(
+            "node count differs from OmniDiff's parse ({}/{} vs {}/{})",
+            nb, na, head[0], head[1]
+        ));
     }
     let pairs = lines.filter_map(|l| {
         let (b, a) = l.split_once(' ')?;
@@ -757,20 +898,38 @@ fn load_omni(path: &Path, nb: usize, na: usize) -> Result<(Tool, i64, i64), Stri
 
 fn one(ds: &str, dir: &Path, dump: &Path) -> Result<Fx, String> {
     let name = dir.file_name().unwrap().to_string_lossy().to_string();
-    let (Some(bp), Some(ap)) = (find(dir, "before."), find(dir, "after.")) else { return Err("no before/after pair".into()) };
-    let ext = bp.file_name().unwrap().to_str().unwrap().split('.').nth(1).unwrap_or("").to_string();
-    let Some((lname, l)) = lang(&ext) else { return Err(format!("language not parsed here: .{ext}")) };
+    let (Some(bp), Some(ap)) = (find(dir, "before."), find(dir, "after.")) else {
+        return Err("no before/after pair".into());
+    };
+    let ext = bp
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .split('.')
+        .nth(1)
+        .unwrap_or("")
+        .to_string();
+    let Some((lname, l)) = lang(&ext) else {
+        return Err(format!("language not parsed here: .{ext}"));
+    };
     let (bs, as_) = (std::fs::read(&bp).unwrap(), std::fs::read(&ap).unwrap());
     let mut parser = Parser::new();
     parser.set_language(&l).unwrap();
-    let (tb, ta) = (parser.parse(&bs, None).ok_or("parse failed")?, parser.parse(&as_, None).ok_or("parse failed")?);
+    let (tb, ta) = (
+        parser.parse(&bs, None).ok_or("parse failed")?,
+        parser.parse(&as_, None).ok_or("parse failed")?,
+    );
     let mut arena = Arena::new();
     let mut it = Interner::default();
     let (mut bt, mut at) = (Tree::default(), Tree::default());
     let x = convert(tb.root_node(), &bs, &mut arena, &mut it, &mut bt, NIL);
     let y = convert(ta.root_node(), &as_, &mut arena, &mut it, &mut at, NIL);
     let (nb, na) = (bt.kind.len(), at.kind.len());
-    let json: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("human_mapping.json")).map_err(|e| e.to_string())?).map_err(|e| format!("human_mapping.json: {e}"))?;
+    let json: Value = serde_json::from_str(
+        &std::fs::read_to_string(dir.join("human_mapping.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| format!("human_mapping.json: {e}"))?;
     let gt = load_gt(&json, &bt, &at).map_err(|e| format!("ground truth: {e}"))?;
     if gt.pairs.is_empty() && gt.groups.is_empty() {
         return Err("ground truth has no pairs".into());
@@ -778,13 +937,21 @@ fn one(ds: &str, dir: &Path, dump: &Path) -> Result<Fx, String> {
     let solo = dump == Path::new("-");
     let dump_file = dump.join(format!("{ds}__{name}.map"));
     if !solo && !dump_file.exists() {
-        let err = std::fs::read_to_string(dump.join(format!("{ds}__{name}.err"))).unwrap_or_default();
+        let err =
+            std::fs::read_to_string(dump.join(format!("{ds}__{name}.err"))).unwrap_or_default();
         return Err(format!("OmniDiff produced no mapping: {err}"));
     }
-    let (omni, nvis, ntot) = if solo { (Tool::from_pairs(nb, na, std::iter::empty()), 0, 0) } else { load_omni(&dump_file, nb, na)? };
+    let (omni, nvis, ntot) = if solo {
+        (Tool::from_pairs(nb, na, std::iter::empty()), 0, 0)
+    } else {
+        load_omni(&dump_file, nb, na)?
+    };
     let res = diff_checked(&mut arena, x, y);
     let corr = correspondence(&arena, x, y, &res.edit);
-    assert_eq!((corr.before_len as usize, corr.after_len as usize), (nb, na));
+    assert_eq!(
+        (corr.before_len as usize, corr.after_len as usize),
+        (nb, na)
+    );
     let dtool = if std::env::var("DFOLD_TED").is_ok() && nb.max(na) <= 20_000 {
         Tool::from_pairs(nb, na, ted_pairs(&bt, &at).into_iter())
     } else {
@@ -873,7 +1040,11 @@ impl Agg {
 }
 
 fn pct(a: usize, b: usize) -> String {
-    if b == 0 { "n/a".into() } else { format!("{:.1}%", 100.0 * a as f64 / b as f64) }
+    if b == 0 {
+        "n/a".into()
+    } else {
+        format!("{:.1}%", 100.0 * a as f64 / b as f64)
+    }
 }
 
 fn f(x: f64) -> String {
@@ -915,7 +1086,11 @@ fn tables(rows: &[&Row], title: &str, md: &mut String) {
         }
     }
     writeln!(md, "\nMacro (mean of per-fixture values):\n").unwrap();
-    writeln!(md, "| lang | tool | accuracy | pair P | pair R | pair F1 | span P | span R | span F1 |").unwrap();
+    writeln!(
+        md,
+        "| lang | tool | accuracy | pair P | pair R | pair F1 | span P | span R | span F1 |"
+    )
+    .unwrap();
     writeln!(md, "|---|---|---|---|---|---|---|---|---|").unwrap();
     for l in &langs {
         for t in ["difffold", "omnidiff"] {
@@ -941,32 +1116,74 @@ fn tables(rows: &[&Row], title: &str, md: &mut String) {
 fn csv_row(r: &Row) -> String {
     format!(
         "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-        r.dataset, r.fixture, r.lang, r.tool, r.nb, r.na, r.decisions, r.fails, r.vis_fails, r.vis_nodes, u8::from(r.perfect()), u8::from(r.near()),
-        u8::from(r.strict()), f(r.acc()), r.pair.tp, r.pair.fp, r.pair.fn_, r.span.tp, r.span.fp, r.span.fn_,
-        f(r.span.f1()), r.native.map_or(String::new(), |n| n.0.to_string()), r.native.map_or(String::new(), |n| n.1.to_string())
+        r.dataset,
+        r.fixture,
+        r.lang,
+        r.tool,
+        r.nb,
+        r.na,
+        r.decisions,
+        r.fails,
+        r.vis_fails,
+        r.vis_nodes,
+        u8::from(r.perfect()),
+        u8::from(r.near()),
+        u8::from(r.strict()),
+        f(r.acc()),
+        r.pair.tp,
+        r.pair.fp,
+        r.pair.fn_,
+        r.span.tp,
+        r.span.fp,
+        r.span.fn_,
+        f(r.span.f1()),
+        r.native.map_or(String::new(), |n| n.0.to_string()),
+        r.native.map_or(String::new(), |n| n.1.to_string())
     )
 }
 
 fn run(args: Vec<String>) {
-    let (diffs, dump, out) = (PathBuf::from(&args[1]), PathBuf::from(&args[2]), PathBuf::from(&args[3]));
+    let (diffs, dump, out) = (
+        PathBuf::from(&args[1]),
+        PathBuf::from(&args[2]),
+        PathBuf::from(&args[3]),
+    );
     // Pass `-` as the dump directory to score difffold alone.
     std::fs::create_dir_all(&out).unwrap();
     let mut fixtures: Vec<Fx> = Vec::new();
     let mut unscorable: Vec<(String, String, String)> = Vec::new();
-    let mut datasets: Vec<PathBuf> = std::fs::read_dir(&diffs).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+    let mut datasets: Vec<PathBuf> = std::fs::read_dir(&diffs)
+        .unwrap()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .collect();
     datasets.sort();
     for ds in datasets {
         let dsn = ds.file_name().unwrap().to_string_lossy().to_string();
-        let mut fxs: Vec<PathBuf> = std::fs::read_dir(&ds).unwrap().flatten().map(|e| e.path()).filter(|p| p.join("human_mapping.json").exists()).collect();
+        let mut fxs: Vec<PathBuf> = std::fs::read_dir(&ds)
+            .unwrap()
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.join("human_mapping.json").exists())
+            .collect();
         fxs.sort();
         for fx in fxs {
             match one(&dsn, &fx, &dump) {
                 Ok(x) => fixtures.push(x),
-                Err(e) => unscorable.push((dsn.clone(), fx.file_name().unwrap().to_string_lossy().to_string(), e)),
+                Err(e) => unscorable.push((
+                    dsn.clone(),
+                    fx.file_name().unwrap().to_string_lossy().to_string(),
+                    e,
+                )),
             }
         }
     }
-    eprintln!("scored {} fixtures, {} unscorable", fixtures.len(), unscorable.len());
+    eprintln!(
+        "scored {} fixtures, {} unscorable",
+        fixtures.len(),
+        unscorable.len()
+    );
     if dump == Path::new("-") {
         // Solo mode: difffold only, no OmniDiff rows (the empty OmniDiff tool is a placeholder).
         let mut csv = String::from("dataset,fixture,lang,tool,nodes_before,nodes_after,decisions,mismatches,visible_mismatches,visible_nodes,perfect,near_perfect,strict_perfect,accuracy,pair_tp,pair_fp,pair_fn,span_tp,span_fp,span_fn,span_f1,omni_native_visible,omni_native_total\n");
@@ -974,14 +1191,38 @@ fn run(args: Vec<String>) {
             writeln!(csv, "{}", csv_row(&x.d)).unwrap();
         }
         let ted_mode = std::env::var("DFOLD_TED").is_ok();
-        std::fs::write(out.join(if ted_mode { "accuracy-ted-only.csv" } else { "accuracy-difffold-only.csv" }), csv).unwrap();
-        let mut md = String::from(if std::env::var("DFOLD_TED").is_ok() { "# Accuracy against hand-authored ground truth (difffold general tree edit mapping, trees over 20000 nodes fall back to the top-down mapping)\n\n" } else { "# Accuracy against hand-authored ground truth (difffold only)\n\n" });
+        std::fs::write(
+            out.join(if ted_mode {
+                "accuracy-ted-only.csv"
+            } else {
+                "accuracy-difffold-only.csv"
+            }),
+            csv,
+        )
+        .unwrap();
+        let mut md = String::from(if std::env::var("DFOLD_TED").is_ok() {
+            "# Accuracy against hand-authored ground truth (difffold general tree edit mapping, trees over 20000 nodes fall back to the top-down mapping)\n\n"
+        } else {
+            "# Accuracy against hand-authored ground truth (difffold only)\n\n"
+        });
         let all: Vec<&Row> = fixtures.iter().map(|x| &x.d).collect();
         tables(&all, "All scorable fixtures", &mut md);
-        let nr: Vec<&Row> = fixtures.iter().filter(|x| !x.cl.rewrite).map(|x| &x.d).collect();
+        let nr: Vec<&Row> = fixtures
+            .iter()
+            .filter(|x| !x.cl.rewrite)
+            .map(|x| &x.d)
+            .collect();
         tables(&nr, "Excluding wholesale-rewrite fixtures", &mut md);
         writeln!(md, "Unscorable fixtures: {}", unscorable.len()).unwrap();
-        std::fs::write(out.join(if ted_mode { "SUMMARY-ted-only.md" } else { "SUMMARY-difffold-only.md" }), md).unwrap();
+        std::fs::write(
+            out.join(if ted_mode {
+                "SUMMARY-ted-only.md"
+            } else {
+                "SUMMARY-difffold-only.md"
+            }),
+            md,
+        )
+        .unwrap();
         return;
     }
 
@@ -1007,8 +1248,26 @@ fn run(args: Vec<String>) {
         writeln!(
             tx,
             "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-            x.dataset, x.name, x.lang, x.gt_pairs, x.identical, x.updates, x.n_gt_del, x.n_gt_ins, x.n_groups, x.cl.bound, x.cl.n_move, x.cl.n_wrap,
-            x.cl.n_reorder, u8::from(x.cl.rewrite), p(Cls::Local), p(Cls::Sibling), p(Cls::Repeated), p(Cls::Reorder), p(Cls::Move), p(Cls::Wrap)
+            x.dataset,
+            x.name,
+            x.lang,
+            x.gt_pairs,
+            x.identical,
+            x.updates,
+            x.n_gt_del,
+            x.n_gt_ins,
+            x.n_groups,
+            x.cl.bound,
+            x.cl.n_move,
+            x.cl.n_wrap,
+            x.cl.n_reorder,
+            u8::from(x.cl.rewrite),
+            p(Cls::Local),
+            p(Cls::Sibling),
+            p(Cls::Repeated),
+            p(Cls::Reorder),
+            p(Cls::Move),
+            p(Cls::Wrap)
         )
         .unwrap();
     }
@@ -1016,16 +1275,34 @@ fn run(args: Vec<String>) {
 
     // Headline tables.
     let all: Vec<&Row> = fixtures.iter().flat_map(|x| [&x.d, &x.o]).collect();
-    writeln!(md, "## Fixtures scored: {} (unscorable: {})\n", fixtures.len(), unscorable.len()).unwrap();
+    writeln!(
+        md,
+        "## Fixtures scored: {} (unscorable: {})\n",
+        fixtures.len(),
+        unscorable.len()
+    )
+    .unwrap();
     tables(&all, "All scorable fixtures", &mut md);
-    let non_rewrite: Vec<&Row> = fixtures.iter().filter(|x| !x.cl.rewrite).flat_map(|x| [&x.d, &x.o]).collect();
-    tables(&non_rewrite, "Excluding wholesale-rewrite fixtures", &mut md);
+    let non_rewrite: Vec<&Row> = fixtures
+        .iter()
+        .filter(|x| !x.cl.rewrite)
+        .flat_map(|x| [&x.d, &x.o])
+        .collect();
+    tables(
+        &non_rewrite,
+        "Excluding wholesale-rewrite fixtures",
+        &mut md,
+    );
 
     // Unscorable by reason.
     let mut reasons: BTreeMap<String, usize> = BTreeMap::new();
     for (_, _, r) in &unscorable {
         let key = r.split(':').next().unwrap_or(r).to_string();
-        let key = if r.starts_with("language not parsed here") { r.clone() } else { key };
+        let key = if r.starts_with("language not parsed here") {
+            r.clone()
+        } else {
+            key
+        };
         *reasons.entry(key).or_default() += 1;
     }
     writeln!(md, "### Unscorable fixtures by reason (full list: unscorable.csv)\n\n| reason | fixtures |\n|---|---|").unwrap();
@@ -1034,7 +1311,11 @@ fn run(args: Vec<String>) {
     }
 
     // Ground-truth composition and top-down bound.
-    writeln!(md, "\n### Ground-truth composition and the top-down ceiling\n").unwrap();
+    writeln!(
+        md,
+        "\n### Ground-truth composition and the top-down ceiling\n"
+    )
+    .unwrap();
     writeln!(md, "| lang | fixtures | GT pairs | identical pairs | changed pairs | GT deleted nodes | GT inserted nodes | cross-parent move roots | wrap/unwrap roots | reorder pairs | top-down ceiling (pair recall) | fixtures at ceiling 100% |").unwrap();
     writeln!(md, "|---|---|---|---|---|---|---|---|---|---|---|---|").unwrap();
     let mut langs: Vec<&str> = fixtures.iter().map(|x| x.lang).collect();
@@ -1042,11 +1323,17 @@ fn run(args: Vec<String>) {
     langs.dedup();
     langs.push("ALL");
     for l in &langs {
-        let xs: Vec<&Fx> = fixtures.iter().filter(|x| *l == "ALL" || x.lang == *l).collect();
+        let xs: Vec<&Fx> = fixtures
+            .iter()
+            .filter(|x| *l == "ALL" || x.lang == *l)
+            .collect();
         let s = |g: &dyn Fn(&Fx) -> usize| xs.iter().map(|x| g(x)).sum::<usize>();
         let pairs = s(&|x| x.gt_pairs);
         let bound = s(&|x| x.cl.bound as usize);
-        let full = xs.iter().filter(|x| x.cl.bound as usize == x.gt_pairs && x.n_groups == 0).count();
+        let full = xs
+            .iter()
+            .filter(|x| x.cl.bound as usize == x.gt_pairs && x.n_groups == 0)
+            .count();
         writeln!(
             md,
             "| {l} | {} | {pairs} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
@@ -1075,7 +1362,11 @@ fn run(args: Vec<String>) {
     for c in CLASSES {
         let (mut fx, mut dec, mut df, mut of, mut pd, mut po) = (0, 0, 0i64, 0i64, 0, 0);
         for x in &fixtures {
-            let has = if c == Cls::Rewrite { x.cl.rewrite } else { !x.cl.rewrite && x.cl.present[cls_ix(c)] };
+            let has = if c == Cls::Rewrite {
+                x.cl.rewrite
+            } else {
+                !x.cl.rewrite && x.cl.present[cls_ix(c)]
+            };
             if has {
                 fx += 1;
                 pd += usize::from(x.d.perfect());
@@ -1113,11 +1404,26 @@ fn run(args: Vec<String>) {
 
     // Wrap prevalence and fixture-level gap attribution.
     let n = fixtures.len();
-    let wrap_any = fixtures.iter().filter(|x| x.cl.present[cls_ix(Cls::Wrap)]).count();
-    let move_any = fixtures.iter().filter(|x| x.cl.present[cls_ix(Cls::Move)]).count();
-    let reorder_any = fixtures.iter().filter(|x| x.cl.present[cls_ix(Cls::Reorder)]).count();
-    let worse: Vec<&Fx> = fixtures.iter().filter(|x| x.d.vis_fails > x.o.vis_fails).collect();
-    let worse_wrap = worse.iter().filter(|x| x.cl.present[cls_ix(Cls::Wrap)]).count();
+    let wrap_any = fixtures
+        .iter()
+        .filter(|x| x.cl.present[cls_ix(Cls::Wrap)])
+        .count();
+    let move_any = fixtures
+        .iter()
+        .filter(|x| x.cl.present[cls_ix(Cls::Move)])
+        .count();
+    let reorder_any = fixtures
+        .iter()
+        .filter(|x| x.cl.present[cls_ix(Cls::Reorder)])
+        .count();
+    let worse: Vec<&Fx> = fixtures
+        .iter()
+        .filter(|x| x.d.vis_fails > x.o.vis_fails)
+        .collect();
+    let worse_wrap = worse
+        .iter()
+        .filter(|x| x.cl.present[cls_ix(Cls::Wrap)])
+        .count();
     writeln!(md, "\nFixtures containing any wrap/unwrap: {wrap_any}/{n} ({}); any cross-parent move: {move_any}/{n} ({}); any reorder: {reorder_any}/{n} ({}).", pct(wrap_any, n), pct(move_any, n), pct(reorder_any, n)).unwrap();
     writeln!(md, "Fixtures where difffold has more visible mismatches than OmniDiff: {}/{n} ({}); of those, {worse_wrap} contain a wrap/unwrap.\n", worse.len(), pct(worse.len(), n)).unwrap();
     // Primary cause of the gap per worse fixture: class with the largest (difffold - omnidiff) fail excess.
@@ -1138,29 +1444,85 @@ fn run(args: Vec<String>) {
     }
 
     // Fixtures where OmniDiff is perfect and difffold is not.
-    let po: Vec<&Fx> = fixtures.iter().filter(|x| x.o.perfect() && !x.d.perfect()).collect();
+    let po: Vec<&Fx> = fixtures
+        .iter()
+        .filter(|x| x.o.perfect() && !x.d.perfect())
+        .collect();
     writeln!(md, "\nFixtures where OmniDiff is perfect and difffold is not: {} ({} of all). Classes present in them:\n", po.len(), pct(po.len(), n)).unwrap();
     for c in CLASSES {
-        let k = po.iter().filter(|x| if c == Cls::Rewrite { x.cl.rewrite } else { x.cl.present[cls_ix(c)] }).count();
+        let k = po
+            .iter()
+            .filter(|x| {
+                if c == Cls::Rewrite {
+                    x.cl.rewrite
+                } else {
+                    x.cl.present[cls_ix(c)]
+                }
+            })
+            .count();
         writeln!(md, "- {}: {k}", cls_name(c)).unwrap();
     }
-    let none = po.iter().filter(|x| !x.cl.rewrite && [Cls::Reorder, Cls::Move, Cls::Wrap, Cls::Repeated].iter().all(|&c| !x.cl.present[cls_ix(c)])).count();
-    writeln!(md, "- none of move, wrap/unwrap, reorder, repeated, rewrite: {none}").unwrap();
+    let none = po
+        .iter()
+        .filter(|x| {
+            !x.cl.rewrite
+                && [Cls::Reorder, Cls::Move, Cls::Wrap, Cls::Repeated]
+                    .iter()
+                    .all(|&c| !x.cl.present[cls_ix(c)])
+        })
+        .count();
+    writeln!(
+        md,
+        "- none of move, wrap/unwrap, reorder, repeated, rewrite: {none}"
+    )
+    .unwrap();
 
     // Worst 10.
     let mut ranked: Vec<&Fx> = fixtures.iter().collect();
     ranked.sort_by_key(|x| std::cmp::Reverse(x.d.vis_fails as i64 - x.o.vis_fails as i64));
-    writeln!(md, "\n### 10 worst fixtures for difffold (visible mismatches minus OmniDiff's)\n").unwrap();
+    writeln!(
+        md,
+        "\n### 10 worst fixtures for difffold (visible mismatches minus OmniDiff's)\n"
+    )
+    .unwrap();
     writeln!(md, "| fixture | lang | difffold vis. mismatches | omnidiff | decisions | difffold excess fails by cause |\n|---|---|---|---|---|---|").unwrap();
-    let mut worst_csv = String::from("dataset,fixture,lang,difffold_visible,omnidiff_visible,decisions,cause_breakdown\n");
+    let mut worst_csv = String::from(
+        "dataset,fixture,lang,difffold_visible,omnidiff_visible,decisions,cause_breakdown\n",
+    );
     for x in ranked.iter().take(10) {
         let mut ex: BTreeMap<&str, i64> = BTreeMap::new();
         for (d, o) in x.dd.iter().zip(&x.od) {
             *ex.entry(cls_name(d.cls)).or_default() += i64::from(d.fail) - i64::from(o.fail);
         }
-        let s: Vec<String> = ex.iter().filter(|(_, v)| **v != 0).map(|(k, v)| format!("{k}:{v:+}")).collect();
-        writeln!(md, "| {}/{} | {} | {} | {} | {} | {} |", x.dataset, x.name, x.lang, x.d.vis_fails, x.o.vis_fails, x.d.decisions, s.join(" ")).unwrap();
-        writeln!(worst_csv, "{},{},{},{},{},{},\"{}\"", x.dataset, x.name, x.lang, x.d.vis_fails, x.o.vis_fails, x.d.decisions, s.join(" ")).unwrap();
+        let s: Vec<String> = ex
+            .iter()
+            .filter(|(_, v)| **v != 0)
+            .map(|(k, v)| format!("{k}:{v:+}"))
+            .collect();
+        writeln!(
+            md,
+            "| {}/{} | {} | {} | {} | {} | {} |",
+            x.dataset,
+            x.name,
+            x.lang,
+            x.d.vis_fails,
+            x.o.vis_fails,
+            x.d.decisions,
+            s.join(" ")
+        )
+        .unwrap();
+        writeln!(
+            worst_csv,
+            "{},{},{},{},{},{},\"{}\"",
+            x.dataset,
+            x.name,
+            x.lang,
+            x.d.vis_fails,
+            x.o.vis_fails,
+            x.d.decisions,
+            s.join(" ")
+        )
+        .unwrap();
     }
     std::fs::write(out.join("worst10.csv"), worst_csv).unwrap();
 
@@ -1176,7 +1538,11 @@ fn run(args: Vec<String>) {
             }
         }
     }
-    writeln!(md, "\n### Calibration of this scorer against OmniDiff's own checker\n").unwrap();
+    writeln!(
+        md,
+        "\n### Calibration of this scorer against OmniDiff's own checker\n"
+    )
+    .unwrap();
     writeln!(md, "On {cmp} fixtures with a native result: OmniDiff native visible mismatches total {sum_native}, this scorer's {sum_mine}; zero/non-zero agreement {}. The scorer ignores operation kinds (Identical vs Update) and the subtree-closure step of groups; the native checker enforces both.", pct(agree_zero, cmp)).unwrap();
 
     std::fs::write(out.join("summary_tables.md"), &md).unwrap();
@@ -1185,5 +1551,10 @@ fn run(args: Vec<String>) {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    std::thread::Builder::new().stack_size(1 << 30).spawn(move || run(args)).unwrap().join().unwrap();
+    std::thread::Builder::new()
+        .stack_size(1 << 30)
+        .spawn(move || run(args))
+        .unwrap()
+        .join()
+        .unwrap();
 }

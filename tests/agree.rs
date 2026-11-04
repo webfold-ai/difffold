@@ -30,8 +30,24 @@ fn first_and_last_newline_copies_agree_with_the_real_functions() {
             _ => 0,
         };
         let density = 1 + r.next() % 40;
-        let t: Vec<u8> = (0..len).map(|_| if r.next() % density == 0 { b'\n' } else { (r.next() % 255) as u8 | 1 }).collect();
-        assert_eq!(copy::first_nl(&t), proof_api::first_nl(&t), "first_nl round {round} len {len}");
-        assert_eq!(copy::last_nl(&t), proof_api::last_nl(&t), "last_nl round {round} len {len}");
+        let t: Vec<u8> = (0..len)
+            .map(|_| {
+                if r.next() % density == 0 {
+                    b'\n'
+                } else {
+                    (r.next() % 255) as u8 | 1
+                }
+            })
+            .collect();
+        assert_eq!(
+            copy::first_nl(&t),
+            proof_api::first_nl(&t),
+            "first_nl round {round} len {len}"
+        );
+        assert_eq!(
+            copy::last_nl(&t),
+            proof_api::last_nl(&t),
+            "last_nl round {round} len {len}"
+        );
     }
 }

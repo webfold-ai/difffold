@@ -28,7 +28,10 @@ pub enum Kind {
 /// non-ASCII bytes: in double quotes, with C escapes and octal for the rest.
 fn quote_path(prefix: &str, name: &str) -> String {
     let full = format!("{prefix}{name}");
-    if !full.bytes().any(|b| b < 0x20 || b == 0x7f || b >= 0x80 || b == b'"' || b == b'\\') {
+    if !full
+        .bytes()
+        .any(|b| b < 0x20 || b == 0x7f || b >= 0x80 || b == b'"' || b == b'\\')
+    {
         return full;
     }
     let mut q = String::from("\"");
@@ -57,7 +60,15 @@ pub fn unified(old: &[u8], new: &[u8], name: &str, ctx: usize, algo: Algo) -> Ve
 /// Like [`unified`], for a file that may be created or deleted. `mode` is the file mode written on a
 /// creation or deletion header, for example `100644`.
 #[must_use]
-pub fn unified_with(old: &[u8], new: &[u8], name: &str, ctx: usize, algo: Algo, kind: Kind, mode: &str) -> Vec<u8> {
+pub fn unified_with(
+    old: &[u8],
+    new: &[u8],
+    name: &str,
+    ctx: usize,
+    algo: Algo,
+    kind: Kind,
+    mode: &str,
+) -> Vec<u8> {
     let d = diff_text_with(old, new, algo);
     let (la, lb) = (split_lines(old), split_lines(new));
     let mut ops = Vec::with_capacity(la.len().max(lb.len()));
@@ -75,7 +86,12 @@ pub fn unified_with(old: &[u8], new: &[u8], name: &str, ctx: usize, algo: Algo, 
             j += 1;
         }
     }
-    let changed: Vec<usize> = ops.iter().enumerate().filter(|(_, o)| !matches!(o, Op::Eq(..))).map(|(k, _)| k).collect();
+    let changed: Vec<usize> = ops
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| !matches!(o, Op::Eq(..)))
+        .map(|(k, _)| k)
+        .collect();
     let mut w: Vec<u8> = Vec::new();
     if changed.is_empty() && kind == Kind::Modify {
         return w;
@@ -124,8 +140,18 @@ pub fn unified_with(old: &[u8], new: &[u8], name: &str, ctx: usize, algo: Algo, 
                 }
             }
         }
-        let first_a = a0.unwrap_or_else(|| ops[..lo].iter().filter(|o| !matches!(o, Op::Ins(_))).count());
-        let first_b = b0.unwrap_or_else(|| ops[..lo].iter().filter(|o| !matches!(o, Op::Del(_))).count());
+        let first_a = a0.unwrap_or_else(|| {
+            ops[..lo]
+                .iter()
+                .filter(|o| !matches!(o, Op::Ins(_)))
+                .count()
+        });
+        let first_b = b0.unwrap_or_else(|| {
+            ops[..lo]
+                .iter()
+                .filter(|o| !matches!(o, Op::Del(_)))
+                .count()
+        });
         let fa = if ac == 0 { first_a } else { first_a + 1 };
         let fb = if bc == 0 { first_b } else { first_b + 1 };
         w.extend_from_slice(format!("@@ -{fa},{ac} +{fb},{bc} @@\n").as_bytes());
