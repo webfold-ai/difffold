@@ -32,10 +32,15 @@ release can be verified. The checks run in `.github/workflows/supply-chain.yml`,
 
 ### Audited exceptions
 
-`.cargo/audit.toml` ignores **RUSTSEC-2026-0183** and **RUSTSEC-2026-0184** (unsound `git2` 0.20.4).
-Only the unpublished `linebench` crate uses `git2`, and it calls `git2::Patch::from_buffers` only.
-The affected APIs are not called. No patched `git2` exists in the 0.20 line. Remove these entries
-when `linebench` moves to a patched or newer `git2`.
+None. `.cargo/audit.toml` has no ignores, and `cargo audit --deny warnings` passes on the root
+workspace.
+
+The earlier exceptions for **RUSTSEC-2026-0183** and **RUSTSEC-2026-0184** (unsound `git2` 0.20.4)
+were removed by moving the git xdiff baseline out of the root workspace. It is now
+`tools/xdiff-baseline`, which has its own `Cargo.lock` and is not part of the root lock file. That
+lock file still pins `git2` 0.20.4, so `cargo audit -f tools/xdiff-baseline/Cargo.lock` reports
+both advisories. CI does not audit that lock file. It is a benchmark tool, not part of the
+published surface.
 
 ## Build integrity
 

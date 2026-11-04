@@ -11,7 +11,6 @@ imara-diff = "0.1"
 fast_rsync = "0.2"
 qbsdiff = "1"
 flate2 = "1"
-git2 = { version = "0.20", default-features = false }
 apted = "0.1"
 tree-edit-distance = "0.4"
 tree-sitter = "0.25"
