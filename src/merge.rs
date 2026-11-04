@@ -56,14 +56,14 @@ pub fn merge3(base: &[u8], left: &[u8], right: &[u8], algo: Algo) -> Merged {
     // (base, left, right) index of the previous stable line; usize::MAX stands for "before the start".
     let (mut pb, mut pl, mut pr) = (usize::MAX, usize::MAX, usize::MAX);
     let next = |x: usize| x.wrapping_add(1);
-    let mut chunk = |out: &mut Vec<u8>,
-                     b0: usize,
-                     b1: usize,
-                     l0: usize,
-                     l1: usize,
-                     r0: usize,
-                     r1: usize,
-                     conflicts: &mut usize| {
+    let chunk = |out: &mut Vec<u8>,
+                 b0: usize,
+                 b1: usize,
+                 l0: usize,
+                 l1: usize,
+                 r0: usize,
+                 r1: usize,
+                 conflicts: &mut usize| {
         let (b, l, r) = (&bl[b0..b1], &ll[l0..l1], &rl[r0..r1]);
         if l == b {
             push_lines(out, r);

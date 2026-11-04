@@ -15,6 +15,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 use tree_sitter::{Language, Node, Parser};
 
+/// One memory sample: (nodes, held bytes, rows peak, linear peak, rows ms, linear ms).
+type MemRow = (usize, usize, f64, f64, usize, usize);
+
 struct Counting;
 static CUR: AtomicUsize = AtomicUsize::new(0);
 static PEAK: AtomicUsize = AtomicUsize::new(0);
@@ -221,7 +224,7 @@ fn run(args: Vec<String>) {
         ast: (f64, u64, u64),
     }
     let mut recs: Vec<Rec> = vec![];
-    let mut mem_rows: Vec<(usize, usize, f64, f64, usize, usize)> = vec![];
+    let mut mem_rows: Vec<MemRow> = vec![];
     let mut done = 0usize;
     let mut verified = 0usize;
 
@@ -423,8 +426,8 @@ fn run(args: Vec<String>) {
             let k = ma.len().max(mb.len());
             let b = &mut buckets[bucket(k)];
             b.aligns += 1;
-            for i in 0..4 {
-                b.cells[i] += cells[i];
+            for (dst, src) in b.cells.iter_mut().zip(cells.iter()) {
+                *dst += src;
             }
             b.best += *cells.iter().min().unwrap();
             top.push((ma.len() * mb.len(), p, q));
@@ -579,9 +582,7 @@ fn run(args: Vec<String>) {
     .unwrap();
     if !mem_rows.is_empty() {
         let n = mem_rows.len();
-        let tot = |f: &dyn Fn(&(usize, usize, f64, f64, usize, usize)) -> f64| {
-            mem_rows.iter().map(f).sum::<f64>()
-        };
+        let tot = |f: &dyn Fn(&MemRow) -> f64| mem_rows.iter().map(f).sum::<f64>();
         writeln!(s, "samples {n}; sum peak bytes rows {:.0} linear {:.0} (linear/rows {:.3}); sum ms rows {:.2} linear {:.2} (linear/rows {:.2})", tot(&|m| m.4 as f64), tot(&|m| m.5 as f64), tot(&|m| m.5 as f64) / tot(&|m| m.4 as f64), tot(&|m| m.2), tot(&|m| m.3), tot(&|m| m.3) / tot(&|m| m.2)).unwrap();
         let mut ratio: Vec<f64> = mem_rows
             .iter()

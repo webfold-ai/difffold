@@ -79,7 +79,11 @@ fn matches_the_forest_recursion_on_random_small_trees() {
             random_tree(&mut r, &mut ba, alpha),
             random_tree(&mut r, &mut bb, alpha),
         );
-        let want = fd(&[a.clone()], &[b.clone()], &mut memo);
+        let want = fd(
+            std::slice::from_ref(&a),
+            std::slice::from_ref(&b),
+            &mut memo,
+        );
         let (pa, pb) = (post(&a), post(&b));
         assert_eq!(ted(&pa, &pb), want, "round {round}: {a:?} vs {b:?}");
         // The bounded form must agree with the oracle at and around the true distance.
@@ -125,7 +129,11 @@ fn mapping_is_legal_and_costs_the_distance() {
             random_tree(&mut r, &mut ba, alpha),
             random_tree(&mut r, &mut bb, alpha),
         );
-        let want = fd(&[a.clone()], &[b.clone()], &mut memo);
+        let want = fd(
+            std::slice::from_ref(&a),
+            std::slice::from_ref(&b),
+            &mut memo,
+        );
         let (pa, pb) = (post(&a), post(&b));
         let m = ted_mapping(&pa, &pb);
         assert_eq!(m.cost, want, "round {round}");

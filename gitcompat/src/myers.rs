@@ -138,7 +138,7 @@ fn middle_snake(
             vf[ki] = x;
             if odd {
                 let kr = delta - k;
-                if kr >= -(d - 1) && kr <= d - 1 && x + vb[(off + kr) as usize] >= n {
+                if kr > -d && kr < d && x + vb[(off + kr) as usize] >= n {
                     return Some((x0 as usize, y0 as usize, x as usize, y as usize));
                 }
             }

@@ -11,6 +11,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// A named merge scenario: (name, base, left, right); `None` right side means deleted.
+type Scenario = (&'static str, Vec<u8>, Vec<u8>, Option<Vec<u8>>);
+
 #[derive(Clone, Copy, PartialEq)]
 enum Pick {
     Old,
@@ -119,7 +122,7 @@ fn run_merge(tool: &str, bin: &str, dir: &Path, ext: &str) -> Option<(Vec<u8>, b
                 .output()
                 .ok()?;
             let code = out.status.code()?;
-            if code < 0 || code > 127 {
+            if !(0..=127).contains(&code) {
                 return None;
             }
             Some((out.stdout, code > 0))
@@ -198,7 +201,7 @@ fn main() {
                 ds.file_name().unwrap().to_string_lossy(),
                 fx.file_name().unwrap().to_string_lossy()
             );
-            let scenarios: Vec<(&str, Vec<u8>, Vec<u8>, Option<Vec<u8>>)> = vec![
+            let scenarios: Vec<Scenario> = vec![
                 (
                     "disjoint",
                     render(&a, &b, &items, &hunks, &|h| {

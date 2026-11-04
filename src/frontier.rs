@@ -19,6 +19,9 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::hash::{BuildHasherDefault, Hasher};
 
+/// Priority-queue entry: (f, inverse g, cell, g, lazy).
+type HeapEntry = Reverse<(u32, u32, u32, u32, bool)>;
+
 const INF: u32 = u32::MAX / 4;
 
 /// Multiplicative hasher for the integer pair keys.
@@ -448,9 +451,9 @@ impl<'a> Frontier<'a> {
         // 0 = unset; otherwise (g + 1) with bit 31 marking a closed cell.
         const CLOSED: u32 = 1 << 31;
         let mut g = vec![0u32; (n + 1) * w];
-        let mut heap: BinaryHeap<Reverse<(u32, u32, u32, u32, bool)>> = BinaryHeap::new();
+        let mut heap: BinaryHeap<HeapEntry> = BinaryHeap::new();
         // Entry: (f, inverse g for deeper-first ties, cell, g, lazy).
-        let push = |heap: &mut BinaryHeap<Reverse<(u32, u32, u32, u32, bool)>>,
+        let push = |heap: &mut BinaryHeap<HeapEntry>,
                     stats: &mut FStats,
                     i: usize,
                     j: usize,

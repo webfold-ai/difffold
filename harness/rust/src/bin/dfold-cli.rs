@@ -23,7 +23,7 @@ fn ms(t: Instant) -> f64 {
     t.elapsed().as_secs_f64() * 1e3
 }
 
-fn stat(name: &str, v: &mut Vec<f64>, out: &mut String) {
+fn stat(name: &str, v: &mut [f64], out: &mut String) {
     if v.is_empty() {
         return;
     }

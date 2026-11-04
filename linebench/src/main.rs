@@ -8,6 +8,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+/// Whether to abort on a cost mismatch against imara-myers. Off in this benchmark run.
+const CHECK_IMARA_COST: bool = false;
+
 fn find(dir: &Path, p: &str) -> Option<PathBuf> {
     std::fs::read_dir(dir)
         .ok()?
@@ -96,7 +99,7 @@ fn main() {
             (c.insertions + c.removals) as usize
         });
         row("imara-myers", us, c, &mut out);
-        if false && c != ours {
+        if CHECK_IMARA_COST && c != ours {
             mismatches += 1;
             eprintln!("cost mismatch vs imara-myers on {name}: ours {ours} imara {c}");
         }

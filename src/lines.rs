@@ -541,7 +541,7 @@ fn forward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
     let ik = s.ix(k);
     s.vf[ik] = x;
     let kb = s.delta - k;
-    if s.odd && kb >= -(d - 1) && kb <= d - 1 && x + s.vb[s.ix(kb)] >= s.n {
+    if s.odd && kb > -d && kb < d && x + s.vb[s.ix(kb)] >= s.n {
         Some((x as usize, y as usize))
     } else {
         None

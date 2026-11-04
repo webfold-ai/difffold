@@ -347,8 +347,6 @@ struct Classes {
     ins: Vec<Cls>,
     /// Best number of ground-truth pairs a top-down ordered mapping can contain.
     bound: u32,
-    /// Pairs: consistent (parent paired with parent), total.
-    n_pairs: u32,
     n_move: u32,
     n_wrap: u32,
     n_reorder: u32,
@@ -572,7 +570,6 @@ fn classify(gt: &Gt, bt: &Tree, at: &Tree) -> Classes {
         del,
         ins,
         bound,
-        n_pairs: gt.pairs.len() as u32,
         n_move,
         n_wrap,
         n_reorder,
@@ -655,7 +652,7 @@ fn evaluate(gt: &Gt, cl: &Classes, bt: &Tree, at: &Tree, tool: &Tool) -> Vec<Dec
             });
         }
         if !g.all_to_all {
-            let first = g.before.first().map_or(true, |&b| bt.vis[b as usize]);
+            let first = g.before.first().is_none_or(|&b| bt.vis[b as usize]);
             out.push(Dec {
                 cls: rep,
                 vis: first,

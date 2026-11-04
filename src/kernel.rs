@@ -63,11 +63,7 @@ impl Row {
 /// `|x - y|`.
 #[must_use]
 pub fn adiff(x: u32, y: u32) -> u32 {
-    if x >= y {
-        x - y
-    } else {
-        y - x
-    }
+    x.abs_diff(y)
 }
 
 /// The smaller of two values.
@@ -145,7 +141,7 @@ pub fn del_cand(prev: &Row, j: usize, sa: &[u32], i: usize) -> u32 {
 /// The insert candidate of cell `(i, j)`: the cell to the left plus the inserted child's size, or
 /// `INF` for the first cell of the row. A pruned left neighbour yields a word `>= INF`.
 #[must_use]
-pub fn ins_cand(v: &Vec<u32>, j: usize, plo: usize, sb: &[u32]) -> u32 {
+pub fn ins_cand(v: &[u32], j: usize, plo: usize, sb: &[u32]) -> u32 {
     if j > plo {
         v[v.len() - 1] + sb[j - 1]
     } else {
@@ -206,7 +202,7 @@ pub fn diag_stage<O: Oracle>(
 pub fn cell_value<O: Oracle>(
     o: &mut O,
     prev: &Row,
-    v: &Vec<u32>,
+    v: &[u32],
     i: usize,
     j: usize,
     plo: usize,
@@ -284,7 +280,7 @@ pub fn row_cells<O: Oracle>(
 
 /// Drop the pruned cells at both ends of a raw row, or `None` if every cell is pruned.
 #[must_use]
-pub fn trim_row(v: &Vec<u32>, plo: usize) -> Option<Row> {
+pub fn trim_row(v: &[u32], plo: usize) -> Option<Row> {
     let mut first = 0;
     while first < v.len() && v[first] >= INF {
         first += 1;

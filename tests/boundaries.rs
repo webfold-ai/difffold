@@ -156,6 +156,8 @@ fn threshold_below_at_and_above_the_optimum() {
 }
 
 #[test]
+// `i` indexes `rem` and is also passed to `remaining_bound`, so enumerate() would not simplify it.
+#[allow(clippy::needless_range_loop)]
 fn bound_never_exceeds_true_remaining_cost() {
     let mut r = Rng(0xB0_0B);
     let mut arena = Arena::new();
