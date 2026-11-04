@@ -17,7 +17,7 @@ theorem forward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int
   step*
   -- the starting value of the diagonal
   have hlfb : s.vf.length = 2 * (A.length + B.length) + 3 := by simpa [Slice.length] using hlf
-  obtain ⟨x0, hx0, hx0v⟩ : ∃ x0 : I32, (do
+  have key : (do
         if kk = i2 then s.vf.index_usize ikp
         else
           if (kk != d) = true then do
@@ -26,9 +26,21 @@ theorem forward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int
             if i3 < i4 then ok i4 else i3 + 1#i32
           else do
             let i3 ← s.vf.index_usize ikm
-            i3 + 1#i32) = ok x0 ∧ x0.val = (X0v A B dn k : Int) := by
-    sorry
-  rw [hx0]
-  simp only [bind_tc_ok]
+            i3 + 1#i32 : Result I32) ⦃ x0 => x0.val = (X0v A B dn k : Int) ⦄ := by
+    cases dn with
+    | zero =>
+      have hk0 : k = 0 := by omega
+      have hc : kk = i2 := by apply IScalar.eq_of_val_eq; omega
+      rw [if_pos hc]
+      obtain ⟨e, he, hev⟩ := hf
+      have hb1 : ikp.val < s.vf.length := by omega
+      have hip : ikp.val = ((s.off.val + 1).toNat) := by rw [ikp_post]; congr 1; omega
+      rw [hip] at he
+      step with Slice.index_usize_spec as ⟨x, hx⟩
+      have := rd_val (i := ikp) (by rw [hip]; exact he) hb1
+      simp [X0v, hx, this, hev]
+    | succ d' =>
+      sorry
+  step with key as ⟨x0, hx0v⟩
   step*
   all_goals (trace_state; sorry)

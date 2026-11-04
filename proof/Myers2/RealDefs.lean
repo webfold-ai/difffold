@@ -58,3 +58,14 @@ theorem rd_val {v : Slice I32} {i : Usize} {e : I32} (h : v.val[i.val]? = some e
   have := List.getElem?_eq_getElem hb
   rw [this] at h; exact Option.some.inj h
 end difffold_myers_extract
+
+namespace difffold_myers_extract
+theorem rdv {v : Slice I32} {off : Int} {G : Nat → Int → Nat} {d' : Nat}
+    (hf : ∀ k, Myers.Dom d' k → ∃ e, v.val[(off + k).toNat]? = some e ∧ e.val = (G d' k : Int))
+    (i : Usize) (k : Int) (hi : i.val = (off + k).toNat) (hk : Myers.Dom d' k) (hb : i.val < v.length) :
+    (v.val[i.val]'hb).val = (G d' k : Int) := by
+  obtain ⟨e, he, hv⟩ := hf k hk
+  rw [← hi] at he
+  have := rd_val he hb
+  rw [this]; exact hv
+end difffold_myers_extract

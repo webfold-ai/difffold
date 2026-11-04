@@ -94,4 +94,13 @@ theorem overlap_nil_right (A : List Nat) : overlap A [] = 0 := by simp [overlap,
 theorem overlap_le_left (A B : List Nat) : overlap A B ≤ A.length := length_interM_le_left A B
 theorem overlap_le_right (A B : List Nat) : overlap A B ≤ B.length := length_interM_le_right A B
 
+/-- A list with the counts of the multiset intersection has the length of the overlap. -/
+theorem length_of_counts {C A B : List Nat} (h : ∀ x, C.count x = min (A.count x) (B.count x)) :
+    C.length = overlap A B := by
+  unfold overlap
+  apply List.Perm.length_eq
+  rw [List.perm_iff_count]
+  intro x
+  rw [h, count_interM]
+
 end Ted

@@ -1,4 +1,5 @@
 import DifffoldTed
+import Basic
 open Aeneas Aeneas.Std Result ControlFlow
 namespace difffold_lines_extract
 
@@ -329,10 +330,18 @@ theorem from_kids_spec (label : alloc.vec.Vec Std.U32) (kids : Slice (alloc.vec.
       t.keyroots.val.Pairwise (fun a b => a.val < b.val) ∧
       ∀ v, InKR t.keyroots.val v ↔ LastWithLml t.lml.val label.length v ⦄ := by
   unfold ted.PostTree.from_kids
+  have hlenv := alloc.vec.Vec.len_val label
   step*
-  all_goals trace_state
-  all_goals sorry
-  step*
+  · intro l hl
+    have hf : seen.val[l]! = false := by
+      have h1 : l < seen.val.length := hl
+      rw [seen_post]
+      simp [List.getElem!_eq_getElem?_getD, List.getElem?_replicate]
+      split <;> simp
+    rw [hf]
+    constructor
+    · intro h; exact absurd h (by simp)
+    · rintro ⟨j, h1, h2, _⟩; omega
   · simp [alloc.vec.Vec.new]
   · intro v
     constructor
@@ -346,8 +355,10 @@ theorem from_kids_spec (label : alloc.vec.Vec Std.U32) (kids : Slice (alloc.vec.
         = keyroots.val.reverse := by
       simp [core.slice.Slice.reverse, alloc.vec.Vec.val]
     have hlen := alloc.vec.Vec.len_val label
-    simp only [lift, bind_tc_ok]
-    refine ⟨rfl, by show lml1.length = label.length; omega, ?_, ?_, ?_⟩
+    simp only [lift, bind_tc_ok, alloc.vec.Vec.deref_mut]
+    step*
+    · intro x _; exact clone_vec_u32 x
+    refine ⟨by omega, ?_, ?_, ?_⟩
     · intro j hj
       have := lml1_post1 j (by omega)
       exact this

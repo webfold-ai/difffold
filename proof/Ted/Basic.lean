@@ -41,4 +41,18 @@ theorem getU_set_ne (l : List Std.U32) (i j : Nat) (x : Std.U32) (h : j ≠ i) :
     (l.set i x)[j]! = l[j]! := by
   simp [Ne.symm h]
 
+theorem clone_u32 (v : alloc.vec.Vec Std.U32) :
+    alloc.vec.CloneVec.clone core.clone.CloneU32 v ⦃ r => r = v ⦄ := by
+  unfold alloc.vec.CloneVec.clone
+  have h := Slice.clone_spec (clone := core.clone.CloneU32.clone) (s := v.slice) (by intro x _; rfl)
+  obtain ⟨s', hs', hh⟩ := WP.spec_imp_exists h
+  rw [hs']
+  simp only [bind_tc_ok, WP.spec_ok]
+  rw [← hh]
+
+theorem clone_vec_u32 (v : alloc.vec.Vec Std.U32) :
+    alloc.vec.CloneVec.clone core.clone.CloneU32 v = ok v := by
+  obtain ⟨r, hr, hh⟩ := WP.spec_imp_exists (clone_u32 v)
+  rw [hr, hh]
+
 end difffold_lines_extract
