@@ -258,8 +258,9 @@ theorem cell_step
         step as ⟨fd', hfd'⟩
         step as ⟨rm, hrm⟩
         step as ⟨q1, hq1'⟩
-        have h1 : lx.val = li.val := by scalar_tac
-        have h2 : (v2.val[lj.val + q.val - 2]!).val = lj.val := by rw [← hlyv]; scalar_tac
+        have h1 : lx.val = li.val := congrArg Aeneas.Std.UScalar.val hlxeq
+        have h2 : (v2.val[lj.val + q.val - 2]!).val = lj.val := by
+          rw [← hlyv]; exact congrArg Aeneas.Std.UScalar.val hlyeq
         refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
         · unfold cellNew cellX
           rw [if_pos ⟨h1, h2⟩]
@@ -325,5 +326,29 @@ theorem cell_step
   · rename_i hn
     exfalso
     scalar_tac
+
+
+/-- Capping commutes with the cell recurrence. If the four values a cell reads hold `min (true value) inf`
+(the delete, insert, and diagonal or subtree neighbours, and the stored subtree distance), then the cell
+holds `min (recurrence on the true values) inf`. This is the algebra that lets the banded, capped table
+stand for the exact forest distances; what it does not supply is the identification of the true values
+with `Ted.fdist` of postorder prefixes (not proved). -/
+theorem cellNew_cap (fdL tdL : List Std.U32) (w t inf li lj p q x lx ly ren D I G T : Nat)
+    (hD : rd fdL w t inf (p - 1) q = min D inf) (hI : rd fdL w t inf p (q - 1) = min I inf)
+    (hG : (if lx = li ∧ ly = lj then rd fdL w t inf (p - 1) (q - 1) else rd fdL w t inf (lx - li) (ly - lj))
+      = min G inf)
+    (hT : rd tdL w t inf x (lj + q - 1) = min T inf) (hren : ren ≤ 1) :
+    cellNew fdL tdL w t inf li lj p q x lx ly ren =
+      min (min (min (D + 1) (I + 1)) (if lx = li ∧ ly = lj then G + ren else G + T)) inf := by
+  unfold cellNew cellX
+  split
+  · rename_i h
+    rw [if_pos h] at hG
+    rw [hD, hI, hG]
+    omega
+  · rename_i h
+    rw [if_neg h] at hG
+    rw [hD, hI, hG, hT]
+    omega
 
 end difffold_lines_extract

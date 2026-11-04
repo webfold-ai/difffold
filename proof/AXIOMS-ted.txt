@@ -1,0 +1,23 @@
+# #print axioms output (Ted/AxiomAudit.lean), Lean 4.31.0, stock Aeneas library; produced by check-ted.sh Overlap Model Basic FromKids LabelLB Cell AxiomAudit
+'difffold_lines_extract.from_kids_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.from_kids_loop1_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.from_kids_loop3_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.label_lower_bound_spec' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ core.slice.Slice.sort_unstable]
+'difffold_lines_extract.llb_loop_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ted.count_interM' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ted.overlap_perm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.cell_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.cellNew_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.get_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_lines_extract.bidx_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ted.fdist_node' depends on axioms: [propext, Quot.sound]
+'Ted.fdist_leaf_leaf' depends on axioms: [propext, Quot.sound]
+
+# Notes
+# No sorry, no custom axiom. label_lower_bound_spec additionally lists core.slice.Slice.sort_unstable: that is the
+# opaque axiom the stock Aeneas library gives <[T]>::sort_unstable in gen/lean-ted/DifffoldTed.lean (the extracted
+# function mentions it). The theorem does not assume anything about it except the hypothesis SortSpec (a sorted
+# permutation is returned), so it is conditional on SortSpec.

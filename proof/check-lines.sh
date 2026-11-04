@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Stage 3 and the proofs for the lines/ted extraction (gen/lean-lines, gen/lean-ted).
 #   LEAN_WS=/path/to/aeneas/backends/lean-with-mathlib-cache ./check-lines.sh [--gen] Common FirstNl ...
-# --gen also elaborates gen/lean-ted/DifffoldTed.lean (known to fail, see README). Each named module
+# --gen also elaborates gen/lean-ted/DifffoldTed.lean (the ted_core extraction; check-ted.sh does the same and runs the Ted proofs). Each named module
 # Lines/<Name>.lean is compiled to build-lines/<Name>.olean in the order given.
 set -euo pipefail
 cd "$(dirname "$0")"

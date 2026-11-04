@@ -102,7 +102,7 @@ covered by tests only, including the constant-bucket test.
 
 ## Theorems over the extracted Rust: current state (verified by compiling, zero sorry)
 
-Compiled with Lean 4.31.0 in this session; `check-kernel.sh` and `check-lines.sh` exit 0. Digests: `gen/RECEIPT.txt`
+Compiled with Lean 4.31.0 in this session; `check-kernel.sh`, `check-lines.sh` and `check-ted.sh` exit 0. Digests: `gen/RECEIPT.txt`
 (kernel), `gen/RECEIPT-lines.txt` (lines, ted).
 
 | extracted code | theorems (about the Aeneas translation) | status |
@@ -116,7 +116,28 @@ Compiled with Lean 4.31.0 in this session; `check-kernel.sh` and `check-lines.sh
 | `src/lines.rs` helpers (real file, included by `#[path]`) | `common_prefix_spec`, `common_suffix_spec` (generic and `u8`): length <= min, prefixes equal, and either the minimum or the next elements differ; `nl_mask_bv` (SWAR mask equals the bit-vector definition); `nl_mask` bit k set iff byte k is `0x0A`; `word_spec` | checked |
 | `first_in_block`, `first_nl` | `first_in_block_spec`, `first_nl_spec`: the index of the first `0x0A` or none. **Conditional on `TzSpec`**, a hypothesis that `u64::trailing_zeros` returns the index of the lowest set bit (Aeneas has no model of it) | checked, conditional |
 | `first_nl`, `last_nl` | Aeneas rejects the real functions (mutually recursive closure impls), so the extraction uses a closure-free copy `extract/lines_core.rs`. The copy is tied to the real source by `tests/agree.rs` on 60,000 random inputs, **not by a proof**. `last_nl` has no spec. | tested only |
-| `src/ted.rs` | Charon and Aeneas emit `gen/lean-ted/DifffoldTed.lean`, but it **fails to elaborate** (type mismatch at line 559). No TED theorem exists. | extraction only |
+| `src/ted.rs` (whole file) | Does not translate with the stock release: the first elaboration error was `Application type mismatch` at `core.cmp.Ord.min.trait_default core.cmp.OrdUsize sj i1` (from `sj.min(p + t)`), after the `Ord.max.default` form the old `sed` rewrote, and the file also needs closures, `Stats`, `HashMap`, `splice`. The old `ted_nomax.rs` mechanism is removed. | not extracted |
+| `extract/ted_core.rs` (faithful copies of `PostTree::from_kids`, `label_lower_bound`, `fill_window`, `within_td`) | Charon and Aeneas pass and `gen/lean-ted/DifffoldTed.lean` **elaborates** (`check-ted.sh`, stage 3 ok). The copies differ from `src/ted.rs` only by dropping `Stats` and `kids`, rewriting closures, `for` loops and `min`/`max`/`abs_diff`/`vec![x; n]` by hand. `tests/ted_core.rs` compares each copy with the real function (through `ted::proof_api`, a `#[doc(hidden)]` wrapper module appended to `src/ted.rs`) on random trees, including `fill_window` on arbitrary table contents. | extracted, elaborates, tied by tests, **not by proof** |
+
+### TED theorems over the extracted code (`Ted/*.lean`, `check-ted.sh`, zero `sorry`)
+
+| theorem | statement | status |
+|---|---|---|
+| `from_kids_spec` (`Ted/FromKids.lean`) | `lml` satisfies the leftmost-leaf equations at every node (`lml[j] = j+1` for a leaf, `lml[j] = lml[first child]` otherwise, values in `1 .. j+1`); `keyroots` is strictly ascending and `v` is a keyroot iff it is the last node of the postorder with its leftmost leaf (`LastWithLml`). Hypotheses: fewer than 2^31 nodes, one child list per node, the first child of a node precedes it. Loop specs `from_kids_loop{0,1,2,3}_spec`. | checked |
+| `label_lower_bound_spec` (`Ted/LabelLB.lean`) | the result is `max n m - overlap(A, B)`, `overlap` the size of the multiset intersection (`Ted.interM`, `Ted/Overlap.lean`, pinned by `Ted.count_interM`: `count x (interM A B) = min (count x A) (count x B)`). Merge loop spec `llb_loop_spec`. **Conditional on `SortSpec`**: `sort_unstable` is an opaque axiom in the stock library, so the theorem assumes it returns a sorted permutation. Both label lists must have fewer than 2^31 entries. | checked, conditional |
+| `cell_step` (`Ted/Cell.lean`) | one iteration of the inner loop of `fill_window` writes `fd[p,q] = min(min(min(del, ins), X), inf)` where `del`, `ins` read the up and left neighbours, `X` is the diagonal neighbour plus the relabel cost when `lx = li` and `ly = lj` (and then also stores the value in `td`), else the neighbour at the subtree boundaries plus the stored `td[x,y]`; `row_min` becomes the min; out-of-band reads give `inf`. Helpers `get_spec`, `bidx_spec`, `tdv_if_spec`, `upd_if_spec`. | checked (one cell) |
+| `cellNew_cap` | if the four values a cell reads hold `min(true, inf)` then the cell holds `min(textbook recurrence, inf)` | checked (algebra) |
+| `Ted.fdist` (`Ted/Model.lean`) | the textbook forest recursion as a Lean function, `fdist_node` (the equation), `fdist_leaf_leaf` | a model, nothing about Rust |
+
+**Not proved (item (c) of the TED task):** that the banded `fill_window`/`within_td` tables equal `min(Ted.fdist, tau+1)`.
+What is missing is (1) the loop-level statement that a whole row `q in [qlo, qhi]` satisfies the one-cell equation with
+neighbours read from the final table (needs the band index to be injective, `bandIdx_inj`, proved in `Ted/Cell.lean`, and the row
+loop invariant), (2) the identification of the table cell `(p, q)` of window `(i0, j0)` with `fdist` of the postorder
+prefixes `li .. li+p-1` and `lj .. lj+q-1` read as forests, (3) the Zhang-Shasha lemma that the `td` entries read by the
+non-leaf-path branch are the subtree distances computed by an earlier window (keyroot order), (4) that cells outside the
+band cost more than `tau` (the size-difference bound on `fdist`), (5) the early exit on `row_min > tau`, and (6) the
+`within_td` driver (keyroot loops, the `|li - lj| <= 2 t` skip). `ted_oriented`, `ted_stats`, `mirror`, `ted_mapping`,
+`check_mapping` and `replay_script` are not extracted at all. Axiom output: `AXIOMS-ted.txt`.
 
 What backs the TED solver instead is testing, not proof: a brute-force forest-recursion oracle on 6,000 random pairs,
 agreement of all distances with two APTED implementations on 237 real ASTs, validated mappings and an executed

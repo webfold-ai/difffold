@@ -1,0 +1,4 @@
+'difffold_myers_extract.snake_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.common_prefix_u32' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.common_suffix_u32' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.cpre_drop' depends on axioms: [propext, Classical.choice, Quot.sound]
