@@ -18,6 +18,8 @@ Report it privately through GitHub's private vulnerability reporting:
 
 <https://github.com/webfold-ai/difffold/security/advisories/new>
 
+If you cannot use GitHub, email **security@twn.systems**.
+
 Include, where you can:
 
 - the affected commit or branch, and the toolchain used (`rustc --version`);
