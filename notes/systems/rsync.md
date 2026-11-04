@@ -1,0 +1,25 @@
+# rsync (Tridgell and Mackerras, "The rsync algorithm", ANU technical report)
+
+URL fetched 2026-11-03: https://rsync.samba.org/tech_report/ and pages node1..node8.html. This is the LaTeX2HTML conversion hosted by the rsync project, stamped "Andrew Tridgell 1998-11-09" on each page; the report itself is the ANU technical report (TR-CS-96-05 as cited in paper.md, 1996). I could not confirm that the HTML is word-for-word identical to the 1996 PDF. Also fetched but only skimmed: Tridgell's PhD thesis PDF (samba.org/~tridge/phd_thesis.pdf), not read beyond the title page.
+FULL TEXT of the report (all sections: problem, algorithm, rolling checksum, checksum searching, pipelining, results, availability).
+
+## Mechanism
+- Setting: machine alpha has file A, beta has similar file B, "a slow communications link". The problem statement: "the normal methods for creating a set of differences between two files rely on being able to read both files ... If they are not both available on the same machine, these algorithms cannot be used". rsync computes "a set of differences without having both files on the same machine" (abstract).
+- Steps: beta splits B into fixed non-overlapping S-byte blocks; computes "a weak 'rolling' 32-bit checksum ... and a strong 128-bit MD4 checksum" for each; sends them to alpha. Alpha scans A at EVERY byte offset using the rolling checksum, confirms candidates with the strong checksum, and sends "a sequence of instructions for constructing a copy of A. Each instruction is either a reference to a block of B, or literal data."
+- Rolling checksum: s(k,l) = a(k,l) + 2^16 b(k,l), modulus 2^16, inspired by Adler-32; successive values by recurrence, so "very little computation at each point". Three-level search: 16-bit hash table, then 32-bit rolling checksum compare, then strong checksum.
+- After a match the scan restarts at the end of the matched block, which "saves a considerable amount of computation for the common case where the two files are nearly identical."
+
+## What it minimises (the exact resource)
+- Bytes sent over a slow link, and round trips: "The algorithm also only requires one round trip, which minimises the impact of the link latency." Also CPU relative to diff: "In each case, the CPU time taken was less than the time it takes to run diff on the two files."
+- It does NOT minimise edit count, produce a readable diff, detect moves as moves, or find an optimal script: block matching is greedy, fixed block size, offsets arbitrary but blocks aligned in B. The strong match is probabilistic: "the blocks could be different, but the probability of this is microscopic".
+- Cost of the checksum exchange: "Each pair of checksums consumes 20 bytes: 4 bytes for the rolling checksum plus 16 bytes for the 128-bit MD4 checksum." So the receiver's state (checksums of B) is itself traffic, scaling with |B| / S.
+
+## Numbers, with scope
+- Test 1: tar files of Linux kernel 1.99.10 vs 2.0.0, ~24 MB, "2441 files ... 291 files had changed ..., 19 files had been removed and 25 files had been added". GNU diff output: "over 32 thousand lines of output totalling 2.1 MB". rsync by block size (bytes, "data" = literal bytes verbatim, "written" = alpha's total output, "read" = alpha's input, which is mostly checksums): 300: data 5,312,200, written 5,629,158, read 1,632,284; 500: 1,091,900 / 1,283,906 / 979,384; 700: 1,307,800 / 1,444,346 / 699,564; 900: 1,469,500 / 1,575,438 / 544,124; 1100: 1,654,500 / 1,740,838 / 445,204. Authors' reading: "for block sizes above 300 bytes, only a small fraction (around 5%) of the file was transferred. The amount transferred was also considerably less than the size of the diff file that would have been transferred if the diff/patch method ... was used." (My caution: the 300-byte row is an outlier whose written bytes exceed the 2.1 MB diff, and the diff comparison is a text diff of tar content, not a like-for-like encoding.)
+- Test 2: Samba source, 1.7 MB, diff 4155 lines, 120 kB (table not re-quoted).
+- One corpus, one era (1996 hardware and links), a source-code tarball. No claims about web content or structured data.
+
+## Lessons
+1. "The best diff depends on the resource minimised" is confirmed by the report itself, and sharpened: rsync's resource is bytes on a link when ONE SIDE LACKS THE OTHER SIDE'S DATA. The whole design is a way to substitute hashes for presence. That is exactly our situation for remote observations: we hold a prior observation; the web server holds the new bytes. But we cannot ask the server to run rsync (no protocol, no cooperation), so HTTP validators (ETag, If-Modified-Since, Range) are the nearest cooperative analogue and are weaker.
+2. Transfer delta is a different object from semantic delta. A block reference set says nothing about what moved or why. Keep the three-delta table's separate "transfer delta" row (paper Sec 4 has it).
+3. Rolling hash over all offsets is a content-defined correspondence finder; the strong hash is the ContentId. Equal block = equal ContentId candidate, confirmed by the strong hash; it is evidence for reuse, not identity of an occurrence.

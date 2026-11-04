@@ -1,0 +1,21 @@
+[package]
+name = "corpus"
+version = "0.1.0"
+edition = "2021"
+description = "Deterministic controlled-mutation corpus generator with known lineage for ordered-tree correspondence research."
+publish = false
+
+[lib]
+name = "corpus"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gen_corpus"
+path = "src/bin/gen_corpus.rs"
+
+[[bin]]
+name = "validate_corpus"
+path = "src/bin/validate_corpus.rs"
+
+# Standalone: corpus/ is excluded from the root workspace.
+[workspace]

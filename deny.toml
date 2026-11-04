@@ -1,0 +1,55 @@
+# cargo-deny policy. Run from the workspace root:
+#   cargo deny check advisories bans licenses sources
+# CI runs the same command (.github/workflows/supply-chain.yml).
+
+[graph]
+all-features = true
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+]
+
+[advisories]
+version = 2
+yanked = "warn"
+ignore = []
+
+[licenses]
+version = 2
+# Only permissive licenses. Anything else needs an explicit, reviewed exception below.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.9
+# The allow-list is a policy ceiling, not a list of what the tree uses.
+unused-allowed-license = "allow"
+
+[licenses.private]
+ignore = false
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# Workspace members depend on each other by path (no version); that is not a wildcard.
+allow-wildcard-paths = true
+highlight = "all"
+# Git dependencies are allowed only from the sources listed under [sources] below.
+allow = []
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# apeiron is pinned by rev in Cargo.toml. No other git sources are allowed.
+allow-git = ["https://github.com/webfold-ai/apeiron"]

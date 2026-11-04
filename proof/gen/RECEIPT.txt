@@ -1,0 +1,6 @@
+charon:   0.1.254 (b104e24fea7d721b71e6c39fd70f26ff20bc0980)
+aeneas:   aeneas nightly-2026.09.09-505b6ca
+rust:     nightly-2026-08-18
+kernel.rs sha256:      7d27b5f374c3e72e60bdf227215d8a152eb3ba4ebc189f52469452df9eb60e7d
+llbc sha256:           9313ab3ad3afc17a4e1386a3c3373f1031999f05a3108ea8e666681348b1906e
+DifffoldKernel.lean:   7ec4e9f484939eb8bc4cb432fe6b15ccd80db18bec4d7456143a8d52a1a5f077
