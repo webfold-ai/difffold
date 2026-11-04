@@ -51,18 +51,35 @@ struct Sample {
 }
 
 fn run_once(t: &Tool, f: &Fx, tmp: &str, tmo: f64) -> Sample {
-    let args: Vec<String> = t.cmd[1..].iter().map(|a| a.replace("{B}", &f.before).replace("{A}", &f.after)).collect();
+    let args: Vec<String> = t.cmd[1..]
+        .iter()
+        .map(|a| a.replace("{B}", &f.before).replace("{A}", &f.after))
+        .collect();
     let so = File::create(format!("{tmp}/stdout")).unwrap();
     let se = File::create(format!("{tmp}/stderr")).unwrap();
     let mut c = Command::new(&t.cmd[0]);
-    c.args(&args).stdin(Stdio::null()).stdout(so).stderr(se).env("LC_ALL", "C");
+    c.args(&args)
+        .stdin(Stdio::null())
+        .stdout(so)
+        .stderr(se)
+        .env("LC_ALL", "C");
     for (k, v) in &t.env {
         c.env(k, v);
     }
     let t0 = Instant::now();
     let child = match c.spawn() {
         Ok(ch) => ch,
-        Err(_) => return Sample { wall: 0.0, user: 0.0, sys: 0.0, rss: 0, code: 127, sig: 0, timeout: false },
+        Err(_) => {
+            return Sample {
+                wall: 0.0,
+                user: 0.0,
+                sys: 0.0,
+                rss: 0,
+                code: 127,
+                sig: 0,
+                timeout: false,
+            }
+        }
     };
     let pid = child.id() as i32;
     let (tx, rx) = mpsc::channel::<()>();
@@ -81,9 +98,21 @@ fn run_once(t: &Tool, f: &Fx, tmp: &str, tmo: f64) -> Sample {
     let _ = tx.send(());
     let timeout = wd.join().unwrap();
     let tv = |t: libc::timeval| t.tv_sec as f64 * 1e3 + t.tv_usec as f64 / 1e3;
-    let (code, sig) = if libc::WIFEXITED(status) { (libc::WEXITSTATUS(status), 0) } else { (-1, libc::WTERMSIG(status)) };
+    let (code, sig) = if libc::WIFEXITED(status) {
+        (libc::WEXITSTATUS(status), 0)
+    } else {
+        (-1, libc::WTERMSIG(status))
+    };
     std::mem::forget(child);
-    Sample { wall, user: tv(ru.ru_utime), sys: tv(ru.ru_stime), rss: ru.ru_maxrss, code, sig, timeout }
+    Sample {
+        wall,
+        user: tv(ru.ru_utime),
+        sys: tv(ru.ru_stime),
+        rss: ru.ru_maxrss,
+        code,
+        sig,
+        timeout,
+    }
 }
 
 fn med(v: &[f64]) -> f64 {
@@ -104,7 +133,11 @@ impl Rng {
 
 fn main() {
     let a: Vec<String> = std::env::args().collect();
-    let arg = |k: &str, d: &str| a.iter().position(|x| x == k).map_or(d.to_string(), |i| a[i + 1].clone());
+    let arg = |k: &str, d: &str| {
+        a.iter()
+            .position(|x| x == k)
+            .map_or(d.to_string(), |i| a[i + 1].clone())
+    };
     let (manifest, tools_p, out) = (arg("--manifest", ""), arg("--tools", ""), arg("--out", ""));
     let tmo: f64 = arg("--timeout-s", "60").parse().unwrap();
     let max_reps: usize = arg("--max-reps", "5").parse().unwrap();
@@ -126,9 +159,19 @@ fn main() {
                 ok_codes: c[3].split(',').map(|x| x.parse().unwrap()).collect(),
                 marker: c[4].into(),
                 keep: c[5] == "1",
-                env: c[6].split(';').filter(|s| !s.is_empty() && !s.starts_with("ROUNDS=")).map(|kv| { let (k, v) = kv.split_once('=').unwrap(); (k.into(), v.into()) }).collect(),
+                env: c[6]
+                    .split(';')
+                    .filter(|s| !s.is_empty() && !s.starts_with("ROUNDS="))
+                    .map(|kv| {
+                        let (k, v) = kv.split_once('=').unwrap();
+                        (k.into(), v.into())
+                    })
+                    .collect(),
                 cmd: c[7].split_whitespace().map(String::from).collect(),
-                rounds: c[6].split(';').find_map(|kv| kv.strip_prefix("ROUNDS=")).map_or(max_reps, |v| v.parse().unwrap()),
+                rounds: c[6]
+                    .split(';')
+                    .find_map(|kv| kv.strip_prefix("ROUNDS="))
+                    .map_or(max_reps, |v| v.parse().unwrap()),
             }
         })
         .collect();
@@ -138,7 +181,17 @@ fn main() {
         .skip(1)
         .map(|l| {
             let c: Vec<&str> = l.split('\t').collect();
-            Fx { id: c[0].into(), dataset: c[1].into(), fixture: c[2].into(), lang: c[3].into(), before: c[5].into(), after: c[6].into(), bytes_b: c[7].into(), bytes_a: c[8].into(), omni_ms: c[9].into() }
+            Fx {
+                id: c[0].into(),
+                dataset: c[1].into(),
+                fixture: c[2].into(),
+                lang: c[3].into(),
+                before: c[5].into(),
+                after: c[6].into(),
+                bytes_b: c[7].into(),
+                bytes_a: c[8].into(),
+                omni_ms: c[9].into(),
+            }
         })
         .collect();
 
@@ -150,19 +203,31 @@ fn main() {
             done.insert(format!("{}|{}", c[0], c[2..4].join("/")));
         }
     }
-    let mut f = fs::OpenOptions::new().create(true).append(true).open(&out).unwrap();
+    let mut f = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&out)
+        .unwrap();
     if fresh {
         writeln!(f, "tool,objective,dataset,fixture,lang,bytes_b,bytes_a,omni_ms_recorded,loadavg1,reps,order_pos,status,exit_code,timeout,fallback,out_bytes,wall_ms_med,wall_ms_min,wall_ms_max,wall_ms_all,cpu_user_ms_med,cpu_sys_ms_med,maxrss_kb_med,maxrss_kb_max,stdout_line").unwrap();
     }
     let mut rng = Rng(seed.wrapping_mul(0x9E3779B97F4A7C15) | 1);
     for (fi, fx) in fixtures.iter().enumerate() {
         let active: Vec<usize> = (0..tools.len())
-            .filter(|&i| (tools[i].langs[0] == "*" || tools[i].langs.contains(&fx.lang)) && !done.contains(&format!("{}|{}/{}", tools[i].name, fx.dataset, fx.fixture)))
+            .filter(|&i| {
+                (tools[i].langs[0] == "*" || tools[i].langs.contains(&fx.lang))
+                    && !done.contains(&format!("{}|{}/{}", tools[i].name, fx.dataset, fx.fixture))
+            })
             .collect();
         if active.is_empty() {
             continue;
         }
-        let load = fs::read_to_string("/proc/loadavg").unwrap_or_default().split(' ').next().unwrap_or("").to_string();
+        let load = fs::read_to_string("/proc/loadavg")
+            .unwrap_or_default()
+            .split(' ')
+            .next()
+            .unwrap_or("")
+            .to_string();
         let mut samples: Vec<Vec<Sample>> = active.iter().map(|_| vec![]).collect();
         let mut pos: Vec<Vec<usize>> = active.iter().map(|_| vec![]).collect();
         let mut fallback = vec![false; active.len()];
@@ -192,10 +257,17 @@ fn main() {
                     if !t.marker.is_empty() {
                         let e = fs::read(format!("{tmp}/stderr")).unwrap_or_default();
                         let m = t.marker.as_bytes();
-                        fallback[k] = o.windows(m.len()).any(|w| w == m) || e.windows(m.len()).any(|w| w == m);
+                        fallback[k] = o.windows(m.len()).any(|w| w == m)
+                            || e.windows(m.len()).any(|w| w == m);
                     }
                     if t.keep {
-                        line[k] = String::from_utf8_lossy(&o).lines().next().unwrap_or("").chars().take(600).collect();
+                        line[k] = String::from_utf8_lossy(&o)
+                            .lines()
+                            .next()
+                            .unwrap_or("")
+                            .chars()
+                            .take(600)
+                            .collect();
                     }
                 }
                 pos[k].push(p);

@@ -4,14 +4,22 @@ use difffold::unified::unified;
 use std::process::Command;
 
 fn git_apply(base: &[u8], patch: &[u8], reverse: bool) -> Result<Vec<u8>, String> {
-    let dir = std::env::temp_dir().join(format!("dfrt-{}-{}", std::process::id(), base.len() ^ patch.len() << 7));
+    let dir = std::env::temp_dir().join(format!(
+        "dfrt-{}-{}",
+        std::process::id(),
+        base.len() ^ patch.len() << 7
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("f"), base).unwrap();
     std::fs::write(dir.join("p.patch"), patch).unwrap();
     let run = |extra: &[&str]| {
         let mut c = Command::new("git");
-        c.current_dir(&dir).env("GIT_CONFIG_GLOBAL", "/dev/null").env("GIT_CONFIG_SYSTEM", "/dev/null").arg("apply").arg("--whitespace=nowarn");
+        c.current_dir(&dir)
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_SYSTEM", "/dev/null")
+            .arg("apply")
+            .arg("--whitespace=nowarn");
         if reverse {
             c.arg("--reverse");
         }
@@ -37,14 +45,27 @@ fn check(a: &[u8], b: &[u8]) {
             assert_eq!(a, b);
             continue;
         }
-        assert_eq!(git_apply(a, &p, false).unwrap_or_else(|e| panic!("forward {e}\n a={a:?} b={b:?}\n{}", String::from_utf8_lossy(&p))), b, "forward a={a:?} b={b:?}");
-        assert_eq!(git_apply(b, &p, true).unwrap_or_else(|e| panic!("reverse {e}\n a={a:?} b={b:?}")), a, "reverse a={a:?} b={b:?}");
+        assert_eq!(
+            git_apply(a, &p, false).unwrap_or_else(|e| panic!(
+                "forward {e}\n a={a:?} b={b:?}\n{}",
+                String::from_utf8_lossy(&p)
+            )),
+            b,
+            "forward a={a:?} b={b:?}"
+        );
+        assert_eq!(
+            git_apply(b, &p, true).unwrap_or_else(|e| panic!("reverse {e}\n a={a:?} b={b:?}")),
+            a,
+            "reverse a={a:?} b={b:?}"
+        );
     }
 }
 
 #[test]
 fn edge_cases() {
-    let long: Vec<u8> = (0..60).flat_map(|i| format!("row {i}\n").into_bytes()).collect();
+    let long: Vec<u8> = (0..60)
+        .flat_map(|i| format!("row {i}\n").into_bytes())
+        .collect();
     let mut edited = long.clone();
     edited.splice(0..0, b"first\n".iter().copied());
     let cases: Vec<(&[u8], &[u8])> = vec![
@@ -71,7 +92,9 @@ fn edge_cases() {
 
 #[test]
 fn adjacent_edits_with_overlapping_context() {
-    let a: Vec<u8> = (0..40).flat_map(|i| format!("l{i}\n").into_bytes()).collect();
+    let a: Vec<u8> = (0..40)
+        .flat_map(|i| format!("l{i}\n").into_bytes())
+        .collect();
     let mut b = a.clone();
     // Two edits five lines apart so their three-line contexts overlap and merge into one hunk.
     b.splice(0..0, b"A\n".iter().copied());
@@ -80,7 +103,11 @@ fn adjacent_edits_with_overlapping_context() {
     check(&a, &b);
 }
 
-fn git_apply_named(base: Option<&[u8]>, patch: &[u8], file: &str) -> Result<Option<Vec<u8>>, String> {
+fn git_apply_named(
+    base: Option<&[u8]>,
+    patch: &[u8],
+    file: &str,
+) -> Result<Option<Vec<u8>>, String> {
     let dir = std::env::temp_dir().join(format!("dfrt2-{}-{}", std::process::id(), patch.len()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
@@ -88,7 +115,13 @@ fn git_apply_named(base: Option<&[u8]>, patch: &[u8], file: &str) -> Result<Opti
         std::fs::write(dir.join(file), b).unwrap();
     }
     std::fs::write(dir.join("p.patch"), patch).unwrap();
-    let out = Command::new("git").current_dir(&dir).env("GIT_CONFIG_GLOBAL", "/dev/null").env("GIT_CONFIG_SYSTEM", "/dev/null").args(["apply", "--whitespace=nowarn", "p.patch"]).output().unwrap();
+    let out = Command::new("git")
+        .current_dir(&dir)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_SYSTEM", "/dev/null")
+        .args(["apply", "--whitespace=nowarn", "p.patch"])
+        .output()
+        .unwrap();
     if !out.status.success() {
         return Err(String::from_utf8_lossy(&out.stderr).into_owned());
     }
@@ -102,7 +135,8 @@ fn filenames_with_special_characters() {
     for name in ["a\tb", "q\"uote", "back\\slash", "uni\u{e9}code", "sp ace"] {
         let (a, b) = (b"x\ny\n".as_slice(), b"x\nz\n".as_slice());
         let p = difffold::unified::unified(a, b, name, 3, Algo::Minimal);
-        let got = git_apply_named(Some(a), &p, name).unwrap_or_else(|e| panic!("name {name:?}: {e}"));
+        let got =
+            git_apply_named(Some(a), &p, name).unwrap_or_else(|e| panic!("name {name:?}: {e}"));
         assert_eq!(got.as_deref(), Some(b), "name {name:?}");
     }
 }
@@ -111,10 +145,48 @@ fn filenames_with_special_characters() {
 fn creation_and_deletion_headers() {
     use difffold::unified::{unified_with, Kind};
     let content = b"one\ntwo\n".as_slice();
-    let create = unified_with(b"", content, "new.txt", 3, Algo::Minimal, Kind::Create, "100644");
-    assert_eq!(git_apply_named(None, &create, "new.txt").unwrap().as_deref(), Some(content));
-    let empty_create = unified_with(b"", b"", "empty.txt", 3, Algo::Minimal, Kind::Create, "100644");
-    assert_eq!(git_apply_named(None, &empty_create, "empty.txt").unwrap().as_deref(), Some(b"".as_slice()));
-    let delete = unified_with(content, b"", "gone.txt", 3, Algo::Minimal, Kind::Delete, "100644");
-    assert_eq!(git_apply_named(Some(content), &delete, "gone.txt").unwrap(), None, "deletion must remove the file");
+    let create = unified_with(
+        b"",
+        content,
+        "new.txt",
+        3,
+        Algo::Minimal,
+        Kind::Create,
+        "100644",
+    );
+    assert_eq!(
+        git_apply_named(None, &create, "new.txt")
+            .unwrap()
+            .as_deref(),
+        Some(content)
+    );
+    let empty_create = unified_with(
+        b"",
+        b"",
+        "empty.txt",
+        3,
+        Algo::Minimal,
+        Kind::Create,
+        "100644",
+    );
+    assert_eq!(
+        git_apply_named(None, &empty_create, "empty.txt")
+            .unwrap()
+            .as_deref(),
+        Some(b"".as_slice())
+    );
+    let delete = unified_with(
+        content,
+        b"",
+        "gone.txt",
+        3,
+        Algo::Minimal,
+        Kind::Delete,
+        "100644",
+    );
+    assert_eq!(
+        git_apply_named(Some(content), &delete, "gone.txt").unwrap(),
+        None,
+        "deletion must remove the file"
+    );
 }

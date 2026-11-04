@@ -23,7 +23,12 @@ pub fn lang(ext: &str) -> Option<Language> {
 }
 
 pub fn ext_of(path: &str) -> &str {
-    path.rsplit('/').next().unwrap_or(path).rsplit('.').next().unwrap_or("")
+    path.rsplit('/')
+        .next()
+        .unwrap_or(path)
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
 }
 
 #[derive(Default)]
@@ -34,7 +39,10 @@ pub struct Interner {
 impl Interner {
     pub fn label(&mut self, kind: u16, text: Option<&[u8]>) -> u32 {
         let next = u32::try_from(self.labels.len()).unwrap();
-        *self.labels.entry((kind, text.map(<[u8]>::to_vec))).or_insert(next)
+        *self
+            .labels
+            .entry((kind, text.map(<[u8]>::to_vec)))
+            .or_insert(next)
     }
 }
 
@@ -73,7 +81,11 @@ impl Flat {
 }
 
 pub fn flatten(n: Node, src: &[u8], it: &mut Interner) -> Flat {
-    let mut f = Flat { label: vec![], kids: vec![], size: vec![] };
+    let mut f = Flat {
+        label: vec![],
+        kids: vec![],
+        size: vec![],
+    };
     go(n, src, it, &mut f);
     f
 }
@@ -175,7 +187,15 @@ pub struct Selkow<'a> {
 
 impl<'a> Selkow<'a> {
     pub fn new(a: &'a Flat, b: &'a Flat, deadline: Instant) -> Self {
-        Self { a, b, memo: HashMap::new(), deadline, ticks: Cell::new(0), timed_out: Cell::new(false), pairs: 0 }
+        Self {
+            a,
+            b,
+            memo: HashMap::new(),
+            deadline,
+            ticks: Cell::new(0),
+            timed_out: Cell::new(false),
+            pairs: 0,
+        }
     }
 
     pub fn run(&mut self) -> Option<u32> {

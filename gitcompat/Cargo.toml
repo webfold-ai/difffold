@@ -33,8 +33,4 @@ path = "src/bin/patch.rs"
 name = "roundtrip"
 path = "src/bin/roundtrip.rs"
 
-# Standalone: not a member of any enclosing workspace.
-[workspace]
 
-[profile.release]
-debug = 1

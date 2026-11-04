@@ -19,10 +19,7 @@ tree-sitter-java = "0.23"
 tree-sitter-go = "0.25"
 tree-sitter-c = "0.24"
 
-[workspace]
 
-[profile.release]
-debug = 1
 
 [[bin]]
 name = "mergebench"

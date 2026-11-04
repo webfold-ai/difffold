@@ -4,6 +4,16 @@ fn main() {
     let t = std::time::Instant::now();
     let d = difffold::lines::diff_text(&x, &y);
     let dt = t.elapsed();
-    let hwm = std::fs::read_to_string("/proc/self/status").unwrap().lines().find(|l| l.starts_with("VmHWM")).unwrap().to_string();
-    println!("cost {} time {:?} {}", d.cost(), dt, hwm.split_whitespace().collect::<Vec<_>>().join(" "));
+    let hwm = std::fs::read_to_string("/proc/self/status")
+        .unwrap()
+        .lines()
+        .find(|l| l.starts_with("VmHWM"))
+        .unwrap()
+        .to_string();
+    println!(
+        "cost {} time {:?} {}",
+        d.cost(),
+        dt,
+        hwm.split_whitespace().collect::<Vec<_>>().join(" ")
+    );
 }

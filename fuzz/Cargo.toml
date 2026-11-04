@@ -1,0 +1,32 @@
+[package]
+name = "difffold-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+difffold = { path = ".." }
+libfuzzer-sys = "0.4"
+
+# The fuzz crate is its own workspace root, so it is not a member of the difffold workspace.
+[workspace]
+
+[[bin]]
+name = "fuzz_tree"
+path = "fuzz_targets/fuzz_tree.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_lines"
+path = "fuzz_targets/fuzz_lines.rs"
+test = false
+doc = false
+bench = false

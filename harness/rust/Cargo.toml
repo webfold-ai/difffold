@@ -12,8 +12,4 @@ tree-sitter-go = "0.25"
 tree-sitter-c = "0.24"
 libc = "0.2"
 
-# Standalone: not a member of any enclosing workspace.
-[workspace]
 
-[profile.release]
-debug = 1
