@@ -246,6 +246,7 @@ theorem cell_step
         step with ren_spec i8 i9 as ⟨ren, hren⟩
         step with get_spec fd w t inf i3 i5 hw (hrow i3.val (by omega)).1 (hrow i3.val (by omega)).2 as ⟨i10, hi10⟩
         have hi10_le : i10.val ≤ inf.val := by rw [hi10]; exact hLfd _ _ (by omega)
+        have hren_le : ren.val ≤ 1 := by rw [hren]; split <;> omega
         step as ⟨diag, hdiag⟩
         step as ⟨i11, hi11⟩
         step as ⟨i12, hi12⟩
