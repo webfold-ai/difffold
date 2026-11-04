@@ -43,7 +43,9 @@ public class DifffoldBinary {
             Path out = dir.resolve("out.json");
             Files.write(b, before);
             Files.write(a, after);
-            Process proc = new ProcessBuilder(binaryPath(), "--algo", algo, b.toString(), a.toString())
+            // The address space limit keeps one pathological file from exhausting the shared memory.
+            Process proc = new ProcessBuilder("prlimit", "--as=" + Long.getLong("difffold.memlimit", 3_000_000_000L),
+                    binaryPath(), "--algo", algo, b.toString(), a.toString())
                     .redirectOutput(out.toFile())
                     .redirectError(ProcessBuilder.Redirect.DISCARD)
                     .start();
