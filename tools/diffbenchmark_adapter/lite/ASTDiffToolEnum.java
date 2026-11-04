@@ -22,6 +22,7 @@ public enum ASTDiffToolEnum implements IASTDiffTool {
     GTG("GumTree Greedy 3.0", (benchmarkCase, query) -> new GreedyGumTreeASTDiffProvider(query.apply(benchmarkCase.getProjectASTDiff()))),
     GTS("GumTree Simple 3.0", (benchmarkCase, query) -> new SimpleGumTreeASTDiffProvider(query.apply(benchmarkCase.getProjectASTDiff()))),
     TRV("TrivialDiff", null),
+    DAT("Diff Auto Tuning", null),
     DFT_TD("difffold top-down", (benchmarkCase, query) -> new DifffoldASTDiffProvider("topdown", benchmarkCase, query)),
     DFT_TED("difffold tree edit distance", (benchmarkCase, query) -> new DifffoldASTDiffProvider("ted", benchmarkCase, query)),
     ;

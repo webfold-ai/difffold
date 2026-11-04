@@ -3,7 +3,7 @@
 //!
 //! usage: ted_map [--algo ted|topdown] <before.java> <after.java>
 //!
-//! Output: {"pairs":[[bs,be,kind,as,ae,kind], ...],"nb":N,"na":M}, byte ranges and tree-sitter kinds
+//! Output: {"pairs":[[bs,be,kind,as,ae,kind], ...],"nb":N,"na":M,"bn":[[s,e],...],"an":[[s,e],...]}, byte ranges and tree-sitter kinds
 //! of matched node pairs, in preorder of the before tree. `topdown` is the ordered top-down mapping
 //! implied by the certified script (`diff_checked` + `correspondence`); `ted` is the optimal general
 //! tree edit mapping (`ted_mapping`).
@@ -155,6 +155,8 @@ fn main() {
         let ((bs_, be), (as2, ae)) = (bt.range[b as usize], at.range[a as usize]);
         let _ = write!(out, "[{bs_},{be},{},{as2},{ae},{}]", json_str(bt.kind[b as usize]), json_str(at.kind[a as usize]));
     }
-    let _ = write!(out, "],\"nb\":{},\"na\":{}}}", bt.kind.len(), at.kind.len());
+    // All node ranges of both trees, so adapters can tell which target-tree nodes have no counterpart at all.
+    let ranges = |t: &Tree| t.range.iter().map(|&(s, e)| format!("[{s},{e}]")).collect::<Vec<_>>().join(",");
+    let _ = write!(out, "],\"nb\":{},\"na\":{},\"bn\":[{}],\"an\":[{}]}}", bt.kind.len(), at.kind.len(), ranges(&bt), ranges(&at));
     println!("{out}");
 }

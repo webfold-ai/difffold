@@ -65,6 +65,7 @@ public class D4JAccuracyDriver {
         }
     }
 
+    static final boolean KEEP_HRD = Boolean.getBoolean("difffold.keephrd");
     static final Pattern FILE = Pattern.compile("\\*\\*File:\\*\\* `([^`]+)`");
     static final Pattern BUG = Pattern.compile("Defects4J bug \\*\\*([A-Za-z]+)-(\\d+)\\*\\*");
 
@@ -179,8 +180,11 @@ public class D4JAccuracyDriver {
             }
             Path fileOut = out.resolve("hrd").resolve(pb[0]).resolve(pb[1]).resolve(flat);
             Files.createDirectories(fileOut);
-            for (String g : new String[]{"GOD", "TRV"})
-                Files.copy(oracle.resolve(pb[0]).resolve(pb[1]).resolve(flat).resolve(g + ".json"), fileOut.resolve(g + ".json"), StandardCopyOption.REPLACE_EXISTING);
+            for (String g : new String[]{"GOD", "TRV"}) {
+                Path link = fileOut.resolve(g + ".json");
+                Files.deleteIfExists(link);
+                Files.createSymbolicLink(link, oracle.resolve(pb[0]).resolve(pb[1]).resolve(flat).resolve(g + ".json").toAbsolutePath());
+            }
             for (ASTDiffToolEnum tool : tools) {
                 long t0 = System.nanoTime();
                 HumanReadableDiff hrd;
@@ -209,6 +213,7 @@ public class D4JAccuracyDriver {
                 }
                 results.add(new Object[]{fi, r, perfect});
             }
+            if (!KEEP_HRD) deleteRec(fileOut.toFile());
         }
         deleteRec(tmp.toFile());
     }

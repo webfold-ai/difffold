@@ -17,6 +17,9 @@ public class DifffoldBinary {
     /** A matched node pair as byte ranges and tree-sitter kinds. */
     public record Pair(int bs, int be, String bkind, int as, int ae, String akind) {}
 
+    /** The matched pairs plus the byte ranges of every node of both trees. */
+    public record Result(List<Pair> pairs, int[][] beforeRanges, int[][] afterRanges) {}
+
     public static String binaryPath() {
         String p = System.getProperty("difffold.bin", System.getenv("DIFFFOLD_TED_MAP"));
         if (p == null) throw new IllegalStateException("set -Ddifffold.bin or DIFFFOLD_TED_MAP to the ted_map binary");
@@ -32,7 +35,7 @@ public class DifffoldBinary {
         public ToolFailure(String m) { super(m); }
     }
 
-    public static List<Pair> run(String algo, byte[] before, byte[] after) throws IOException, InterruptedException {
+    public static Result run(String algo, byte[] before, byte[] after) throws IOException, InterruptedException {
         Path dir = Files.createTempDirectory("dfbin");
         try {
             Path b = dir.resolve("before.java");
@@ -54,11 +57,20 @@ public class DifffoldBinary {
             for (JsonNode p : root.get("pairs"))
                 pairs.add(new Pair(p.get(0).asInt(), p.get(1).asInt(), p.get(2).asText(),
                         p.get(3).asInt(), p.get(4).asInt(), p.get(5).asText()));
-            return pairs;
+            return new Result(pairs, ranges(root.get("bn")), ranges(root.get("an")));
         } finally {
             for (File f : dir.toFile().listFiles()) f.delete();
             dir.toFile().delete();
         }
+    }
+
+    private static int[][] ranges(JsonNode arr) {
+        int[][] r = new int[arr.size()][2];
+        for (int i = 0; i < r.length; i++) {
+            r[i][0] = arr.get(i).get(0).asInt();
+            r[i][1] = arr.get(i).get(1).asInt();
+        }
+        return r;
     }
 
     /** UTF-8 byte offset to UTF-16 char index, as JDT positions are char indices. */

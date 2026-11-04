@@ -21,6 +21,8 @@ public class ConversionStats {
     public final AtomicLong conflict = new AtomicLong();
     /** Emitted JDT mappings (one converted pair can yield several, one per shared type in a same-range chain). */
     public final AtomicLong jdtMappings = new AtomicLong();
+    /** JDT nodes without any tree-sitter counterpart range that were mapped by the parent-follows rule. */
+    public final AtomicLong completed = new AtomicLong();
     /** JDT nodes (src side, excluding comment subtrees) and how many of them ended up mapped. */
     public final AtomicLong jdtSrcNodes = new AtomicLong();
     public final AtomicLong jdtSrcMapped = new AtomicLong();
@@ -33,6 +35,7 @@ public class ConversionStats {
         crossType.addAndGet(o.crossType.get());
         conflict.addAndGet(o.conflict.get());
         jdtMappings.addAndGet(o.jdtMappings.get());
+        completed.addAndGet(o.completed.get());
         jdtSrcNodes.addAndGet(o.jdtSrcNodes.get());
         jdtSrcMapped.addAndGet(o.jdtSrcMapped.get());
     }
@@ -41,6 +44,6 @@ public class ConversionStats {
     public String toString() {
         return "pairs=" + pairs + ",converted=" + converted + ",convertedViaComment=" + convertedViaComment
                 + ",noJdtNode=" + noJdtNode + ",crossType=" + crossType + ",conflict=" + conflict
-                + ",jdtMappings=" + jdtMappings + ",jdtSrcNodes=" + jdtSrcNodes + ",jdtSrcMapped=" + jdtSrcMapped;
+                + ",jdtMappings=" + jdtMappings + ",completed=" + completed + ",jdtSrcNodes=" + jdtSrcNodes + ",jdtSrcMapped=" + jdtSrcMapped;
     }
 }
