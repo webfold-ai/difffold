@@ -30,4 +30,15 @@ namespace difffold_lines_extract
   · rename_i h; simp only [WP.spec_ok]; scalar_tac
   · rename_i h; simp only [WP.spec_ok]; scalar_tac
 
+theorem getU_eq (l : List Std.U32) (i : Nat) (h : i < l.length) : l[i]! = l[i]'h := by
+  simp [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem h]
+
+theorem getU_set_eq (l : List Std.U32) (i : Nat) (x : Std.U32) (h : i < l.length) :
+    (l.set i x)[i]! = x := by
+  simp [h]
+
+theorem getU_set_ne (l : List Std.U32) (i j : Nat) (x : Std.U32) (h : j ≠ i) :
+    (l.set i x)[j]! = l[j]! := by
+  simp [Ne.symm h]
+
 end difffold_lines_extract
