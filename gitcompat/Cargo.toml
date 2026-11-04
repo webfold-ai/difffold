@@ -1,0 +1,40 @@
+[package]
+name = "gitcompat"
+version = "0.0.1"
+edition = "2021"
+description = "Git diff/patch compatibility for difffold: external diff helper and apply-compatible patch mode. Diff and patch only, not a Git repository implementation."
+license = "Apache-2.0"
+publish = false
+
+[features]
+default = []
+# Structural summary through difffold + tree-sitter (java, go, c). Without it the helper
+# always falls back to the byte-level unified diff and says so.
+structural = [
+	"dep:difffold", "dep:tree-sitter", "dep:tree-sitter-java", "dep:tree-sitter-go", "dep:tree-sitter-c",
+]
+
+[dependencies]
+difffold = { path = "..", features = ["ts"], optional = true }
+tree-sitter = { version = "0.25", optional = true }
+tree-sitter-java = { version = "0.23", optional = true }
+tree-sitter-go = { version = "0.25", optional = true }
+tree-sitter-c = { version = "0.24", optional = true }
+
+[[bin]]
+name = "difffold-extdiff"
+path = "src/bin/extdiff.rs"
+
+[[bin]]
+name = "difffold-patch"
+path = "src/bin/patch.rs"
+
+[[bin]]
+name = "roundtrip"
+path = "src/bin/roundtrip.rs"
+
+# Standalone: not a member of any enclosing workspace.
+[workspace]
+
+[profile.release]
+debug = 1

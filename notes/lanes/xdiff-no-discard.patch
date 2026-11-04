@@ -1,0 +1,20 @@
+--- a/xprepare.c	2026-11-04 14:51:08.829378695 +0000
++++ b/xprepare.c	2026-11-04 15:16:36.384504898 +0000
+@@ -379,7 +379,7 @@
+ 	for (i = xdf1->dstart, recs = &xdf1->recs[xdf1->dstart]; i <= xdf1->dend; i++, recs++) {
+ 		rcrec = cf->rcrecs[(*recs)->ha];
+ 		nm = rcrec ? rcrec->len2 : 0;
+-		dis1[i] = (nm == 0) ? 0: (nm >= mlim) ? 2: 1;
++		dis1[i] = (nm == 0) ? 0: 1;
+ 	}
+ 
+ 	if ((mlim = xdl_bogosqrt(xdf2->nrec)) > XDL_MAX_EQLIMIT)
+@@ -387,7 +387,7 @@
+ 	for (i = xdf2->dstart, recs = &xdf2->recs[xdf2->dstart]; i <= xdf2->dend; i++, recs++) {
+ 		rcrec = cf->rcrecs[(*recs)->ha];
+ 		nm = rcrec ? rcrec->len1 : 0;
+-		dis2[i] = (nm == 0) ? 0: (nm >= mlim) ? 2: 1;
++		dis2[i] = (nm == 0) ? 0: 1;
+ 	}
+ 
+ 	for (nreff = 0, i = xdf1->dstart, recs = &xdf1->recs[xdf1->dstart];

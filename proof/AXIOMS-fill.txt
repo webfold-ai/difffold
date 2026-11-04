@@ -1,0 +1,5 @@
+# #print axioms output (Kernel/AxiomAudit.lean), Lean 4.31.0, run in this session
+fill_optimal, fill_spec, fill_loop_spec, row_cells_spec, row_cells_loop_spec, cell_value_spec,
+trim_row_spec, first_row_spec: each depends on exactly [propext, Classical.choice, Quot.sound].
+No sorry, no custom axiom.
+fill_correct, hK_admissible: [propext, Classical.choice, Quot.sound]; ad_le_B: [propext, Quot.sound].

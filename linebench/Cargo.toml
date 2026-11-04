@@ -1,0 +1,41 @@
+[package]
+name = "linebench"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[dependencies]
+difffold = { path = ".." }
+similar = "2"
+imara-diff = "0.1"
+fast_rsync = "0.2"
+qbsdiff = "1"
+flate2 = "1"
+git2 = { version = "0.20", default-features = false }
+apted = "0.1"
+tree-edit-distance = "0.4"
+tree-sitter = "0.25"
+tree-sitter-java = "0.23"
+tree-sitter-go = "0.25"
+tree-sitter-c = "0.24"
+
+[workspace]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "mergebench"
+path = "src/mergebench.rs"
+
+[[bin]]
+name = "linebench"
+path = "src/main.rs"
+
+[[bin]]
+name = "syncbench"
+path = "src/syncbench.rs"
+
+[[bin]]
+name = "tedbench"
+path = "src/tedbench.rs"

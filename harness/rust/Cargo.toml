@@ -1,0 +1,19 @@
+[package]
+name = "difffold-harness"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[dependencies]
+difffold = { path = "../..", features = ["ts"] }
+tree-sitter = "0.25"
+tree-sitter-java = "0.23"
+tree-sitter-go = "0.25"
+tree-sitter-c = "0.24"
+libc = "0.2"
+
+# Standalone: not a member of any enclosing workspace.
+[workspace]
+
+[profile.release]
+debug = 1

@@ -1,0 +1,56 @@
+[package]
+name = "difffold"
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.89"
+description = "Ordered-tree diff on an exact hash-consed arena, with a certified-optimal banded aligner."
+license = "Apache-2.0"
+publish = false
+
+[features]
+# Real-parser benchmark against OmniDiff's fixture corpus. Off by default; the library has no
+# parser dependency.
+ts = ["dep:tree-sitter", "dep:tree-sitter-java", "dep:tree-sitter-go", "dep:tree-sitter-c", "dep:tree-sitter-python", "dep:tree-sitter-javascript", "dep:tree-sitter-typescript", "dep:tree-sitter-rust", "dep:serde_json"]
+
+[dependencies]
+apeiron = { git = "https://github.com/webfold-ai/apeiron", rev = "07ab506" }
+tree-sitter = { version = "0.25", optional = true }
+tree-sitter-java = { version = "0.23", optional = true }
+tree-sitter-go = { version = "0.25", optional = true }
+tree-sitter-c = { version = "0.24", optional = true }
+tree-sitter-python = { version = "0.25", optional = true }
+tree-sitter-javascript = { version = "0.25", optional = true }
+tree-sitter-typescript = { version = "0.23", optional = true }
+tree-sitter-rust = { version = "0.24", optional = true }
+serde_json = { version = "1", optional = true }
+
+[[bin]]
+name = "ablate"
+path = "src/bin/ablate.rs"
+required-features = ["ts"]
+
+[[bin]]
+name = "frontier_exp"
+path = "src/bin/frontier_exp.rs"
+required-features = ["ts"]
+
+[[bin]]
+name = "bench_fixtures"
+path = "src/bin/bench_fixtures.rs"
+required-features = ["ts"]
+
+[[bin]]
+name = "score_accuracy"
+path = "src/bin/score_accuracy.rs"
+required-features = ["ts"]
+
+# Standalone: not a member of any enclosing workspace.
+[workspace]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "abi_cutoff"
+path = "src/bin/abi_cutoff.rs"
+required-features = ["ts"]

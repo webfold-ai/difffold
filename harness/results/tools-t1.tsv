@@ -1,0 +1,9 @@
+git-myers	line-based (text)	*	0,1		0	GIT_CONFIG_GLOBAL=/dev/null;GIT_CONFIG_SYSTEM=/dev/null	git --no-pager diff --no-index --no-color --diff-algorithm=myers {B} {A}
+git-patience	line-based (text)	*	0,1		0	GIT_CONFIG_GLOBAL=/dev/null;GIT_CONFIG_SYSTEM=/dev/null	git --no-pager diff --no-index --no-color --diff-algorithm=patience {B} {A}
+git-histogram	line-based (text)	*	0,1		0	GIT_CONFIG_GLOBAL=/dev/null;GIT_CONFIG_SYSTEM=/dev/null	git --no-pager diff --no-index --no-color --diff-algorithm=histogram {B} {A}
+git-minimal	line-based (text)	*	0,1		0	GIT_CONFIG_GLOBAL=/dev/null;GIT_CONFIG_SYSTEM=/dev/null	git --no-pager diff --no-index --no-color --diff-algorithm=minimal {B} {A}
+difftastic	syntax graph shortest-path (own)	*	0	"language":"Text	0	DFT_UNSTABLE=yes	/tmp/claude-0/-home-user/4463fc2d-0ca5-5c92-8549-159b74884cf3/scratchpad/harness/dft/bin/difft --display json --color never --byte-limit 1000000 --graph-limit 3000000 {B} {A}
+difffold	top-down Selkow (exact)	java,go,c	0		1		/home/user/research/difffold/harness/rust/target/release/dfold-cli --algo difffold {B} {A}
+difffold-distance	top-down Selkow (exact)	java,go,c	0		1		/home/user/research/difffold/harness/rust/target/release/dfold-cli --algo difffold-distance {B} {A}
+selkow-ref	top-down Selkow (plain DP)	java,go,c	0		1	ROUNDS=3	/home/user/research/difffold/harness/rust/target/release/dfold-cli --algo selkow --timeout-s 55 {B} {A}
+gumtree	heuristic matching (gumtree-simple)	java,go,c	0		0	ROUNDS=3	/tmp/claude-0/-home-user/4463fc2d-0ca5-5c92-8549-159b74884cf3/scratchpad/harness/gt-x/gumtree-4.0.0-beta4/bin/gumtree textdiff {B} {A}
