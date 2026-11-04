@@ -513,7 +513,10 @@ fn forward(s: &mut Search, d: i32, lo: i32, hi: i32) -> Option<(usize, usize)> {
         forward_seq(s, d, lo, hi)
     } else {
         let mid = lo + (((hi - lo) / 2) & !1);
-        forward(s, d, lo, mid).or_else(|| forward(s, d, mid + 2, hi))
+        match forward(s, d, lo, mid) {
+            Some(p) => Some(p),
+            None => forward(s, d, mid + 2, hi),
+        }
     }
 }
 
@@ -536,7 +539,7 @@ fn forward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
         s.vf[ikm] + 1
     };
     let y0 = x0 - k;
-    let run = snake(s, x0, y0);
+    let run = snake(s.a, s.b, x0, y0);
     let (x, y) = (x0 + run, y0 + run);
     let ik = s.ix(k);
     s.vf[ik] = x;
@@ -555,7 +558,10 @@ fn backward(s: &mut Search, d: i32, lo: i32, hi: i32) -> Option<(usize, usize)> 
         backward_seq(s, d, lo, hi)
     } else {
         let mid = lo + (((hi - lo) / 2) & !1);
-        backward(s, d, lo, mid).or_else(|| backward(s, d, mid + 2, hi))
+        match backward(s, d, lo, mid) {
+            Some(p) => Some(p),
+            None => backward(s, d, mid + 2, hi),
+        }
     }
 }
 
@@ -578,7 +584,7 @@ fn backward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
         s.vb[ikm] + 1
     };
     let y0 = x0 - k;
-    let run = snake_back(s, x0, y0);
+    let run = snake_back(s.a, s.b, x0, y0);
     let (x, y) = (x0 + run, y0 + run);
     let ik = s.ix(k);
     s.vb[ik] = x;
@@ -792,20 +798,21 @@ fn walk_chain(
 }
 
 /// Forward run of equal ids from `(x, y)`; most snakes are empty, so test one element first.
-fn snake(s: &Search, x: i32, y: i32) -> i32 {
-    if x >= s.n || y >= s.m || s.a[x as usize] != s.b[y as usize] {
+fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
+    if x >= a.len() as i32 || y >= b.len() as i32 || a[x as usize] != b[y as usize] {
         0
     } else {
-        common_prefix(&s.a[x as usize..], &s.b[y as usize..]) as i32
+        common_prefix(&a[x as usize..], &b[y as usize..]) as i32
     }
 }
 
 /// Backward run of equal ids ending before `(n - x, m - y)`.
-fn snake_back(s: &Search, x: i32, y: i32) -> i32 {
-    if x >= s.n || y >= s.m || s.a[(s.n - 1 - x) as usize] != s.b[(s.m - 1 - y) as usize] {
+fn snake_back(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
+    let (n, m) = (a.len() as i32, b.len() as i32);
+    if x >= n || y >= m || a[(n - 1 - x) as usize] != b[(m - 1 - y) as usize] {
         0
     } else {
-        common_suffix(&s.a[..(s.n - x) as usize], &s.b[..(s.m - y) as usize]) as i32
+        common_suffix(&a[..(n - x) as usize], &b[..(m - y) as usize]) as i32
     }
 }
 
@@ -823,37 +830,15 @@ pub mod proof_api {
     pub fn last_nl(t: &[u8]) -> Option<usize> {
         super::last_nl(t)
     }
-    /// `snake` of the real source on a search state with the given lists (`tests/myers_core.rs`).
+    /// `snake` of the real source.
     #[must_use]
     pub fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-        let s = super::Search {
-            a,
-            b,
-            n: a.len() as i32,
-            m: b.len() as i32,
-            delta: 0,
-            odd: false,
-            off: 0,
-            vf: &mut [],
-            vb: &mut [],
-        };
-        super::snake(&s, x, y)
+        super::snake(a, b, x, y)
     }
-    /// `snake_back` of the real source on a search state with the given lists.
+    /// `snake_back` of the real source.
     #[must_use]
     pub fn snake_back(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-        let s = super::Search {
-            a,
-            b,
-            n: a.len() as i32,
-            m: b.len() as i32,
-            delta: 0,
-            odd: false,
-            off: 0,
-            vf: &mut [],
-            vb: &mut [],
-        };
-        super::snake_back(&s, x, y)
+        super::snake_back(a, b, x, y)
     }
     /// `line_start` of the real source.
     #[must_use]
