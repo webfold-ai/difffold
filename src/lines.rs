@@ -799,7 +799,8 @@ fn walk_chain(
 
 /// Forward run of equal ids from `(x, y)`; most snakes are empty, so test one element first.
 fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-    if x >= a.len() as i32 || y >= b.len() as i32 || a[x as usize] != b[y as usize] {
+    let (n, m) = (a.len() as i32, b.len() as i32);
+    if x >= n || y >= m || a[x as usize] != b[y as usize] {
         0
     } else {
         common_prefix(&a[x as usize..], &b[y as usize..]) as i32

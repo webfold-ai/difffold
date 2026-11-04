@@ -127,7 +127,7 @@ def lines.common_suffix
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::snake_back]:
-    Source: '../../src/lines.rs', lines 810:0-817:1 -/
+    Source: '../../src/lines.rs', lines 811:0-818:1 -/
 def lines.snake_back
   (a : Slice Std.U32) (b : Slice Std.U32) (x : Std.I32) (y : Std.I32) :
   Result Std.I32
@@ -376,40 +376,40 @@ def lines.backward
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::snake]:
-    Source: '../../src/lines.rs', lines 801:0-807:1 -/
+    Source: '../../src/lines.rs', lines 801:0-808:1 -/
 def lines.snake
   (a : Slice Std.U32) (b : Slice Std.U32) (x : Std.I32) (y : Std.I32) :
   Result Std.I32
   := do
   let i := Slice.len a
-  let i1 ← lift (UScalar.hcast .I32 i)
-  if x >= i1
+  let n ← lift (UScalar.hcast .I32 i)
+  let i1 := Slice.len b
+  let m ← lift (UScalar.hcast .I32 i1)
+  if x >= n
   then ok 0#i32
   else
-    let i2 := Slice.len b
-    let i3 ← lift (UScalar.hcast .I32 i2)
-    if y >= i3
+    if y >= m
     then ok 0#i32
     else
-      let i4 ← lift (IScalar.hcast .Usize x)
-      let i5 ← Slice.index_usize a i4
-      let i6 ← lift (IScalar.hcast .Usize y)
-      let i7 ← Slice.index_usize b i6
-      if i5 != i7
+      let i2 ← lift (IScalar.hcast .Usize x)
+      let i3 ← Slice.index_usize a i2
+      let i4 ← lift (IScalar.hcast .Usize y)
+      let i5 ← Slice.index_usize b i4
+      if i3 != i5
       then ok 0#i32
       else
-        let i8 ← lift (IScalar.hcast .Usize x)
+        let i6 ← lift (IScalar.hcast .Usize x)
         let s ←
           core.slice.index.Slice.index
             (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) a
-            { start := i8 }
-        let i9 ← lift (IScalar.hcast .Usize y)
+            { start := i6 }
+        let i7 ← lift (IScalar.hcast .Usize y)
         let s1 ←
           core.slice.index.Slice.index
             (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) b
-            { start := i9 }
-        let i10 ← lines.common_prefix core.cmp.PartialEqU32 s s1
-        ok (UScalar.hcast .I32 i10)
+            { start := i7 }
+        let i8 ← lines.common_prefix core.cmp.PartialEqU32 s s1
+        ok (UScalar.hcast .I32 i8)
 
 /-- [difffold_myers_extract::lines::forward_one]:
     Source: '../../src/lines.rs', lines 534:0-552:1 -/
