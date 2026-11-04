@@ -43,8 +43,8 @@ theorem bandIdx_inj (w t x y x' y' : Nat) (hw : w = 2 * t + 1) (h : InBand t x y
 
 @[step] theorem bidx_spec (w t x y : Std.Usize) (hx : x.val ≤ y.val + t.val)
     (hw1 : 1 ≤ w.val) (htot : x.val * w.val + (y.val + t.val - x.val) < 2 ^ 32) :
-    ted_core.bidx w t x y ⦃ r => r.val = bandIdx w.val t.val x.val y.val ⦄ := by
-  unfold ted_core.bidx bandIdx
+    ted.bidx w t x y ⦃ r => r.val = bandIdx w.val t.val x.val y.val ⦄ := by
+  unfold ted.bidx bandIdx
   have hxw : x.val ≤ x.val * w.val := Nat.le_mul_of_pos_right _ hw1
   step*
 
@@ -55,8 +55,8 @@ theorem inBand_iff (t x y d : Nat) (hd : d = x - y + (y - x)) : d ≤ t ↔ InBa
 @[step] theorem get_spec (fd : Slice Std.U32) (w t : Std.Usize) (inf : Std.U32) (pp qq : Std.Usize)
     (hw : w.val = 2 * t.val + 1) (hlen : (pp.val + 1) * w.val ≤ fd.val.length)
     (hbig : (pp.val + 1) * w.val < 2 ^ 32) :
-    ted_core.get fd w t inf pp qq ⦃ r => r.val = rd fd.val w.val t.val inf.val pp.val qq.val ⦄ := by
-  unfold ted_core.get
+    ted.get fd w t inf pp qq ⦃ r => r.val = rd fd.val w.val t.val inf.val pp.val qq.val ⦄ := by
+  unfold ted.get
   step as ⟨d, hd⟩
   split
   · rename_i hdt
@@ -101,7 +101,7 @@ def cellNew (fdL tdL : List Std.U32) (w t inf li lj p q x lx ly ren : Nat) : Nat
 theorem tdv_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (inf : Std.U32) (i7 : Std.Usize)
     (hw : w.val = 2 * t.val + 1) (hi7 : i7.val = x.val - y.val + (y.val - x.val))
     (htdlen : (x.val + 1) * w.val ≤ td.val.length) (htdbig : (x.val + 1) * w.val < 2 ^ 32) :
-    (if i7 ≤ t then (do let i8 ← ted_core.bidx w t x y; Slice.index_usize td i8) else ok inf) ⦃ r =>
+    (if i7 ≤ t then (do let i8 ← ted.bidx w t x y; Slice.index_usize td i8) else ok inf) ⦃ r =>
       r.val = rd td.val w.val t.val inf.val x.val y.val ⦄ := by
   split
   · rename_i hdt
@@ -123,7 +123,7 @@ theorem tdv_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (inf : Std.U32) (
 theorem upd_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (v4 : Std.U32) (i13 : Std.Usize)
     (hw : w.val = 2 * t.val + 1) (hi13 : i13.val = x.val - y.val + (y.val - x.val))
     (htdlen : (x.val + 1) * w.val ≤ td.val.length) (htdbig : (x.val + 1) * w.val < 2 ^ 32) :
-    (if i13 ≤ t then (do let i14 ← ted_core.bidx w t x y; Slice.update td i14 v4) else ok td) ⦃ s =>
+    (if i13 ≤ t then (do let i14 ← ted.bidx w t x y; Slice.update td i14 v4) else ok td) ⦃ s =>
       s.val = if InBand t.val x.val y.val then td.val.set (bandIdx w.val t.val x.val y.val) v4 else td.val ⦄ := by
   split
   · rename_i hdt
@@ -168,7 +168,7 @@ theorem cell_step
     (hfdb : ∀ k < fd.val.length, (fd.val[k]!).val ≤ inf.val)
     (htdb : ∀ k < td.val.length, (td.val[k]!).val ≤ inf.val)
     (hinfbig : 2 * inf.val + 1 < 2 ^ 32) :
-    ted_core.fill_window_loop2_loop0.body v v1 v2 t inf w li lj p qhi x lx td fd q row_min ⦃ r =>
+    ted.fill_window_loop2_loop0.body v v1 v2 t inf w li lj p qhi x lx td fd q row_min ⦃ r =>
       match r with
       | done _ => False
       | cont s => ∃ vv : Std.U32,
@@ -180,7 +180,7 @@ theorem cell_step
               InBand t.val x.val (lj.val + q.val - 1)
             then td.val.set (bandIdx w.val t.val x.val (lj.val + q.val - 1)) vv else td.val) ∧
           s.2.2.1.val = q.val + 1 ∧ s.2.2.2.val = min row_min.val vv.val ⦄ := by
-  unfold ted_core.fill_window_loop2_loop0.body
+  unfold ted.fill_window_loop2_loop0.body
   split
   · rename_i hqq
     have hLfd : ∀ x' y', x' ≤ p.val → rd fd.val w.val t.val inf.val x' y' ≤ inf.val := by

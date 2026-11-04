@@ -2,8 +2,7 @@ import DifffoldTed
 open Aeneas Aeneas.Std Result ControlFlow
 namespace difffold_lines_extract
 
-/-! Theorems over the Aeneas-extracted `ted_core::from_kids`, the copy of `PostTree::from_kids` of the real
-`src/ted.rs` (tied to it by `tests/ted_core.rs`).
+/-! Theorems over the Aeneas-extraction of the real `PostTree::from_kids` of `src/ted.rs` (included by `#[path]`).
 
 Postorder with 0-based nodes `0 .. n-1`. `kids[j]` lists the children of node `j`, all smaller than `j`.
 The first child of `j`, if any, is `FirstKid kids j`. The leftmost leaf of `j` (1-based, as stored) satisfies
@@ -56,37 +55,16 @@ theorem cast_u32_of_lt (c : Std.Usize) (h : c.val < 2 ^ 31) : (UScalar.cast .U32
   apply Nat.mod_eq_of_lt
   omega
 
-@[step] theorem from_kids_loop0_spec (n : Std.Usize) (lml : alloc.vec.Vec Std.U32) (i : Std.Usize)
-    (hi : i.val ≤ n.val) (hlen : lml.length = i.val) :
-    ted_core.from_kids_loop0 n lml i ⦃ r => r.length = n.val ⦄ := by
-  unfold ted_core.from_kids_loop0
-  apply loop.spec_decr_nat
-    (measure := fun p => n.val - p.2.val)
-    (inv := fun p => p.2.val ≤ n.val ∧ p.1.length = p.2.val)
-  · intro p hp
-    obtain ⟨o, c⟩ := p
-    obtain ⟨hc, hl⟩ := hp
-    unfold ted_core.from_kids_loop0.body
-    dsimp only at hc hl ⊢
-    split
-    · step*
-      have hlen1 : lml1.length = o.length + 1 := by simp [alloc.vec.Vec.length, lml1_post]
-      refine ⟨by scalar_tac, by scalar_tac, by scalar_tac⟩
-    · rename_i hnot
-      simp only [WP.spec_ok]
-      scalar_tac
-  · exact ⟨hi, hlen⟩
-
 /-- Loop 1 fills `lml` in increasing order of node. -/
-@[step] theorem from_kids_loop1_spec (kids : Slice (alloc.vec.Vec Std.U32)) (n : Std.Usize)
+@[step] theorem from_kids_lml_loop_spec (kids : Slice (alloc.vec.Vec Std.U32)) (n : Std.Usize)
     (lml : alloc.vec.Vec Std.U32) (i : Std.Usize)
     (hn : n.val < 2 ^ 31) (hk : n.val ≤ kids.val.length) (hlen : lml.length = n.val)
     (hvalid : ∀ j < n.val, ∀ k, FirstKid kids.val j = some k → k.val < j)
     (hi : i.val ≤ n.val)
     (hinv : ∀ j < i.val, LmlEq kids.val lml.val j ∧ 1 ≤ (lml.val[j]!).val ∧ (lml.val[j]!).val ≤ j + 1) :
-    ted_core.from_kids_loop1 kids n lml i ⦃ r => r.length = n.val ∧
+    ted.PostTree.from_kids_loop0 kids n lml i ⦃ r => r.length = n.val ∧
       ∀ j < n.val, LmlEq kids.val r.val j ∧ 1 ≤ (r.val[j]!).val ∧ (r.val[j]!).val ≤ j + 1 ⦄ := by
-  unfold ted_core.from_kids_loop1
+  unfold ted.PostTree.from_kids_loop0
   apply loop.spec_decr_nat
     (measure := fun p => n.val - p.2.val)
     (inv := fun p => p.2.val ≤ n.val ∧ p.1.length = n.val ∧
@@ -94,7 +72,7 @@ theorem cast_u32_of_lt (c : Std.Usize) (h : c.val < 2 ^ 31) : (UScalar.cast .U32
   · intro p hp
     obtain ⟨o, c⟩ := p
     obtain ⟨hc, hl, hinv'⟩ := hp
-    unfold ted_core.from_kids_loop1.body
+    unfold ted.PostTree.from_kids_loop0.body
     dsimp only at hc hl hinv' ⊢
     split
     · rename_i hlt
@@ -192,42 +170,9 @@ theorem getbB_set_ne (l : List Bool) (i j : Nat) (x : Bool) (h : j ≠ i) :
     (l.set i x)[j]! = l[j]! := by
   simp [Ne.symm h]
 
-/-- Loop 2 allocates the `seen` flags, all false. -/
-@[step] theorem from_kids_loop2_spec (n : Std.Usize) (i : Std.Usize) (seen : alloc.vec.Vec Bool)
-    (hn : n.val < 2 ^ 31) (hi : i.val ≤ n.val + 2) (hlen : seen.length = i.val)
-    (hf : ∀ l < seen.length, seen.val[l]! = false) :
-    ted_core.from_kids_loop2 n i seen ⦃ r => r.length = n.val + 2 ∧ ∀ l < r.length, r.val[l]! = false ⦄ := by
-  unfold ted_core.from_kids_loop2
-  apply loop.spec_decr_nat
-    (measure := fun p => n.val + 2 - p.1.val)
-    (inv := fun p => p.1.val ≤ n.val + 2 ∧ p.2.length = p.1.val ∧ ∀ l < p.2.length, p.2.val[l]! = false)
-  · intro p hp
-    obtain ⟨c, o⟩ := p
-    obtain ⟨hc, hl, hz⟩ := hp
-    unfold ted_core.from_kids_loop2.body
-    dsimp only at hc hl hz ⊢
-    step as ⟨i1, i1_post⟩
-    split
-    · rename_i hlt
-      step as ⟨seen1, seen1_post⟩
-      step as ⟨i2, i2_post⟩
-      have hl1 : seen1.length = o.length + 1 := by simp [alloc.vec.Vec.length, seen1_post]
-      refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
-      intro l hl'
-      rcases Nat.lt_or_ge l o.length with h | h
-      · have := hz l h
-        simpa [seen1_post, List.getElem!_eq_getElem?_getD, List.getElem?_append_left h] using this
-      · have hi' : l = o.length := by omega
-        subst hi'
-        simp [seen1_post, List.getElem!_eq_getElem?_getD, alloc.vec.Vec.length] at *
-    · rename_i hnot
-      simp only [WP.spec_ok]
-      refine ⟨by scalar_tac, hz⟩
-  · exact ⟨hi, hlen, hf⟩
-
 /-- Loop 3 walks the nodes from the last to the first and records the first one met for each leftmost leaf
 (that is, the last one in postorder), newest last. -/
-@[step] theorem from_kids_loop3_spec (lml : alloc.vec.Vec Std.U32) (i : Std.Usize)
+@[step] theorem from_kids_keyroot_loop_spec (lml : alloc.vec.Vec Std.U32) (i : Std.Usize)
     (seen : alloc.vec.Vec Bool) (keyroots : alloc.vec.Vec Std.U32)
     (hN : lml.length < 2 ^ 31) (hbd : ∀ j < lml.length, 1 ≤ (lml.val[j]!).val ∧ (lml.val[j]!).val ≤ j + 1)
     (hi : i.val ≤ lml.length) (hs : seen.length = lml.length + 2)
@@ -236,9 +181,9 @@ theorem getbB_set_ne (l : List Bool) (i j : Nat) (x : Bool) (h : j ≠ i) :
     (hsort : keyroots.val.Pairwise (fun a b => b.val < a.val))
     (hkr : ∀ v, InKR keyroots.val v ↔ i.val + 1 ≤ v ∧ LastWithLml lml.val lml.length v)
     (hKl : keyroots.length + i.val ≤ lml.length) :
-    ted_core.from_kids_loop3 lml i seen keyroots ⦃ r =>
+    ted.PostTree.from_kids_loop1 lml i seen keyroots ⦃ r =>
       r.val.Pairwise (fun a b => b.val < a.val) ∧ ∀ v, InKR r.val v ↔ LastWithLml lml.val lml.length v ⦄ := by
-  unfold ted_core.from_kids_loop3
+  unfold ted.PostTree.from_kids_loop1
   apply loop.spec_decr_nat
     (measure := fun p => p.1.val)
     (inv := fun p => p.1.val ≤ lml.length ∧ p.2.1.length = lml.length + 2 ∧
@@ -249,7 +194,7 @@ theorem getbB_set_ne (l : List Bool) (i j : Nat) (x : Bool) (h : j ≠ i) :
   · intro p hp
     obtain ⟨c, o, K⟩ := p
     obtain ⟨hc, hl, hse, hso, hk, hKl'⟩ := hp
-    unfold ted_core.from_kids_loop3.body
+    unfold ted.PostTree.from_kids_loop1.body
     dsimp only at hc hl hse hso hk hKl' ⊢
     split
     · rename_i hpos
@@ -378,12 +323,15 @@ children). -/
 theorem from_kids_spec (label : alloc.vec.Vec Std.U32) (kids : Slice (alloc.vec.Vec Std.U32))
     (hn : label.length < 2 ^ 31) (hk : label.length ≤ kids.val.length)
     (hvalid : ∀ j < label.length, ∀ k, FirstKid kids.val j = some k → k.val < j) :
-    ted_core.from_kids label kids ⦃ t =>
+    ted.PostTree.from_kids label kids ⦃ t =>
       t.label = label ∧ t.lml.length = label.length ∧
       (∀ j < label.length, LmlEq kids.val t.lml.val j ∧ 1 ≤ (t.lml.val[j]!).val ∧ (t.lml.val[j]!).val ≤ j + 1) ∧
       t.keyroots.val.Pairwise (fun a b => a.val < b.val) ∧
       ∀ v, InKR t.keyroots.val v ↔ LastWithLml t.lml.val label.length v ⦄ := by
-  unfold ted_core.from_kids
+  unfold ted.PostTree.from_kids
+  step*
+  all_goals trace_state
+  all_goals sorry
   step*
   · simp [alloc.vec.Vec.new]
   · intro v

@@ -40,19 +40,30 @@ impl PostTree {
     pub fn from_kids(label: Vec<u32>, kids: &[Vec<u32>]) -> Self {
         let n = label.len();
         let mut lml = vec![0u32; n];
-        for i in 0..n {
-            lml[i] = kids[i].first().map_or(i as u32 + 1, |&k| lml[k as usize]);
+        let mut i = 0;
+        while i < n {
+            #[allow(clippy::len_zero)]
+            let v = if kids[i].len() == 0 {
+                i as u32 + 1
+            } else {
+                lml[kids[i][0] as usize]
+            };
+            lml[i] = v;
+            i += 1;
         }
         let mut seen = vec![false; n + 2];
         let mut keyroots = Vec::new();
-        for i in (0..n).rev() {
-            if !seen[lml[i] as usize] {
-                seen[lml[i] as usize] = true;
+        i = n;
+        while i > 0 {
+            i -= 1;
+            let l = lml[i] as usize;
+            if !seen[l] {
+                seen[l] = true;
                 keyroots.push(i as u32 + 1);
             }
         }
         keyroots.reverse();
-        let kind = vec![0u32; label.len()];
+        let kind = vec![0u32; n];
         PostTree {
             label,
             lml,
@@ -202,22 +213,35 @@ fn relabel_cost(a: &PostTree, b: &PostTree, x: usize, y: usize) -> u32 {
 /// A lower bound on the distance: `max(n, m)` minus the size of the label multiset overlap. A mapping
 /// of `k` pairs costs `n + m - k` plus its relabels, and at most `overlap` pairs can have equal labels.
 fn label_lower_bound(a: &PostTree, b: &PostTree) -> u32 {
-    let (mut la, mut lb) = (a.label.clone(), b.label.clone());
-    la.sort_unstable();
-    lb.sort_unstable();
-    let (mut i, mut j, mut common) = (0, 0, 0u32);
-    while i < la.len() && j < lb.len() {
-        match la[i].cmp(&lb[j]) {
-            std::cmp::Ordering::Less => i += 1,
-            std::cmp::Ordering::Greater => j += 1,
-            std::cmp::Ordering::Equal => {
-                common += 1;
-                i += 1;
-                j += 1;
-            }
+    // Counting instead of sorting: label ids are dense interner ids, so a count table over the labels of
+    // `a` is small, and each label of `b` consumes one count of the same label.
+    let mut top = 0usize;
+    let mut i = 0;
+    while i < a.label.len() {
+        let l = a.label[i] as usize;
+        if l >= top {
+            top = l + 1;
         }
+        i += 1;
     }
-    a.len().max(b.len()) as u32 - common
+    let mut cnt = vec![0u32; top];
+    i = 0;
+    while i < a.label.len() {
+        let l = a.label[i] as usize;
+        cnt[l] += 1;
+        i += 1;
+    }
+    let mut common = 0u32;
+    i = 0;
+    while i < b.label.len() {
+        let l = b.label[i] as usize;
+        if l < top && cnt[l] > 0 {
+            cnt[l] -= 1;
+            common += 1;
+        }
+        i += 1;
+    }
+    umax(a.len(), b.len()) as u32 - common
 }
 
 fn ted_oriented(a: &PostTree, b: &PostTree, st: &mut Stats) -> u32 {
@@ -248,40 +272,111 @@ fn within(a: &PostTree, b: &PostTree, tau: u32, st: &mut Stats) -> Option<u32> {
     within_td(a, b, tau, st).0
 }
 
+/// The larger of two `usize`.
+#[inline]
+fn umax(x: usize, y: usize) -> usize {
+    if x >= y {
+        x
+    } else {
+        y
+    }
+}
+
+/// The smaller of two `usize`.
+#[inline]
+fn umin(x: usize, y: usize) -> usize {
+    if x <= y {
+        x
+    } else {
+        y
+    }
+}
+
+/// `|x - y|`.
+#[inline]
+fn adiff(x: usize, y: usize) -> usize {
+    if x >= y {
+        x - y
+    } else {
+        y - x
+    }
+}
+
+/// The smaller of two `u32`.
+#[inline]
+fn min32(x: u32, y: u32) -> u32 {
+    if x <= y {
+        x
+    } else {
+        y
+    }
+}
+
+/// The band index `x * w + (y + t - x)` of a cell `(x, y)` with `|x - y| <= t` in a table of row width `w`.
+#[inline]
+fn bidx(w: usize, t: usize, x: usize, y: usize) -> usize {
+    x * w + (y + t - x)
+}
+
+/// The cell `(pp, qq)` of a band table, or `inf` outside the band.
+#[inline]
+fn get_cell(fd: &[u32], w: usize, t: usize, inf: u32, pp: usize, qq: usize) -> u32 {
+    if adiff(pp, qq) <= t {
+        fd[bidx(w, t, pp, qq)]
+    } else {
+        inf
+    }
+}
+
 /// [`within`] that also returns the subtree-distance table, banded by `|x - y| <= tau`.
 fn within_td(a: &PostTree, b: &PostTree, tau: u32, st: &mut Stats) -> (Option<u32>, Vec<u32>) {
-    let (n, m) = (a.len(), b.len());
-    if n.abs_diff(m) as u32 > tau {
+    let n = a.len();
+    let m = b.len();
+    if adiff(n, m) as u32 > tau {
         return (None, Vec::new());
     }
     if n == 0 || m == 0 {
-        return (Some(n.max(m) as u32).filter(|&d| d <= tau), Vec::new());
+        let d = umax(n, m) as u32;
+        if d <= tau {
+            return (Some(d), Vec::new());
+        }
+        return (None, Vec::new());
     }
     let t = tau as usize;
     let inf = tau + 1;
     let w = 2 * t + 1;
     // td[x][y], banded by |x - y| <= t; index x * w + (y + t - x).
     let mut td = vec![inf; (n + 1) * w];
-    let tdi = |x: usize, y: usize| x * w + (y + t - x);
-    let in_band = |x: usize, y: usize| x.abs_diff(y) <= t;
-    let rows = n.max(m) + 1;
+    let rows = umax(n, m) + 1;
     let mut fd = vec![inf; rows * w];
-    for &i0 in &a.keyroots {
-        let i0 = i0 as usize;
+    let mut ia = 0;
+    while ia < a.keyroots.len() {
+        let i0 = a.keyroots[ia] as usize;
         let li = a.lml[i0 - 1] as usize;
-        for &j0 in &b.keyroots {
-            let j0 = j0 as usize;
+        let mut ib = 0;
+        while ib < b.keyroots.len() {
+            let j0 = b.keyroots[ib] as usize;
             let lj = b.lml[j0 - 1] as usize;
-            if li.abs_diff(lj) > 2 * t {
-                st.skipped += 1;
-                continue;
+            if adiff(li, lj) > 2 * t {
+                st.skipped = st.skipped.wrapping_add(1);
+            } else {
+                st.windows = st.windows.wrapping_add(1);
+                fill_window(a, b, &mut td, &mut fd, (i0, j0), tau, st);
             }
-            st.windows += 1;
-            fill_window(a, b, &mut td, &mut fd, (i0, j0), tau, st);
+            ib += 1;
         }
+        ia += 1;
     }
-    let d = if in_band(n, m) { td[tdi(n, m)] } else { inf };
-    ((d <= tau).then_some(d), td)
+    let d = if adiff(n, m) <= t {
+        td[bidx(w, t, n, m)]
+    } else {
+        inf
+    };
+    if d <= tau {
+        (Some(d), td)
+    } else {
+        (None, td)
+    }
 }
 
 /// Fill the forest-distance table of the window `(i0, j0)` and record the subtree distances of its
@@ -298,54 +393,62 @@ fn fill_window(
     let t = tau as usize;
     let inf = tau + 1;
     let w = 2 * t + 1;
-    let tdi = |x: usize, y: usize| x * w + (y + t - x);
-    let in_band = |x: usize, y: usize| x.abs_diff(y) <= t;
-    let fdi = |p: usize, q: usize| p * w + (q + t - p);
     let li = a.lml[i0 - 1] as usize;
     let lj = b.lml[j0 - 1] as usize;
-    let (si, sj) = (i0 - li + 1, j0 - lj + 1);
-    fd[fdi(0, 0)] = 0;
-    for q in 1..=sj.min(t) {
-        fd[fdi(0, q)] = q as u32;
+    let si = i0 - li + 1;
+    let sj = j0 - lj + 1;
+    fd[bidx(w, t, 0, 0)] = 0;
+    let lim_q = umin(sj, t);
+    let mut q = 1;
+    while q <= lim_q {
+        fd[bidx(w, t, 0, q)] = q as u32;
+        q += 1;
     }
-    for p in 1..=si.min(t) {
-        fd[fdi(p, 0)] = p as u32;
+    let lim_p = umin(si, t);
+    let mut p = 1;
+    while p <= lim_p {
+        fd[bidx(w, t, p, 0)] = p as u32;
+        p += 1;
     }
-    for p in 1..=si {
-        let (qlo, qhi) = (p.saturating_sub(t).max(1), sj.min(p + t));
+    p = 1;
+    while p <= si {
+        let qlo = umax(p.saturating_sub(t), 1);
+        let qhi = umin(sj, p + t);
         let x = li + p - 1;
         let lx = a.lml[x - 1] as usize;
-        let mut row_min = if p <= t { fd[fdi(p, 0)] } else { inf };
-        for q in qlo..=qhi {
-            st.cells += 1;
+        let mut row_min = if p <= t { fd[bidx(w, t, p, 0)] } else { inf };
+        q = qlo;
+        while q <= qhi {
+            st.cells = st.cells.wrapping_add(1);
             let y = lj + q - 1;
             let ly = b.lml[y - 1] as usize;
-            let get = |pp: usize, qq: usize, fd: &[u32]| {
-                if pp.abs_diff(qq) <= t {
-                    fd[fdi(pp, qq)]
-                } else {
-                    inf
-                }
-            };
-            let del = get(p - 1, q, fd) + 1;
-            let ins = get(p, q - 1, fd) + 1;
+            let del = get_cell(fd, w, t, inf, p - 1, q) + 1;
+            let ins = get_cell(fd, w, t, inf, p, q - 1) + 1;
             let v = if lx == li && ly == lj {
                 let ren = relabel_cost(a, b, x, y);
-                let v = del.min(ins).min(get(p - 1, q - 1, fd) + ren).min(inf);
-                if in_band(x, y) {
-                    td[tdi(x, y)] = v;
+                let diag = get_cell(fd, w, t, inf, p - 1, q - 1) + ren;
+                let v = min32(min32(min32(del, ins), diag), inf);
+                if adiff(x, y) <= t {
+                    td[bidx(w, t, x, y)] = v;
                 }
                 v
             } else {
-                let tdv = if in_band(x, y) { td[tdi(x, y)] } else { inf };
-                del.min(ins).min(get(lx - li, ly - lj, fd) + tdv).min(inf)
+                let tdv = if adiff(x, y) <= t {
+                    td[bidx(w, t, x, y)]
+                } else {
+                    inf
+                };
+                let sub = get_cell(fd, w, t, inf, lx - li, ly - lj) + tdv;
+                min32(min32(min32(del, ins), sub), inf)
             };
-            fd[fdi(p, q)] = v;
-            row_min = row_min.min(v);
+            fd[bidx(w, t, p, q)] = v;
+            row_min = min32(row_min, v);
+            q += 1;
         }
         if qlo > qhi || row_min > tau {
             break;
         }
+        p += 1;
     }
 }
 

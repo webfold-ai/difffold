@@ -15,7 +15,7 @@ import java.util.*;
 
 /**
  * Measures the loss of the byte-range to JDT conversion alone: each fixture's before file is diffed
- * against itself, so every JDT node has a true counterpart. The fraction of JDT nodes (outside
+ * against itself plus a trailing comment (RefactoringMiner reports no diff for identical files), so every JDT node has a true counterpart. The fraction of JDT nodes (outside
  * comments) that stay unmapped is the ceiling the conversion puts on any difffold result.
  *
  * usage: ConversionCeiling FIXTURES_DIR OUT_CSV [limit]
@@ -23,7 +23,7 @@ import java.util.*;
 public class ConversionCeiling {
     public static void main(String[] args) throws Exception {
         Path fixtures = Path.of(args[0]);
-        int limit = args.length > 2 ? Integer.parseInt(args[2]) : Integer.MAX_VALUE;
+        int limit = args.length > 2 && Integer.parseInt(args[2]) > 0 ? Integer.parseInt(args[2]) : Integer.MAX_VALUE;
         List<Path> dirs = new ArrayList<>();
         try (var ds = Files.newDirectoryStream(fixtures)) {
             for (Path d : ds) if (Files.exists(d.resolve("before.java.test"))) dirs.add(d);
@@ -41,11 +41,12 @@ public class ConversionCeiling {
                 Files.createDirectories(b);
                 Files.createDirectories(a);
                 Files.copy(d.resolve("before.java.test"), b.resolve("F.java"));
-                Files.copy(d.resolve("before.java.test"), a.resolve("F.java"));
+                Files.writeString(a.resolve("F.java"), Files.readString(d.resolve("before.java.test")) + "\n// ceiling\n");
                 ProjectASTDiff p = new GitHistoryRefactoringMinerImpl().diffAtDirectories(b, a);
                 ASTDiff diff = p.getDiffSet().iterator().next();
                 String content = p.getFileContentsBefore().get(diff.getSrcPath());
-                MappingStore ms = new DifffoldMatcher("topdown", content, content, cs).match(diff.src.getRoot(), diff.dst.getRoot());
+                String after = p.getFileContentsAfter().get(diff.getDstPath());
+                MappingStore ms = new DifffoldMatcher("topdown", content, after, cs).match(diff.src.getRoot(), diff.dst.getRoot());
                 for (Tree t : diff.src.getRoot().preOrder()) {
                     boolean comment = false;
                     for (Tree x = t; x != null; x = x.getParent()) {

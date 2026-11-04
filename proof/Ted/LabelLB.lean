@@ -6,7 +6,7 @@ open Ted
 namespace difffold_lines_extract
 
 /-! Theorems over the Aeneas-extracted `ted_core::label_lower_bound`, the copy of `label_lower_bound` of the
-real `src/ted.rs` (tied to it by `tests/ted_core.rs`). It returns `max(n, m)` minus the size of the label
+real `src/ted.rs` (tied to it by `tests/ted.rs`). It returns `max(n, m)` minus the size of the label
 multiset overlap (`Ted.overlap`, defined in `Overlap.lean`). -/
 
 /-- The values of a list of `u32`. -/
@@ -37,9 +37,9 @@ theorem sorted_tail (l : List Std.U32) (i : Nat) (h : i < l.length) (hs : (vals 
     (hsa : (vals la.val).Pairwise (· ≤ ·)) (hsb : (vals lb.val).Pairwise (· ≤ ·))
     (hla : la.length < 2 ^ 31)
     (hi : i.val ≤ la.length) (hj : j.val ≤ lb.length) (hc : common.val ≤ i.val) :
-    ted_core.label_lower_bound_loop la lb i j common ⦃ r =>
+    ted.label_lower_bound_loop la lb i j common ⦃ r =>
       r.val = common.val + overlap ((vals la.val).drop i.val) ((vals lb.val).drop j.val) ⦄ := by
-  unfold ted_core.label_lower_bound_loop
+  unfold ted.label_lower_bound_loop
   apply loop.spec_decr_nat
     (measure := fun p => (la.length - p.1.val) + (lb.length - p.2.1.val))
     (inv := fun p => p.1.val ≤ la.length ∧ p.2.1.val ≤ lb.length ∧ p.2.2.val ≤ p.1.val ∧
@@ -48,7 +48,7 @@ theorem sorted_tail (l : List Std.U32) (i : Nat) (h : i < l.length) (hs : (vals 
   · intro p hp
     obtain ⟨c, d, m⟩ := p
     obtain ⟨hc1, hd1, hm1, hfin⟩ := hp
-    unfold ted_core.label_lower_bound_loop.body
+    unfold ted.label_lower_bound_loop.body
     dsimp only at hc1 hd1 hm1 hfin ⊢
     have hlal : (alloc.vec.Vec.len la).val = la.length := alloc.vec.Vec.len_val la
     have hlbl : (alloc.vec.Vec.len lb).val = lb.length := alloc.vec.Vec.len_val lb
@@ -130,11 +130,11 @@ theorem clone_u32 (v : alloc.vec.Vec Std.U32) :
   simp only [bind_tc_ok, WP.spec_ok]
   rw [← hh]
 
-theorem label_lower_bound_spec (hsort : SortSpec) (a b : ted_core.PostTree)
+theorem label_lower_bound_spec (hsort : SortSpec) (a b : ted.PostTree)
     (ha : a.label.length < 2 ^ 31) (hb : b.label.length < 2 ^ 31) :
-    ted_core.label_lower_bound a b ⦃ r =>
+    ted.label_lower_bound a b ⦃ r =>
       r.val = max a.label.length b.label.length - overlap (vals a.label.val) (vals b.label.val) ⦄ := by
-  unfold ted_core.label_lower_bound
+  unfold ted.label_lower_bound
   step with clone_u32 a.label as ⟨la, la_post⟩
   step with clone_u32 b.label as ⟨lb, lb_post⟩
   subst la_post lb_post
