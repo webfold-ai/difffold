@@ -59,3 +59,8 @@ debug = 1
 name = "abi_cutoff"
 path = "src/bin/abi_cutoff.rs"
 required-features = ["ts"]
+
+[[bin]]
+name = "ted_map"
+path = "src/bin/ted_map.rs"
+required-features = ["ts"]

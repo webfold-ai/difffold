@@ -196,3 +196,81 @@ fn replay_rejects_a_wrong_mapping() {
     // A legal mapping of the same pair replays with the exact cost 2 (delete one leaf, insert it back).
     assert_eq!(replay_script(&pa, &pb, &[(1, 2), (3, 3)]).unwrap(), 2);
 }
+
+fn fd_kind(f: &[T], g: &[T], memo: &mut HashMap<(Vec<T>, Vec<T>), u32>) -> u32 {
+    if f.is_empty() {
+        return size(g);
+    }
+    if g.is_empty() {
+        return size(f);
+    }
+    if let Some(&v) = memo.get(&(f.to_vec(), g.to_vec())) {
+        return v;
+    }
+    let (v, fr) = (f.last().unwrap(), &f[..f.len() - 1]);
+    let (w, gr) = (g.last().unwrap(), &g[..g.len() - 1]);
+    let mut f_del = fr.to_vec();
+    f_del.extend(v.1.iter().cloned());
+    let mut g_ins = gr.to_vec();
+    g_ins.extend(w.1.iter().cloned());
+    let a = fd_kind(&f_del, g, memo) + 1;
+    let b = fd_kind(f, &g_ins, memo) + 1;
+    // Relabel cost: 0 equal, 1 within a kind (label parity), 2 across kinds.
+    let ren = if v.0 == w.0 {
+        0
+    } else if v.0 % 2 == w.0 % 2 {
+        1
+    } else {
+        2
+    };
+    let c = fd_kind(fr, gr, memo) + fd_kind(&v.1, &w.1, memo) + ren;
+    let r = a.min(b).min(c);
+    memo.insert((f.to_vec(), g.to_vec()), r);
+    r
+}
+
+fn post_kinds(t: &T) -> PostTree {
+    let (mut l, mut k) = (Vec::new(), Vec::new());
+    to_post(t, &mut l, &mut k);
+    let kinds: Vec<u32> = l.iter().map(|x| x % 2).collect();
+    PostTree::from_kids(l, &k).with_kinds(kinds)
+}
+
+#[test]
+fn kind_aware_cost_matches_the_oracle_and_maps_legally() {
+    use difffold::ted::{check_mapping, replay_script, ted_mapping};
+    let mut r = Rng(0x1357_9bdf_2468_ace0);
+    let mut memo = HashMap::new();
+    for round in 0..4000 {
+        let (mut ba, mut bb) = (1 + (r.next() % 9) as i32, 1 + (r.next() % 9) as i32);
+        let (a, b) = (
+            random_tree(&mut r, &mut ba, 5),
+            random_tree(&mut r, &mut bb, 5),
+        );
+        let want = fd_kind(
+            std::slice::from_ref(&a),
+            std::slice::from_ref(&b),
+            &mut memo,
+        );
+        let (pa, pb) = (post_kinds(&a), post_kinds(&b));
+        assert_eq!(ted(&pa, &pb), want, "round {round}: {a:?} vs {b:?}");
+        let m = ted_mapping(&pa, &pb);
+        assert_eq!(m.cost, want);
+        assert_eq!(
+            check_mapping(&pa, &pb, &m.pairs).unwrap(),
+            want,
+            "round {round}"
+        );
+        assert_eq!(
+            replay_script(&pa, &pb, &m.pairs).unwrap(),
+            want,
+            "round {round}"
+        );
+        assert!(
+            m.pairs
+                .iter()
+                .all(|&(x, y)| pa.kind[x as usize - 1] == pb.kind[y as usize - 1]),
+            "no cross-kind pair"
+        );
+    }
+}

@@ -823,4 +823,51 @@ pub mod proof_api {
     pub fn last_nl(t: &[u8]) -> Option<usize> {
         super::last_nl(t)
     }
+    /// `snake` of the real source on a search state with the given lists (`tests/myers_core.rs`).
+    #[must_use]
+    pub fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
+        let s = super::Search {
+            a,
+            b,
+            n: a.len() as i32,
+            m: b.len() as i32,
+            delta: 0,
+            odd: false,
+            off: 0,
+            vf: &mut [],
+            vb: &mut [],
+        };
+        super::snake(&s, x, y)
+    }
+    /// `snake_back` of the real source on a search state with the given lists.
+    #[must_use]
+    pub fn snake_back(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
+        let s = super::Search {
+            a,
+            b,
+            n: a.len() as i32,
+            m: b.len() as i32,
+            delta: 0,
+            odd: false,
+            off: 0,
+            vf: &mut [],
+            vb: &mut [],
+        };
+        super::snake_back(&s, x, y)
+    }
+    /// `line_start` of the real source.
+    #[must_use]
+    pub fn line_start(t: &[u8], p: usize) -> usize {
+        super::line_start(t, p)
+    }
+    /// `suffix_on_line_start` of the real source.
+    #[must_use]
+    pub fn suffix_on_line_start(ro: &[u8], rn: &[u8], q: usize) -> usize {
+        super::suffix_on_line_start(ro, rn, q)
+    }
+    /// `count_lines` of the real source.
+    #[must_use]
+    pub fn count_lines(t: &[u8]) -> usize {
+        super::count_lines(t)
+    }
 }

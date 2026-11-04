@@ -29,6 +29,9 @@ pub struct PostTree {
     pub keyroots: Vec<u32>,
     /// Child lists (0-based indices), kept so the mirror image can be built.
     kids: Vec<Vec<u32>>,
+    /// Node kind per node. Relabelling within a kind costs 1, across kinds 2 (the same as deleting and inserting).
+    /// All zero by default, which makes every relabel cost 1: the classical unit-cost model.
+    pub kind: Vec<u32>,
 }
 
 impl PostTree {
@@ -49,12 +52,22 @@ impl PostTree {
             }
         }
         keyroots.reverse();
+        let kind = vec![0u32; label.len()];
         PostTree {
             label,
             lml,
             keyroots,
             kids: kids.to_vec(),
+            kind,
         }
+    }
+
+    /// Attach node kinds (one per node, in postorder). With kinds, relabelling across kinds costs 2.
+    #[must_use]
+    pub fn with_kinds(mut self, kind: Vec<u32>) -> Self {
+        assert_eq!(kind.len(), self.label.len(), "one kind per node");
+        self.kind = kind;
+        self
     }
 
     /// The mirror image (children in reverse order). Mirroring both trees leaves the distance unchanged.
@@ -63,9 +76,9 @@ impl PostTree {
         if self.is_empty() {
             return PostTree::from_kids(Vec::new(), &[]);
         }
-        let (mut label, mut kids) = (Vec::new(), Vec::new());
-        mirror_expand(self, self.len() - 1, &mut label, &mut kids);
-        PostTree::from_kids(label, &kids)
+        let (mut label, mut kids, mut kind) = (Vec::new(), Vec::new(), Vec::new());
+        mirror_expand(self, self.len() - 1, &mut label, &mut kids, &mut kind);
+        PostTree::from_kids(label, &kids).with_kinds(kind)
     }
 
     /// Work estimate of the left-path decomposition against `other`: the product of the keyroot subtree sizes.
@@ -100,13 +113,20 @@ impl PostTree {
     }
 }
 
-fn mirror_expand(t: &PostTree, i: usize, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) -> u32 {
+fn mirror_expand(
+    t: &PostTree,
+    i: usize,
+    label: &mut Vec<u32>,
+    kids: &mut Vec<Vec<u32>>,
+    kind: &mut Vec<u32>,
+) -> u32 {
     let ks: Vec<u32> = t.kids[i]
         .iter()
         .rev()
-        .map(|&k| mirror_expand(t, k as usize, label, kids))
+        .map(|&k| mirror_expand(t, k as usize, label, kids, kind))
         .collect();
     label.push(t.label[i]);
+    kind.push(t.kind[i]);
     kids.push(ks);
     label.len() as u32 - 1
 }
@@ -166,6 +186,17 @@ pub fn ted_stats(a: &PostTree, b: &PostTree) -> (u32, Stats) {
 pub fn ted_unpruned(a: &PostTree, b: &PostTree) -> u32 {
     let mut st = Stats::default();
     within(a, b, (a.len() + b.len()) as u32, &mut st).expect("the distance never exceeds n + m")
+}
+
+/// The relabel cost of node `x` of `a` to node `y` of `b` (1-based): 0 for equal labels, 1 within a kind, 2 across kinds.
+fn relabel_cost(a: &PostTree, b: &PostTree, x: usize, y: usize) -> u32 {
+    if a.label[x - 1] == b.label[y - 1] {
+        0
+    } else if a.kind[x - 1] == b.kind[y - 1] {
+        1
+    } else {
+        2
+    }
 }
 
 /// A lower bound on the distance: `max(n, m)` minus the size of the label multiset overlap. A mapping
@@ -299,7 +330,7 @@ fn fill_window(
             let del = get(p - 1, q, fd) + 1;
             let ins = get(p, q - 1, fd) + 1;
             let v = if lx == li && ly == lj {
-                let ren = u32::from(a.label[x - 1] != b.label[y - 1]);
+                let ren = relabel_cost(a, b, x, y);
                 let v = del.min(ins).min(get(p - 1, q - 1, fd) + ren).min(inf);
                 if in_band(x, y) {
                     td[tdi(x, y)] = v;
@@ -330,6 +361,13 @@ pub struct Mapping {
 /// An optimal mapping, recovered by tracing back through the forest tables at the exact distance.
 #[must_use]
 pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
+    ted_mapping_with(a, b, true)
+}
+
+/// [`ted_mapping`] with the tie-break made explicit. Among equal-cost optimal mappings, `prefer_match`
+/// picks the one that matches a pair over deleting and inserting it; `false` prefers delete, then insert.
+#[must_use]
+pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mapping {
     let cost = ted(a, b);
     if a.is_empty() || b.is_empty() {
         return Mapping {
@@ -364,11 +402,36 @@ pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
         while p > 0 || q > 0 {
             let v = get(p, q);
             let (x, y) = (li + p.max(1) - 1, lj + q.max(1) - 1);
-            if p > 0 && get(p - 1, q) + 1 == v {
+            let leaf_case =
+                p > 0 && q > 0 && a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj;
+            // The diagonal candidate: relabel or match a whole pair, or a subtree pair through the table.
+            let diag_ok = if p == 0 || q == 0 {
+                false
+            } else if leaf_case {
+                relabel_cost(a, b, x, y) < 2 && get(p - 1, q - 1) + relabel_cost(a, b, x, y) == v
+            } else {
+                let tdv = if x.abs_diff(y) <= t {
+                    td[tdi(x, y)]
+                } else {
+                    inf
+                };
+                get(a.lml[x - 1] as usize - li, b.lml[y - 1] as usize - lj) + tdv == v
+            };
+            if prefer_match && diag_ok {
+                if leaf_case {
+                    pairs.push((x as u32, y as u32));
+                    p -= 1;
+                    q -= 1;
+                } else {
+                    stack.push((x, y));
+                    p = a.lml[x - 1] as usize - li;
+                    q = b.lml[y - 1] as usize - lj;
+                }
+            } else if p > 0 && get(p - 1, q) + 1 == v {
                 p -= 1;
             } else if q > 0 && get(p, q - 1) + 1 == v {
                 q -= 1;
-            } else if a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj {
+            } else if leaf_case {
                 pairs.push((x as u32, y as u32));
                 p -= 1;
                 q -= 1;
@@ -378,7 +441,6 @@ pub fn ted_mapping(a: &PostTree, b: &PostTree) -> Mapping {
                 q = b.lml[y - 1] as usize - lj;
             }
         }
-        let _ = tdi;
     }
     pairs.sort_unstable();
     Mapping { cost, pairs }
@@ -447,7 +509,7 @@ pub fn check_mapping(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
                 "sibling order broken under {by}: {prev} before {y}"
             ));
         }
-        relabels += u32::from(a.label[x - 1] != b.label[y - 1]);
+        relabels += relabel_cost(a, b, x, y);
     }
     let k = pairs.len() as u32;
     Ok((n as u32 - k) + (m as u32 - k) + relabels)
@@ -612,4 +674,33 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         stack.extend(nodes[x].kids.iter().map(|&c| (c, nodes[c].bid)));
     }
     Ok(ops)
+}
+
+/// Entry points for the agreement test of the extraction copy in `proof/extract/ted_core.rs`
+/// (`tests/ted_core.rs`). Not part of the API.
+#[doc(hidden)]
+pub mod proof_api {
+    use super::{PostTree, Stats};
+    /// `label_lower_bound` of the real source.
+    #[must_use]
+    pub fn label_lower_bound(a: &PostTree, b: &PostTree) -> u32 {
+        super::label_lower_bound(a, b)
+    }
+    /// `fill_window` of the real source.
+    pub fn fill_window(
+        a: &PostTree,
+        b: &PostTree,
+        td: &mut [u32],
+        fd: &mut [u32],
+        i0: usize,
+        j0: usize,
+        tau: u32,
+    ) {
+        super::fill_window(a, b, td, fd, (i0, j0), tau, &mut Stats::default());
+    }
+    /// `within_td` of the real source.
+    #[must_use]
+    pub fn within_td(a: &PostTree, b: &PostTree, tau: u32) -> (Option<u32>, Vec<u32>) {
+        super::within_td(a, b, tau, &mut Stats::default())
+    }
 }

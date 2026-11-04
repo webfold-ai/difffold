@@ -1,0 +1,31 @@
+import Pipeline
+open Myers
+#print axioms lcs_le
+#print axioms lcs_ex
+#print axioms lcs_prefix
+#print axioms lcs_suffix
+#print axioms lcs_trim
+#print axioms opt_trim
+#print axioms lcs_filter
+#print axioms filter_optimal
+#print axioms kept_expand
+#print axioms cost_eq
+#print axioms cost_ge
+#print axioms optimal_iff
+#print axioms exists_optimal
+#print axioms optimal_min
+#print axioms optimal_append
+#print axioms solve_optimal
+#print axioms solve_total
+#print axioms F_sound
+#print axioms compl_all
+#print axioms path_point
+#print axioms exists_hit
+#print axioms sweep_sound
+#print axioms sweep_some
+#print axioms fhit_good
+#print axioms bhit_good
+#print axioms two_le
+#print axioms mid_spec
+#print axioms line_search_optimal
+#print axioms line_search_cost
