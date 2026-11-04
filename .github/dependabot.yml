@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+      # Wait a week after a release before proposing it; reduces churn from yanked releases.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    groups:
+      rust-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: cargo
+    directory: "/fuzz"
+    schedule:
+      interval: weekly
+      # Wait a week after a release before proposing it; reduces churn from yanked releases.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      # Wait a week after a release before proposing it; reduces churn from yanked releases.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10

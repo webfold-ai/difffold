@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    # The name is the required status check on the default-branch ruleset. Keep it exact.
+    name: Rust checks
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      # The MSRV is the pinned toolchain below; the crate declares rust-version = "1.89".
+      TOOLCHAIN: "1.89.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain
+        run: rustup toolchain install "$TOOLCHAIN" --profile minimal --component rustfmt --component clippy
+      - name: Check formatting
+        run: cargo +"$TOOLCHAIN" fmt --all -- --check
+      - name: Build
+        run: cargo +"$TOOLCHAIN" build --locked --workspace --all-targets
+      - name: Test
+        run: cargo +"$TOOLCHAIN" test --locked --workspace
+      - name: Test with tree-sitter parsers (ts feature)
+        run: cargo +"$TOOLCHAIN" test --locked -p difffold --features ts
+      - name: Clippy
+        run: cargo +"$TOOLCHAIN" clippy --locked --workspace --all-targets -- -D warnings
+      - name: Fuzz target contracts (seeded)
+        run: cargo +"$TOOLCHAIN" test --locked --manifest-path fuzz/Cargo.toml
