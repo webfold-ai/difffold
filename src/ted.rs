@@ -29,6 +29,9 @@ pub struct PostTree {
     pub keyroots: Vec<u32>,
     /// Child lists (0-based indices), kept so the mirror image can be built.
     kids: Vec<Vec<u32>>,
+    /// Node kind per node. Relabelling within a kind costs 1, across kinds 2 (the same as deleting and inserting).
+    /// All zero by default, which makes every relabel cost 1: the classical unit-cost model.
+    pub kind: Vec<u32>,
 }
 
 impl PostTree {
@@ -49,7 +52,16 @@ impl PostTree {
             }
         }
         keyroots.reverse();
-        PostTree { label, lml, keyroots, kids: kids.to_vec() }
+        let kind = vec![0u32; label.len()];
+        PostTree { label, lml, keyroots, kids: kids.to_vec(), kind }
+    }
+
+    /// Attach node kinds (one per node, in postorder). With kinds, relabelling across kinds costs 2.
+    #[must_use]
+    pub fn with_kinds(mut self, kind: Vec<u32>) -> Self {
+        assert_eq!(kind.len(), self.label.len(), "one kind per node");
+        self.kind = kind;
+        self
     }
 
     /// The mirror image (children in reverse order). Mirroring both trees leaves the distance unchanged.
@@ -58,9 +70,9 @@ impl PostTree {
         if self.is_empty() {
             return PostTree::from_kids(Vec::new(), &[]);
         }
-        let (mut label, mut kids) = (Vec::new(), Vec::new());
-        mirror_expand(self, self.len() - 1, &mut label, &mut kids);
-        PostTree::from_kids(label, &kids)
+        let (mut label, mut kids, mut kind) = (Vec::new(), Vec::new(), Vec::new());
+        mirror_expand(self, self.len() - 1, &mut label, &mut kids, &mut kind);
+        PostTree::from_kids(label, &kids).with_kinds(kind)
     }
 
     /// Work estimate of the left-path decomposition against `other`: the product of the keyroot subtree sizes.
@@ -90,9 +102,10 @@ impl PostTree {
     }
 }
 
-fn mirror_expand(t: &PostTree, i: usize, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) -> u32 {
-    let ks: Vec<u32> = t.kids[i].iter().rev().map(|&k| mirror_expand(t, k as usize, label, kids)).collect();
+fn mirror_expand(t: &PostTree, i: usize, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>, kind: &mut Vec<u32>) -> u32 {
+    let ks: Vec<u32> = t.kids[i].iter().rev().map(|&k| mirror_expand(t, k as usize, label, kids, kind)).collect();
     label.push(t.label[i]);
+    kind.push(t.kind[i]);
     kids.push(ks);
     label.len() as u32 - 1
 }
@@ -148,6 +161,17 @@ pub fn ted_stats(a: &PostTree, b: &PostTree) -> (u32, Stats) {
 pub fn ted_unpruned(a: &PostTree, b: &PostTree) -> u32 {
     let mut st = Stats::default();
     within(a, b, (a.len() + b.len()) as u32, &mut st).expect("the distance never exceeds n + m")
+}
+
+/// The relabel cost of node `x` of `a` to node `y` of `b` (1-based): 0 for equal labels, 1 within a kind, 2 across kinds.
+fn relabel_cost(a: &PostTree, b: &PostTree, x: usize, y: usize) -> u32 {
+    if a.label[x - 1] == b.label[y - 1] {
+        0
+    } else if a.kind[x - 1] == b.kind[y - 1] {
+        1
+    } else {
+        2
+    }
 }
 
 /// A lower bound on the distance: `max(n, m)` minus the size of the label multiset overlap. A mapping
@@ -265,7 +289,7 @@ fn fill_window(a: &PostTree, b: &PostTree, td: &mut [u32], fd: &mut [u32], (i0, 
             let del = get(p - 1, q, fd) + 1;
             let ins = get(p, q - 1, fd) + 1;
             let v = if lx == li && ly == lj {
-                let ren = u32::from(a.label[x - 1] != b.label[y - 1]);
+                let ren = relabel_cost(a, b, x, y);
                 let v = del.min(ins).min(get(p - 1, q - 1, fd) + ren).min(inf);
                 if in_band(x, y) {
                     td[tdi(x, y)] = v;
@@ -333,7 +357,7 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
             let diag_ok = if p == 0 || q == 0 {
                 false
             } else if leaf_case {
-                get(p - 1, q - 1) + u32::from(a.label[x - 1] != b.label[y - 1]) == v
+                relabel_cost(a, b, x, y) < 2 && get(p - 1, q - 1) + relabel_cost(a, b, x, y) == v
             } else {
                 let tdv = if x.abs_diff(y) <= t { td[tdi(x, y)] } else { inf };
                 get(a.lml[x - 1] as usize - li, b.lml[y - 1] as usize - lj) + tdv == v
@@ -425,7 +449,7 @@ pub fn check_mapping(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
         if prev > y {
             return Err(format!("sibling order broken under {by}: {prev} before {y}"));
         }
-        relabels += u32::from(a.label[x - 1] != b.label[y - 1]);
+        relabels += relabel_cost(a, b, x, y);
     }
     let k = pairs.len() as u32;
     Ok((n as u32 - k) + (m as u32 - k) + relabels)

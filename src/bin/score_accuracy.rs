@@ -115,13 +115,22 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
         }
         (order, pos)
     };
-    let build = |t: &Tree, order: &[u32], pos: &[u32]| -> PostTree {
+    let kinds_on = std::env::var("DFOLD_KINDS").is_ok();
+    let mut kind_ids: HashMap<&'static str, u32> = HashMap::new();
+    let mut build = |t: &Tree, order: &[u32], pos: &[u32]| -> PostTree {
         let label: Vec<u32> = order.iter().map(|&v| t.label[v as usize]).collect();
         let kids: Vec<Vec<u32>> = order.iter().map(|&v| t.kids[v as usize].iter().map(|&c| pos[c as usize]).collect()).collect();
-        PostTree::from_kids(label, &kids)
+        let pt = PostTree::from_kids(label, &kids);
+        if kinds_on {
+            let kind: Vec<u32> = order.iter().map(|&v| { let n = kind_ids.len() as u32; *kind_ids.entry(t.kind[v as usize]).or_insert(n) }).collect();
+            pt.with_kinds(kind)
+        } else {
+            pt
+        }
     };
     let ((oa, pa), (ob, pb)) = (post(bt), post(at));
-    let m = ted_mapping(&build(bt, &oa, &pa), &build(at, &ob, &pb));
+    let (ta, tb) = (build(bt, &oa, &pa), build(at, &ob, &pb));
+    let m = ted_mapping(&ta, &tb);
     let mut pairs: Vec<(u32, u32)> = m.pairs.iter().map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1])).collect();
     if std::env::var("DFOLD_MOVES").is_ok() {
         recover_moves(bt, at, &mut pairs);
