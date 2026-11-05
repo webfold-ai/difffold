@@ -350,7 +350,7 @@ theorem mirror_spec (a : ted.PostTree) (hW : PT.Wf a) (hn : a.label.length < 2 ^
     dsimp only at hl1' hk1' hkd1 hF ⊢
     have hderef : (alloc.vec.Vec.deref kids1).val = kids1.val := by
       unfold alloc.vec.Vec.deref
-      rw [Slice.from_val]; rfl
+      rw [Slice.from_val]
     have hF3 : ∀ y < a.label.length, ((kids1.val[(pos1.val[y]!).val]!).val.map (fun k => k.val)) =
         revPos (a.kids.val[y]!).val pos1.val 0 := fun y hy => (hF y hy).2.2
     have hvalid : ∀ j < label1.length, ∀ k, FirstKid (alloc.vec.Vec.deref kids1).val j = some k → k.val < j := by
@@ -379,6 +379,23 @@ theorem mirror_spec (a : ted.PostTree) (hW : PT.Wf a) (hn : a.label.length < 2 ^
       rw [alloc.vec.Vec.len_val, alloc.vec.Vec.len_val, hpl1]
       exact hk1'.trans hl1'.symm
     simp only [hlenEq, ↓reduceIte, WP.spec_ok]
-    sorry
+    have hkv' : (↑pt.kids : List (alloc.vec.Vec Std.U32)) = kids1.val := by rw [hkids, hderef]
+    have hmw := mirror_wf a { label := pt.label, lml := pt.lml, keyroots := pt.keyroots, kids := pt.kids, kind := kind }
+      hW hn pos1.val hP (by show pt.label.length = _; rw [hpl1]; exact hl1')
+      (by show pt.lml.length = _; rw [hplen]; exact hl1') hk1'
+      (by show pt.kids.length = _; show pt.kids.val.length = _; rw [hkv']; exact hkd1)
+      (by intro y hy; have := hF3 y hy; rw [← hkv'] at this; exact this)
+      (by intro z hz; have := (hlml z (by omega)).1; rw [hderef, ← hkv'] at this; exact this)
+      hsorted (by rw [hl1'] at hkrt; exact hkrt)
+    refine ⟨hmw.1, ?_, ?_, ?_, hmw.2⟩
+    · show pt.label.length = _; rw [hpl1]; exact hl1'
+    · intro x hx1 hx2
+      show pt.label.val[_]! = _
+      rw [pim_pos_eq a pos1.val hP hx1 hx2, hpl1]
+      exact (hF (x - 1) (by omega)).1
+    · intro x hx1 hx2
+      show kind.val[_]! = _
+      rw [pim_pos_eq a pos1.val hP hx1 hx2]
+      exact (hF (x - 1) (by omega)).2.1
 
 end difffold_lines_extract

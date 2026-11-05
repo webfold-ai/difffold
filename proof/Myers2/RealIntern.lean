@@ -374,4 +374,94 @@ theorem intern_line_spec (head nxt : alloc.vec.Vec U32) (reps : alloc.vec.Vec (S
     simp only [if_true, WP.spec_ok]
     exact ⟨hkr.2.1, hkr.2.2, rfl, hI, Or.inl ⟨rfl, hkr.2.1⟩⟩
 
+/-- What interning a run of lines achieves. -/
+def AllPost (seed : U64) (xs : List (Slice U8)) (base : Nat) (out : Slice U32) (reps' : alloc.vec.Vec (Slice U8)) (head' nxt' : alloc.vec.Vec U32) (out' : Slice U32)
+    (headL : Nat) (repsL : List (Slice U8)) : Prop :=
+  ∃ ids : List U32, ids.length = xs.length ∧ out'.val.length = out.val.length ∧
+    (∀ i : Nat, i < base ∨ base + xs.length ≤ i → out'.val[i]? = out.val[i]?) ∧
+    (∀ (j : Nat) x, ids[j]? = some x → out'.val[base + j]? = some x) ∧
+    TInv seed head'.val nxt'.val reps'.val ∧ head'.val.length = headL ∧ repsL <+: reps'.val ∧
+    reps'.val.length ≤ repsL.length + xs.length ∧
+    (∀ (j : Nat) x, ids[j]? = some x → x.val < reps'.val.length ∧ reps'.val[x.val]? = xs[j]?) ∧
+    (∀ k, repsL.length ≤ k → k < reps'.val.length → ∃ x ∈ ids, x.val = k)
+
+theorem intern_all_spec (seed : U64) : ∀ (N : Nat) (xs : Slice (Slice U8)) (base : Usize)
+    (head nxt : alloc.vec.Vec U32) (reps : alloc.vec.Vec (Slice U8)) (out : Slice U32),
+    xs.val.length = N → TInv seed head.val nxt.val reps.val → reps.val.length + N ≤ 2 ^ 28 →
+    base.val + N ≤ out.val.length →
+    lines.intern_all xs base head nxt reps seed out ⦃ reps' head' nxt' out' =>
+      AllPost seed xs.val base.val out reps' head' nxt' out' head.val.length reps.val ⦄ := by
+  intro N
+  induction N using Nat.strongRecOn with
+  | _ N ih =>
+  intro xs base head nxt reps out hN hI hb hbo
+  rw [lines.intern_all.eq_1]
+  have hl : (Slice.len xs).val = xs.val.length := by simp [Slice.len]
+  split
+  · rename_i h0
+    have : xs.val.length = 0 := by omega
+    have e : xs.val = [] := List.length_eq_zero_iff.mp this
+    simp only [Aeneas.Std.WP.spec_ok]
+    refine ⟨[], by simp [e], rfl, ?_, ?_, hI, rfl, List.prefix_refl _, by simp [e], ?_, ?_⟩
+    · intros; rfl
+    · intro j x h; simp at h
+    · intro j x h; simp at h
+    · intro k h1 h2; omega
+  · rename_i h1
+    have hl1 : xs.val.length = 1 := by omega
+    obtain ⟨u, hu⟩ : ∃ u, xs.val = [u] := by
+      cases hx : xs.val with
+      | nil => rw [hx] at hl1; simp at hl1
+      | cons u t => cases t with
+        | nil => exact ⟨u, rfl⟩
+        | cons _ _ => rw [hx] at hl1; simp at hl1
+    step as ⟨s, hs⟩
+    have hsu : s = u := by rw [hs]; simp [hu]
+    subst hsu
+    have hn : reps.val.length < 2 ^ 28 := by omega
+    step with intern_line_spec head nxt reps seed s hI hn as ⟨i, reps1, head1, nxt1, hi1, hi2, hi3, hi4, hi5⟩
+    have hbd : base.val < out.val.length := by omega
+    step as ⟨out1, ho1⟩
+    trace_state
+    refine ⟨[i], by simp [hu], ?_, ?_, ?_, hi4, hi3, ?_, ?_, ?_, ?_⟩
+    · rw [ho1]; simp
+    · intro j hj
+      rw [ho1, List.getElem?_set_ne]
+      omega
+    · intro j x h
+      have hj : j = 0 := by
+        by_contra hne
+        rw [List.getElem?_eq_none (by simp; omega)] at h; simp at h
+      subst hj
+      simp at h; subst h
+      rw [ho1]; simp [List.getElem?_set_self hbd]
+    · rcases hi5 with ⟨h, _⟩ | ⟨h, _⟩
+      · rw [h]; exact List.prefix_refl _
+      · rw [h]; exact List.prefix_append _ _
+    · rcases hi5 with ⟨h, _⟩ | ⟨h, _⟩
+      · rw [h]; simp [hu]
+      · rw [h]; simp [hu]
+    · intro j x h
+      have hj : j = 0 := by
+        by_contra hne
+        rw [List.getElem?_eq_none (by simp; omega)] at h; simp at h
+      subst hj
+      simp at h; subst h
+      exact ⟨hi1, by rw [hi2, hu]; rfl⟩
+    · intro k hk1 hk2
+      rcases hi5 with ⟨h, h'⟩ | ⟨h, h'⟩
+      · rw [h] at hk2; omega
+      · refine ⟨i, by simp, ?_⟩; omega
+  · rename_i hn0 hn1
+    have hl2 : 2 ≤ xs.val.length := by
+      have : ¬ xs.val.length = 0 := by simpa [Slice.len] using hn0
+      have : ¬ xs.val.length = 1 := by simpa [Slice.len] using hn1
+      omega
+    step as ⟨h, hh⟩
+    have hhv : h.val = xs.val.length / 2 := by rw [hh]; simp [Slice.len]
+    step as ⟨s, hsv, hsl⟩
+    have hsv' : s.val = xs.val.take h.val := by rw [hsv]; simp [List.slice]
+    have hslen : s.val.length = h.val := by rw [hsv']; simp; omega
+    sorry
+
 end difffold_myers_extract
