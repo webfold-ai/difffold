@@ -328,7 +328,8 @@ theorem from_kids_spec (label : alloc.vec.Vec Std.U32) (kids : Slice (alloc.vec.
       t.label = label ∧ t.lml.length = label.length ∧
       (∀ j < label.length, LmlEq kids.val t.lml.val j ∧ 1 ≤ (t.lml.val[j]!).val ∧ (t.lml.val[j]!).val ≤ j + 1) ∧
       t.keyroots.val.Pairwise (fun a b => a.val < b.val) ∧
-      ∀ v, InKR t.keyroots.val v ↔ LastWithLml t.lml.val label.length v ⦄ := by
+      (∀ v, InKR t.keyroots.val v ↔ LastWithLml t.lml.val label.length v) ∧
+      t.kids.val = kids.val ∧ t.kind.val = List.replicate label.length 0#u32 ⦄ := by
   unfold ted.PostTree.from_kids
   have hlenv := alloc.vec.Vec.len_val label
   step*
@@ -358,7 +359,7 @@ theorem from_kids_spec (label : alloc.vec.Vec Std.U32) (kids : Slice (alloc.vec.
     simp only [lift, bind_tc_ok, alloc.vec.Vec.deref_mut]
     step*
     · intro x _; exact clone_vec_u32 x
-    refine ⟨by omega, ?_, ?_, ?_⟩
+    refine ⟨by omega, ?_, ?_, ?_, ?_, ?_⟩
     · intro j hj
       have := lml1_post1 j (by omega)
       exact this
@@ -370,5 +371,7 @@ theorem from_kids_spec (label : alloc.vec.Vec Std.U32) (kids : Slice (alloc.vec.
       rw [this]
       simp only [LastWithLml, lml1_post]
       rw [hlen]
+    · rw [kids_post]; rfl
+    · rw [kind_post, hlen]
 
 end difffold_lines_extract

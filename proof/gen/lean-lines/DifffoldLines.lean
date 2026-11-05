@@ -20,13 +20,6 @@ noncomputable section
 
 namespace difffold_lines_extract
 
-/-- [core::num::{u64}::count_ones]:
-    Source: '/rustc/library/core/src/num/uint_macros.rs', lines 84:8-84:44
-    Name pattern: [core::num::{u64}::count_ones]
-    Visibility: public -/
-@[rust_fun "core::num::{u64}::count_ones"]
-axiom core.num.U64.count_ones : Std.U64 → Result Std.U32
-
 /-- [core::num::{u64}::trailing_zeros]:
     Source: '/rustc/library/core/src/num/uint_macros.rs', lines 177:8-177:48
     Name pattern: [core::num::{u64}::trailing_zeros]
@@ -101,8 +94,30 @@ def lines.nl_mask (w : Std.U64) : Result Std.U64 := do
   let i3 ← lift (i2 ||| lines.nl_mask.LOW7)
   ok (~~~ i3)
 
+/-- [difffold_lines_extract::lines::newline_count]:
+    Source: '../../src/lines.rs', lines 146:0-148:1 -/
+def lines.newline_count (m : Std.U64) : Result Std.Usize := do
+  let i ← m >>> 7#i32
+  let i1 ← lift (core.num.U64.wrapping_mul i 72340172838076673#u64)
+  let i2 ← i1 >>> 56#i32
+  ok (UScalar.cast .Usize i2)
+
+/-- [difffold_lines_extract::lines::lowest_byte]:
+    Source: '../../src/lines.rs', lines 151:0-157:1 -/
+def lines.lowest_byte (m : Std.U64) (k : Std.Usize) : Result Std.Usize := do
+  let i ← lift (m &&& 255#u64)
+  if i != 0#u64
+  then ok k
+  else
+    if k >= 7#usize
+    then ok k
+    else let i1 ← m >>> 8#i32
+         let i2 ← k + 1#usize
+         lines.lowest_byte i1 i2
+partial_fixpoint
+
 /-- [difffold_lines_extract::lines::word]:
-    Source: '../../src/lines.rs', lines 145:0-151:1 -/
+    Source: '../../src/lines.rs', lines 160:0-166:1 -/
 def lines.word (t : Slice Std.U8) : Result Std.U64 := do
   let n := Slice.len t
   match n.val with
@@ -135,7 +150,7 @@ def lines.word (t : Slice Std.U8) : Result Std.U64 := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::count_block]:
-    Source: '../../src/lines.rs', lines 154:0-160:1 -/
+    Source: '../../src/lines.rs', lines 169:0-175:1 -/
 def lines.count_block (t : Slice Std.U8) : Result Std.Usize := do
   let b ← core.slice.Slice.is_empty t
   if b
@@ -143,20 +158,19 @@ def lines.count_block (t : Slice Std.U8) : Result Std.Usize := do
   else
     let i ← lines.word t
     let i1 ← lines.nl_mask i
-    let i2 ← core.num.U64.count_ones i1
-    let i3 ← lift (UScalar.cast .Usize i2)
-    let i4 := Slice.len t
-    let i5 ← core.cmp.Ord.min.trait_default core.cmp.OrdUsize i4 8#usize
+    let i2 ← lines.newline_count i1
+    let i3 := Slice.len t
+    let i4 ← core.cmp.Ord.min.trait_default core.cmp.OrdUsize i3 8#usize
     let s ←
       core.slice.index.Slice.index
         (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
-        { start := i5 }
-    let i6 ← lines.count_block s
-    i3 + i6
+        { start := i4 }
+    let i5 ← lines.count_block s
+    i2 + i5
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::count_byte]:
-    Source: '../../src/lines.rs', lines 162:0-168:1 -/
+    Source: '../../src/lines.rs', lines 177:0-183:1 -/
 def lines.count_byte (t : Slice Std.U8) (_b : Std.U8) : Result Std.Usize := do
   let i := Slice.len t
   if i <= 64#usize
@@ -180,7 +194,7 @@ def lines.count_byte (t : Slice Std.U8) (_b : Std.U8) : Result Std.Usize := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::common_prefix]:
-    Source: '../../src/lines.rs', lines 171:0-185:1 -/
+    Source: '../../src/lines.rs', lines 186:0-200:1 -/
 def lines.common_prefix
   {T : Type} (corecmpPartialEqInst : core.cmp.PartialEq T T) (a : Slice T)
   (b : Slice T) :
@@ -221,7 +235,7 @@ def lines.common_prefix
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::common_suffix]:
-    Source: '../../src/lines.rs', lines 188:0-202:1 -/
+    Source: '../../src/lines.rs', lines 203:0-217:1 -/
 def lines.common_suffix
   {T : Type} (corecmpPartialEqInst : core.cmp.PartialEq T T) (a : Slice T)
   (b : Slice T) :
@@ -289,7 +303,7 @@ def lines.common_suffix
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::first_in_block]:
-    Source: '../../src/lines.rs', lines 205:0-216:1 -/
+    Source: '../../src/lines.rs', lines 220:0-231:1 -/
 def lines.first_in_block
   (t : Slice Std.U8) («at» : Std.Usize) : Result (Option Std.Usize) := do
   let i := Slice.len t
@@ -304,17 +318,15 @@ def lines.first_in_block
     let m ← lines.nl_mask i1
     if m != 0#u64
     then
-      let i2 ← core.num.U64.trailing_zeros m
-      let i3 ← i2 / 8#u32
-      let i4 ← lift (UScalar.cast .Usize i3)
-      let i5 ← «at» + i4
-      ok (some i5)
+      let i2 ← lines.lowest_byte m 0#usize
+      let i3 ← «at» + i2
+      ok (some i3)
     else let i2 ← «at» + 8#usize
          lines.first_in_block t i2
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::last_in_block]:
-    Source: '../../src/lines.rs', lines 228:0-234:1 -/
+    Source: '../../src/lines.rs', lines 249:0-255:1 -/
 def lines.last_in_block (t : Slice Std.U8) : Result (Option Std.Usize) := do
   let n := Slice.len t
   match n.val with
