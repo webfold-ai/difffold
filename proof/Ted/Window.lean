@@ -960,4 +960,93 @@ theorem fill_col0_spec (t w lim_p : Std.Usize) (fd : Slice Std.U32) (q : Std.Usi
     · intro k hk1 hk2; exfalso; have : k < q.val := hk2; omega
     · intro x y _; rfl
 
+
+theorem Dw_row0 {la lb : Nat → Nat} {ren : Nat → Nat → Nat} {li lj : Nat} (hli : 1 ≤ li) (hlj : 1 ≤ lj) (q : Nat) :
+    Dw la lb ren li lj 0 q = q := by
+  unfold Dw
+  rw [D_base1 la lb ren li (li + 0 - 1) lj (lj + q - 1) (Or.inl (by omega))]
+  omega
+
+theorem Dw_col0 {la lb : Nat → Nat} {ren : Nat → Nat → Nat} {li lj : Nat} (hli : 1 ≤ li) (hlj : 1 ≤ lj) (p : Nat) :
+    Dw la lb ren li lj p 0 = p := by
+  unfold Dw
+  by_cases hp : p = 0
+  · subst hp
+    rw [D_base1 la lb ren li (li + 0 - 1) lj (lj + 0 - 1) (Or.inl (by omega))]
+    omega
+  · rw [D_base2 la lb ren li (li + p - 1) lj (lj + 0 - 1) (by omega) (Or.inl (by omega))]
+    omega
+
+theorem okF_line (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (fd : List Std.U32) {p q : Nat}
+    (hv : rd fd C.w C.t C.inf p q = p + q) (hz : p = 0 ∨ q = 0) (hb : InBand C.t p q) :
+    C.OkF fd p q := by
+  unfold Ctx.OkF
+  rw [hv]
+  unfold FOK
+  unfold InBand at hb
+  rcases hz with h | h
+  · subst h; rw [Dw_row0 hli hlj]; omega
+  · subst h; rw [Dw_col0 hli hlj]; omega
+
+
+/-- One window of the forest-distance computation. -/
+theorem fill_window_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Link a b)
+    (hw : C.w = 2 * C.t + 1) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
+    (td fd : Slice Std.U32) (st : ted.Stats) (i0 j0 : Std.Usize) (tau : Std.U32)
+    (hi0 : i0.val = C.i0) (hj0 : j0.val = C.j0) (htau : tau.val = C.t)
+    (hfdlen : (C.si + 1) * C.w ≤ fd.val.length) (htdlen : (C.n + 1) * C.w ≤ td.val.length)
+    (hFB : Ctx.FdB fd.val C.inf) (hTB : Ctx.FdB td.val C.inf) (hT : C.TdInv td.val 1 1) :
+    ted.fill_window a b td fd (i0, j0) tau st ⦃ r =>
+      r.1.val.length = td.val.length ∧ Ctx.FdB r.1.val C.inf ∧ C.TdInv r.1.val (C.si + 1) 1 ∧
+        C.Frame td.val r.1.val ⦄ := by
+  unfold ted.fill_window
+  have hn := hK.nbig
+  have hm := hK.mbig
+  have htb := hK.tbig
+  have hbw := hK.wbig
+  have hlile : C.li ≤ C.i0 := by have := (hG.wa.1 C.i0 hG.i0a).2; rw [← hG.li_eq] at this; exact this
+  have hljle : C.lj ≤ C.j0 := by have := (hG.wb.1 C.j0 hG.j0a).2; rw [← hG.lj_eq] at this; exact this
+  have hsi : C.si = C.i0 - C.li + 1 := rfl
+  have hsj : C.sj = C.j0 - C.lj + 1 := rfl
+  step as ⟨t, ht⟩
+  have htv : t.val = C.t := by rw [ht, U32.cast_Usize_val_eq, htau]
+  have hi0n : C.i0 ≤ C.n := hG.i0b
+  have hj0m : C.j0 ≤ C.m := hG.j0b
+  have hi0a : 1 ≤ C.i0 := hG.i0a
+  have hj0a : 1 ≤ C.j0 := hG.j0a
+  have htau32 : tau.val + 1 < 2 ^ 32 := by omega
+  step as ⟨inf, hinf⟩
+  have hinfv : inf.val = C.inf := by unfold Ctx.inf; omega
+  have h2t : 2 * t.val < 2 ^ 32 := by omega
+  step as ⟨i, hi⟩
+  have hw1 : i.val + 1 < 2 ^ 32 := by omega
+  step as ⟨w, hw'⟩
+  have hwv : w.val = C.w := by omega
+  step as ⟨i1, hi1⟩
+  have hi1b : i1.val < a.lml.val.length := by have : a.lml.val.length = C.n := hK.n2; omega
+  step as ⟨i2, hi2⟩
+  have hlie : (UScalar.cast .Usize i2).val = C.li := by
+    have e : C.i0 - 1 = i1.val := by omega
+    have h := hK.la_eq C.i0 hi0a hi0n
+    rw [e] at h
+    rw [U32.cast_Usize_val_eq, hi2, ← getU_eq _ _ hi1b, ← h, ← hG.li_eq]
+  generalize hlig : UScalar.cast .Usize i2 = li at hlie
+  step as ⟨i3, hi3⟩
+  have hi3b : i3.val < b.lml.val.length := by have : b.lml.val.length = C.m := hK.m2; omega
+  step as ⟨i4, hi4⟩
+  have hlje : (UScalar.cast .Usize i4).val = C.lj := by
+    have e : C.j0 - 1 = i3.val := by omega
+    have h := hK.lb_eq C.j0 hj0a hj0m
+    rw [e] at h
+    rw [U32.cast_Usize_val_eq, hi4, ← getU_eq _ _ hi3b, ← h, ← hG.lj_eq]
+  generalize hljg : UScalar.cast .Usize i4 = lj at hlje
+  step as ⟨i5, hi5⟩
+  step as ⟨si, hsi'⟩
+  step as ⟨i6, hi6⟩
+  step as ⟨sj, hsj'⟩
+  have hsiv : si.val = C.si := by omega
+  have hsjv : sj.val = C.sj := by omega
+  trace_state
+  sorry
+
 end difffold_lines_extract
