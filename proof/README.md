@@ -132,15 +132,20 @@ All statements are about the Aeneas translation of the real `src/ted.rs` (includ
 | `cell_truth_leaf`, `cell_truth_nonleaf`, `cellNew_fok` | one cell of the banded table is ok: never below `min(true, tau + 1)`, never above `tau + 1`, exact when the true value plus the position offset of the window fits the budget | `Truth`, `Window` |
 | `fill_inner_loop_spec`, `fill_rows_loop_spec`, `fill_window_spec` | the three nested loops of `fill_window` maintain that invariant, the early exit `row_min > tau` and the empty band lose nothing, and the subtree-distance table `td` ends ok for all pairs of the window's subtrees; entries of other windows are untouched | `Window` |
 | `within_inner_spec`, `within_outer_spec`, `within_td_spec` | the loops over keyroot pairs (ascending order argument through `krf`), the skip filter `|li - lj| > 2 tau`, and the driver: `within_td` returns `some d` exactly when `ted <= tau`, and then `d = ted`, where `ted = D 1 n 1 m` (trees given by leftmost-leaf maps that nest, `WfL`, with a single root); it also returns a table that is ok for every pair | `Driver` |
+| `ted_oriented_loop_spec`, `ted_oriented_spec` | the threshold-doubling loop of `ted_oriented` terminates and returns exactly `ted` (non-empty trees, single roots, `tau <= n + m`, fewer than `2^14` nodes per tree) | `Oriented` |
+| `ted_eq_min_mapping` | `ted` is the minimum cost of a valid tree edit mapping, and a mapping with that cost exists | `Oriented`, `Mapping` |
 | `cell_step`, `get_spec`, `bidx_spec`, `relabel_cost_spec` | one inner-loop iteration and the arithmetic helpers, including the kind-aware relabel cost 0/1/2 | `Cell` |
 
 Hypotheses of the driver theorem (all stated, none assumed silently): `WfL` of both leftmost-leaf maps (subtrees are intervals that nest), a
 single root (`lml n = 1`), keyroot lists that are sorted and exactly the last node per leftmost leaf (`from_kids_spec` gives this), fewer than
 `2^14` nodes per tree and `tau <= n + m` so that no `usize` addition overflows on a 32-bit platform.
 
-**Not done** (reported honestly): `ted_oriented` (the doubling loop), `mirror` and the invariance of the distance under mirroring,
-`ted_mapping` (traceback), `check_mapping`, `replay_script` are not extracted or proved. `WfL` of the `lml` array that `from_kids` builds is
-assumed, not derived from a validity predicate on the child lists (it holds for postorder trees built by `expand`).
+**Not done** (reported honestly): `ted_stats` (the left/right path choice) with `mirror` and the invariance of the distance under
+mirroring (`mirror_expand` uses closures and recursion over child lists, not extracted), `ted_mapping` (the traceback),
+`check_mapping` and `replay_script` (they use `HashMap`, `splice`, `mem::take`) are neither extracted nor proved. `WfL` of the
+`lml` array that `from_kids` builds (subtrees are nested intervals) is assumed as a hypothesis, not derived from a validity
+predicate on the child lists; `Keys` (sorted keyroots, exactly the last node per leftmost leaf) follows from `from_kids_spec` but the
+translation lemma is not written. The size limits (fewer than `2^14` nodes) come from Aeneas modelling `usize` as 32 or 64 bits.
 
 ## What is not proved
 

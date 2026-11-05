@@ -14,6 +14,19 @@ theorem markOf_length (xs : List Nat) (f : List Bool) : (markOf xs f).length = f
   | nil => simp [markOf]
   | cons x xs ih => simp only [markOf, List.foldl_cons] at ih ⊢; rw [ih]; simp
 
+theorem markOf_get (xs : List Nat) : ∀ (f : List Bool), (∀ y ∈ xs, y < f.length) → ∀ x, x < f.length →
+    (markOf xs f)[x]? = if x ∈ xs then some true else f[x]? := by
+  induction xs with
+  | nil => intro f _ x _; simp [markOf]
+  | cons y ys ih =>
+    intro f hb x hx
+    have hy : y < f.length := hb y (by simp)
+    have h1 : markOf (y :: ys) f = markOf ys (f.set y true) := rfl
+    rw [h1, ih (f.set y true) (by intro z hz; simpa using hb z (by simp [hz])) x (by simpa using hx)]
+    by_cases hxy : x = y
+    · subst hxy; simp [List.getElem?_set_self hy]
+    · simp [hxy, List.getElem?_set_ne, Ne.symm hxy]
+
 theorem mark_ids_spec : ∀ (N : Nat) (xs : Slice U32) (flags : Slice Bool), xs.val.length = N →
     (∀ x ∈ vals xs.val, x < flags.val.length) →
     lines.mark_ids xs flags ⦃ r => r.val = markOf (vals xs.val) flags.val ⦄ := by

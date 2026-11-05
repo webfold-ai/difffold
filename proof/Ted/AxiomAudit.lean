@@ -8,6 +8,7 @@ import Mono
 import Truth
 import Window
 import Driver
+import Oriented
 open difffold_lines_extract
 #print axioms from_kids_spec
 #print axioms label_lower_bound_spec
@@ -27,3 +28,6 @@ open difffold_lines_extract
 #print axioms within_inner_spec
 #print axioms within_outer_spec
 #print axioms within_td_spec
+#print axioms ted_oriented_loop_spec
+#print axioms ted_oriented_spec
+#print axioms ted_eq_min_mapping

@@ -24,8 +24,8 @@ rm -rf gen/lean-lines && mkdir -p gen/lean-lines
 rm -rf gen/lean-ted && mkdir -p gen/lean-ted
 "$AENEAS_HOME/aeneas" -backend lean -dest gen/lean-ted -no-progress-bar gen/difffold_ted.llbc || true
 {
-  echo "charon:   $("$AENEAS_HOME/charon" version)"
-  echo "aeneas:   $("$AENEAS_HOME/aeneas" -version)"
+  echo "charon:   $("$AENEAS_HOME/charon" version | sed 's/ (.*//')"
+  echo "aeneas:   $("$AENEAS_HOME/aeneas" -version | sed 's/-[0-9a-f]\{7,\}$//')"
   echo "rust:     $("$AENEAS_HOME/charon" toolchain-version)"
   echo "lines.rs sha256:        $(sha256sum ../src/lines.rs | cut -d' ' -f1)"
   echo "lines_core.rs sha256:   $(sha256sum extract/lines_core.rs | cut -d' ' -f1)"
