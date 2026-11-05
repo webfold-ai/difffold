@@ -1,5 +1,6 @@
 import TraceInv
 import Wf
+import Mirror
 open Aeneas Aeneas.Std Result ControlFlow
 open Ted
 namespace difffold_lines_extract
@@ -17,27 +18,33 @@ theorem mem_Pto {n : Nat} {tb : List Std.Usize} {x y : Nat} :
   · rintro ⟨a, ha, hf⟩
     rw [List.mem_range'] at ha
     by_cases h0 : (tb[a]!).val = 0
-    · simp [h0] at hf
-    · simp only [h0, if_false, Option.some.injEq, Prod.mk.injEq] at hf
-      obtain ⟨rfl, rfl⟩ := hf
+    · rw [if_pos h0] at hf
+      exact absurd hf (by simp)
+    · rw [if_neg h0] at hf
+      have := Option.some.inj hf
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj this
       obtain ⟨i, hi, hia⟩ := ha
       exact ⟨by omega, by omega, rfl, h0⟩
   · rintro ⟨h1, h2, h3, h4⟩
     refine ⟨x, ?_, ?_⟩
     · rw [List.mem_range']; exact ⟨x - 1, by omega, by omega⟩
-    · simp [h3, h4]
+    · have h4' : ¬ (tb[x]!).val = 0 := by rw [h3]; exact h4
+      rw [if_neg h4', h3]
 
 theorem nodup_Pto (n : Nat) (tb : List Std.Usize) : (Pto n tb).Nodup := by
   unfold Pto
   apply List.Nodup.filterMap _ List.nodup_range'
   intro a a' b hb hb'
   by_cases h0 : (tb[a]!).val = 0
-  · simp [h0] at hb
+  · rw [if_pos h0] at hb; exact absurd hb (by simp)
   · by_cases h0' : (tb[a']!).val = 0
-    · simp [h0'] at hb'
-    · simp only [h0, h0', if_false, Option.mem_def, Option.some.injEq] at hb hb'
-      rw [← hb] at hb'
-      exact (Prod.mk.inj hb').1.symm
+    · rw [if_pos h0'] at hb'; exact absurd hb' (by simp)
+    · rw [if_neg h0] at hb
+      rw [if_neg h0'] at hb'
+      have e1 := Option.mem_def.mp hb
+      have e2 := Option.mem_def.mp hb'
+      have := Option.some.inj (e1.trans e2.symm)
+      exact (Prod.mk.inj this).1
 
 theorem Pto_set {n : Nat} {tb : List Std.Usize} {x : Nat} (hx1 : 1 ≤ x) (hxn : x ≤ n) (hxl : x < tb.length)
     (h0 : (tb[x]!).val = 0) (y : Std.Usize) (hy : y.val ≠ 0) :
@@ -83,7 +90,8 @@ theorem stk_push {si sj si' sj' : List Std.Usize} {top x y : Nat}
     intro k hk
     rw [List.mem_range] at hk
     rw [(hp k hk).1, (hp k hk).2]
-  · simp [hx, hy]
+  · show [((si'[top]!).val, (sj'[top]!).val)] = [(x, y)]
+    rw [hx, hy]
 
 theorem stk_prefix {si sj si' sj' : List Std.Usize} {top : Nat}
     (hp : ∀ k < top, si'[k]! = si[k]! ∧ sj'[k]! = sj[k]!) : stk si' sj' top = stk si sj top := by
