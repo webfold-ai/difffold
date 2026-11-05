@@ -42,6 +42,11 @@ lock file still pins `git2` 0.20.4, so `cargo audit -f tools/xdiff-baseline/Carg
 both advisories. CI does not audit that lock file. It is a benchmark tool, not part of the
 published surface.
 
+`tools/strbench` is the Levenshtein benchmark harness. It is a standalone Cargo project with its
+own `Cargo.lock`, and its only crates.io dependency is `rapidfuzz` 0.5.0 (MIT, no dependencies).
+Edlib and WFA2-lib are compiled from a local source checkout named by `STRBENCH_EXT` and are not
+vendored. CI does not audit `tools/strbench/Cargo.lock`.
+
 ## Build integrity
 
 - Actions are pinned by full commit SHA. The tag each SHA came from is in a comment on the same line.

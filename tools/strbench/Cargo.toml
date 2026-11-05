@@ -1,0 +1,18 @@
+[package]
+name = "strbench"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.89"
+publish = false
+description = "Benchmark harness comparing difffold's bounded Levenshtein kernel with Edlib, RapidFuzz and WFA2-lib."
+license = "Apache-2.0"
+
+# Standalone project: not a member of the difffold workspace, so the external
+# benchmark dependencies stay out of the main crate's dependency graph.
+[workspace]
+
+[dependencies]
+rapidfuzz = "=0.5.0"
+
+[profile.release]
+debug = 0
