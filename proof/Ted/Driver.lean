@@ -376,4 +376,77 @@ theorem within_outer_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
       exact ⟨h2, h4, h6⟩
   · exact ⟨rfl, hia, rfl, rfl, hTB, hFB, hG⟩
 
+
+theorem rd_replicate (C : Ctx) (hw : C.w = 2 * C.t + 1) (N : Nat) (inf : Std.U32) (hinf : inf.val = C.inf)
+    {x y : Nat} (hx : x ≤ C.n) (hN : (C.n + 1) * C.w ≤ N) :
+    rd (List.replicate N inf) C.w C.t C.inf x y = C.inf := by
+  unfold rd
+  by_cases hb : InBand C.t x y
+  · rw [if_pos hb]
+    have hlt := bandIdx_lt C.w C.t x y hw hb
+    have hm : (x + 1) * C.w ≤ (C.n + 1) * C.w := Nat.mul_le_mul_right _ (by omega)
+    have hl : bandIdx C.w C.t x y < (List.replicate N inf).length := by simp; omega
+    rw [getU_eq _ _ hl]
+    simp [hinf]
+  · rw [if_neg hb]
+
+theorem init_ginv (C : Ctx) (hw : C.w = 2 * C.t + 1) (KA KB : List Nat) (N : Nat) (inf : Std.U32)
+    (hinf : inf.val = C.inf) (hN : (C.n + 1) * C.w ≤ N) :
+    C.GInv (List.replicate N inf) (C.WB KA KB 0 0) := by
+  intro x y hx1 hxn hy1 hym
+  rw [rd_replicate C hw N inf hinf hxn hN]
+  refine ⟨⟨Nat.min_le_right _ _, Nat.le_refl _⟩, fun hwb _ => ?_⟩
+  unfold Ctx.WB at hwb
+  simp at hwb
+
+
+theorem fdb_replicate (N : Nat) (inf : Std.U32) (c : Nat) (h : inf.val = c) :
+    Ctx.FdB (List.replicate N inf) c := by
+  intro k hk
+  rw [getU_eq _ _ hk]
+  simp [h]
+
+/-- The distance of the two trees, by the textbook recursion on postorder indices. -/
+def Ctx.ted (C : Ctx) : Nat := D C.la C.lb C.ren 1 C.n 1 C.m
+
+/-- `within_td`: `Some d` exactly when the distance is at most the threshold, and then `d` is the distance. -/
+theorem within_td_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C.Keys a b)
+    (hw : C.w = 2 * C.t + 1) (tau : Std.U32) (st : ted.Stats) (htau : tau.val = C.t)
+    (hn1 : 1 ≤ C.n) (hm1 : 1 ≤ C.m) (hra : C.la C.n = 1) (hrb : C.lb C.m = 1)
+    (hmbig : (C.m + 1) * C.w < 2 ^ 32) :
+    ted.within_td a b tau st ⦃ r =>
+      (match r.1.1 with
+        | none => C.t < C.ted
+        | some d => d.val = C.ted ∧ C.ted ≤ C.t) ∧
+      (C.ted ≤ C.t → C.GInv r.1.2.val (fun _ _ => True)) ⦄ := by
+  unfold ted.within_td
+  have hnb := hK.nbig
+  have hmb := hK.mbig
+  have htb := hK.tbig
+  have hlenA : (alloc.vec.Vec.len a.label).val = C.n := by rw [alloc.vec.Vec.len_val]; exact hK.n1
+  have hlenB : (alloc.vec.Vec.len b.label).val = C.m := by rw [alloc.vec.Vec.len_val]; exact hK.m1
+  simp only [ted.PostTree.len, bind_tc_ok]
+  step as ⟨i, hi⟩
+  have hsz := D_size C.la C.lb C.ren _ 1 C.n 1 C.m (by omega) (by omega) rfl
+  have hiv : i.val = C.n - C.m + (C.m - C.n) := by omega
+  have hi32 : (UScalar.cast .U32 i).val = i.val := by
+    rw [UScalar.cast_val_eq]; simp only [UScalarTy.numBits]; exact Nat.mod_eq_of_lt (by omega)
+  generalize hi1g : UScalar.cast .U32 i = i1 at hi32
+  simp only [lift, bind_tc_ok]
+  by_cases hgt : i1 > tau
+  · simp only [if_pos hgt]
+    simp only [WP.spec_ok]
+    have : tau.val < i1.val := hgt
+    refine ⟨by show C.t < C.ted; unfold Ctx.ted; omega, fun h => ?_⟩
+    exfalso; unfold Ctx.ted at h; omega
+  · simp only [if_neg hgt]
+    have hnlen : ¬ (a.label.len = 0#usize) := by
+      intro h; have := congrArg Aeneas.Std.UScalar.val h; simp at this; omega
+    have hmlen : ¬ (b.label.len = 0#usize) := by
+      intro h; have := congrArg Aeneas.Std.UScalar.val h; simp at this; omega
+    simp only [if_neg hnlen, if_neg hmlen]
+    have hle : i1.val ≤ tau.val := by have : ¬ tau.val < i1.val := hgt; omega
+    trace_state
+    sorry
+
 end difffold_lines_extract
