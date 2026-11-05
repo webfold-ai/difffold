@@ -655,4 +655,21 @@ theorem exit_final (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
 
 end Ctx
 
+
+/-- A column loop that does not start returns its state. -/
+theorem inner_loop_empty (a b : ted.PostTree) (t : Std.Usize) (inf : Std.U32) (w li lj p qhi x lx : Std.Usize)
+    (td fd : Slice Std.U32) (st : ted.Stats) (q : Std.Usize) (row_min : Std.U32) (h : ¬ q ≤ qhi) :
+    ted.fill_window_loop2_loop0 a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind
+      td fd st t inf w li lj q p qhi x lx row_min ⦃ r => r = (td, fd, st, q, row_min) ⦄ := by
+  unfold ted.fill_window_loop2_loop0
+  apply loop.spec_decr_nat
+    (measure := fun _ => 0)
+    (inv := fun s => s = (td, fd, st, q, row_min))
+  · intro s hs
+    subst hs
+    unfold ted.fill_window_loop2_loop0.body
+    rw [if_neg h]
+    simp only [WP.spec_ok]
+  · rfl
+
 end difffold_lines_extract
