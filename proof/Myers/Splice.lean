@@ -93,7 +93,7 @@ theorem splice_trim (l core : List Bool) (i p s : Nat) (hb : i + p + core.length
     simp [List.getElem?_replicate]
     omega
   refine (splice_ext l (splice l i (List.replicate p false ++ core ++ List.replicate s false)) (i + p) core (by omega)).mpr ⟨?_, ?_, ?_, ?_⟩
-  · rw [splice_length _ _ _ (by omega)]; simp
+  · rw [splice_length _ _ _ (by omega)]
   · intro j hj
     rw [hg]
     by_cases a : j < i

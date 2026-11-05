@@ -989,6 +989,26 @@ theorem okF_line (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (fd : List Std.
   · subst h; rw [Dw_col0 hli hlj]; omega
 
 
+theorem init_rows (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (fd : List Std.U32)
+    (hv00 : rd fd C.w C.t C.inf 0 0 = 0)
+    (hrow : ∀ k, 1 ≤ k → k ≤ min C.sj C.t → rd fd C.w C.t C.inf 0 k = k)
+    (hcol : ∀ k, 1 ≤ k → k ≤ min C.si C.t → rd fd C.w C.t C.inf k 0 = k) : C.RowsInv fd 1 1 := by
+  intro p' q' hp' hq' hc
+  have hz : p' = 0 ∨ q' = 0 := by omega
+  by_cases hb : InBand C.t p' q'
+  · apply okF_line C hli hlj fd _ hz hb
+    unfold InBand at hb
+    rcases hz with h | h
+    · subst h
+      by_cases h0 : q' = 0
+      · subst h0; simpa using hv00
+      · rw [hrow q' (by omega) (by omega)]; omega
+    · subst h
+      by_cases h0 : p' = 0
+      · subst h0; simpa using hv00
+      · rw [hcol p' (by omega) (by omega)]; omega
+  · exact Ctx.okF_out C fd hli hlj p' q' hb
+
 /-- One window of the forest-distance computation. -/
 theorem fill_window_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Link a b)
     (hw : C.w = 2 * C.t + 1) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
@@ -1031,6 +1051,7 @@ theorem fill_window_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Li
     rw [e] at h
     rw [U32.cast_Usize_val_eq, hi2, ← getU_eq _ _ hi1b, ← h, ← hG.li_eq]
   generalize hlig : UScalar.cast .Usize i2 = li at hlie
+  simp only [lift, bind_tc_ok]
   step as ⟨i3, hi3⟩
   have hi3b : i3.val < b.lml.val.length := by have : b.lml.val.length = C.m := hK.m2; omega
   step as ⟨i4, hi4⟩
@@ -1046,7 +1067,51 @@ theorem fill_window_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Li
   step as ⟨sj, hsj'⟩
   have hsiv : si.val = C.si := by omega
   have hsjv : sj.val = C.sj := by omega
-  trace_state
-  sorry
+  have hw1' : 1 ≤ w.val := by omega
+  have hw32 : C.w < 2 ^ 32 := by have := Nat.le_mul_of_pos_right (C.n + 1) (show 0 < C.w by omega); omega
+  have hwlen : C.w ≤ fd.val.length := by
+    have := Nat.le_mul_of_pos_left C.w (show 0 < C.si + 1 by omega); omega
+  have hW : C.w = 2 * C.t + 1 := hw
+  have hbidx00 : bandIdx w.val t.val 0 0 = t.val := by unfold bandIdx; omega
+  step as ⟨i7, hi7⟩
+  have hi7v : i7.val = C.t := by rw [hi7, hbidx00, htv]
+  have hi7l : i7.val < fd.val.length := by omega
+  step as ⟨s, hs⟩
+  have hsv : s.val = fd.val.set C.t 0#u32 := by rw [hs, Slice.set_val_eq, hi7v]
+  step as ⟨lim_q, hlq⟩
+  have hlqv : lim_q.val = min C.sj C.t := by rw [hlq, hsjv, htv]
+  have hsFB : Ctx.FdB s.val (C.t + 1) := by
+    rw [hsv]; exact Ctx.FdB_set hFB _ _ (by simp)
+  have hslen : s.val.length = fd.val.length := by rw [hsv]; simp
+  refine WP.spec_bind (fill_row0_spec t w lim_q s 1#usize C.t C.w (by simp) htv hwv hW (by omega)
+    (by omega) hw32 hsFB) ?_
+  rintro ⟨fd1, q1⟩ ⟨k1, k2, k3, k4⟩
+  dsimp only at k1 k2 k3 k4
+  step as ⟨lim_p, hlp⟩
+  have hlpv : lim_p.val = min C.si C.t := by rw [hlp, hsiv, htv]
+  have hm1 : (lim_p.val + 1) * C.w ≤ (C.si + 1) * C.w := Nat.mul_le_mul_right _ (by omega)
+  have hsin : C.si ≤ C.n := by omega
+  have hm2 : (C.si + 1) * C.w ≤ (C.n + 1) * C.w := Nat.mul_le_mul_right _ (by omega)
+  refine WP.spec_bind (fill_col0_spec t w lim_p fd1 1#usize C.t C.w (by simp) htv hwv hW (by omega)
+    (by omega) (by omega) k2) ?_
+  intro fd2 ⟨l1, l2, l3, l4⟩
+  have hinfdef : C.inf = C.t + 1 := rfl
+  have hv00 : rd fd2.val C.w C.t C.inf 0 0 = 0 := by
+    have hb00 : InBand C.t 0 0 := by unfold InBand; omega
+    have hsv' : s.val = fd.val.set (bandIdx C.w C.t 0 0) 0#u32 := by
+      rw [hsv]; congr 1; unfold bandIdx; omega
+    have hlt00 : bandIdx C.w C.t 0 0 < fd.val.length := by unfold bandIdx; omega
+    rw [hinfdef, l4 0 0 (by intro h; omega), k4 0 0 (by intro h; omega), hsv', rd_set_eq _ _ _ _ _ _ _ hb00 hlt00]
+    rfl
+  have hR : C.RowsInv fd2.val 1 1 := by
+    apply init_rows C hli hlj fd2.val hv00
+    · intro k hk1 hk2
+      rw [hinfdef, l4 0 k (by intro h; omega), k3 k hk1 (by omega)]
+    · intro k hk1 hk2
+      rw [hinfdef]; exact l3 k hk1 (by omega)
+  have hsi1 : C.si + 1 ≥ 1 := by omega
+  exact fill_rows_loop_spec C hG a b hK hw hli hlj tau t inf w li lj si sj td fd2 st q1 1#usize td.val
+    htau htv hinfv hwv hlie hlje hsiv hsjv (by simp) (by simp)
+    (by rw [l1, k1, hslen]; exact hfdlen) htdlen hR hT l2 hTB (fun _ _ _ => rfl)
 
 end difffold_lines_extract
