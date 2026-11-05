@@ -212,6 +212,7 @@ theorem tinv_push (seed : U64) (head nxt : List U32) (reps : List (Slice U8)) (l
     (hkl : ∀ j, InChain nxt i4 j → reps[j]? ≠ some l) :
     TInv seed (head.set b i6) (nxt ++ [i4]) (reps ++ [l]) := by
   have hNb : (lines.NIL).val = 4294967295 := NIL_val
+  have hnl := hI.hnl
   have hhd4 : i4 = lines.NIL ∨ i4.val < reps.length := hI.hhd i4 (List.mem_of_getElem? hi4)
   have hext : nxt <+: nxt ++ [i4] := List.prefix_append _ _
   have hlen : (head.set b i6).length = head.length := by simp
@@ -359,7 +360,7 @@ theorem intern_line_spec (head nxt : alloc.vec.Vec U32) (reps : alloc.vec.Vec (S
     step as ⟨reps1, hr1⟩
     step as ⟨k1, hk1⟩
     have hk1v : k1.val = reps.val.length := by rw [hk1]; simp; omega
-    have hhead' : (back i6).val = head.val.set bucket.val i6 := by rw [hback]; simp [Vec.set]
+    have hhead' : (back i6).val = head.val.set bucket.val i6 := by rw [hback]; simp [alloc.vec.Vec.set]
     have hbl' : bucket.val < head.val.length := hbl
     have hT := tinv_push seed head.val nxt.val reps.val l bucket.val i4 i6 hI hbv hbl' hi4g hi6v hn hkl
     rw [hhead', hr1, hnx1, hk1v]

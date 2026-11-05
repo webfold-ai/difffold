@@ -349,8 +349,8 @@ theorem mirror_spec (a : ted.PostTree) (hW : PT.Wf a) (hn : a.label.length < 2 ^
     rintro ⟨label1, kind, kids1⟩ ⟨hl1', hk1', hkd1, hF⟩
     dsimp only at hl1' hk1' hkd1 hF ⊢
     have hderef : (alloc.vec.Vec.deref kids1).val = kids1.val := by
-      simp [alloc.vec.Vec.deref, alloc.vec.Vec.val, Slice.val]
-      rfl
+      unfold alloc.vec.Vec.deref
+      rw [Slice.from_val]; rfl
     have hF3 : ∀ y < a.label.length, ((kids1.val[(pos1.val[y]!).val]!).val.map (fun k => k.val)) =
         revPos (a.kids.val[y]!).val pos1.val 0 := fun y hy => (hF y hy).2.2
     have hvalid : ∀ j < label1.length, ∀ k, FirstKid (alloc.vec.Vec.deref kids1).val j = some k → k.val < j := by

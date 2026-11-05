@@ -184,12 +184,12 @@ theorem first_in_block_spec (t : Slice U8) (hlen : t.val.length + 8 ≤ Usize.ma
         rw [hdrop]
         simp only [List.mem_append, not_or]
         refine ⟨hno, ?_⟩
-        rw [hbs, List.drop_drop, show 8 + a0.val = i2.val by omega]; exact hr
+        rw [hbs, List.drop_drop, show a0.val + 8 = i2.val by omega]; exact hr
       | some j =>
         simp only [Found] at hr ⊢
         obtain ⟨hj1, hj2⟩ := hr
         refine ⟨by omega, ?_⟩
-        have := IsFirst10_skip (bytes s.val) hno (j.val - i2.val) (by rw [hbs, List.drop_drop, show 8 + a0.val = i2.val by omega]; exact hj2)
+        have := IsFirst10_skip (bytes s.val) hno (j.val - i2.val) (by rw [hbs, List.drop_drop, show a0.val + 8 = i2.val by omega]; exact hj2)
         rw [hbs] at this
         rwa [show j.val - i2.val + 8 = j.val - a0.val by omega] at this
     · have hbne : (m != 0#u64) = true := by simpa using hm0
