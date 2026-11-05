@@ -18,6 +18,7 @@ pub mod diff;
 pub mod frontier;
 pub mod intern;
 pub mod kernel;
+pub mod levenshtein;
 pub mod lines;
 pub mod mapping;
 pub mod merge;
