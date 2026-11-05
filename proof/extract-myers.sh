@@ -17,8 +17,8 @@ args=(); for r in common_prefix common_suffix snake snake_back line_start suffix
 rm -rf gen/lean-myers && mkdir -p gen/lean-myers
 "$AENEAS_HOME/aeneas" -backend lean -dest gen/lean-myers -no-progress-bar gen/difffold_myers.llbc
 {
-  echo "charon:   $("$AENEAS_HOME/charon" version)"
-  echo "aeneas:   $("$AENEAS_HOME/aeneas" -version)"
+  echo "charon:   $("$AENEAS_HOME/charon" version | sed "s/ (.*//")"
+  echo "aeneas:   $("$AENEAS_HOME/aeneas" -version | sed "s/-[0-9a-f]\{7\}$//")"
   echo "rust:     $("$AENEAS_HOME/charon" toolchain-version)"
   echo "lines.rs sha256:        $(sha256sum ../src/lines.rs | cut -d' ' -f1)"
   echo "lines_core.rs sha256:   $(sha256sum extract/lines_core.rs | cut -d' ' -f1)"

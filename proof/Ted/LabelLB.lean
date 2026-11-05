@@ -5,9 +5,8 @@ open Aeneas Aeneas.Std Result ControlFlow
 open Ted
 namespace difffold_lines_extract
 
-/-! Theorems over the Aeneas-extracted `ted_core::label_lower_bound`, the copy of `label_lower_bound` of the
-real `src/ted.rs` (tied to it by `tests/ted_core.rs`). It returns `max(n, m)` minus the size of the label
-multiset overlap (`Ted.overlap`, defined in `Overlap.lean`). -/
+/-! Theorems over the Aeneas extraction of the real `label_lower_bound` of `src/ted.rs` (counting version).
+It returns `max(n, m)` minus the size of the label multiset overlap (`Ted.overlap`, `Overlap.lean`). -/
 
 /-- The values of a list of `u32`. -/
 def vals (l : List Std.U32) : List Nat := l.map (fun x => x.val)
@@ -18,152 +17,324 @@ theorem vals_getElem (l : List Std.U32) (i : Nat) (h : i < l.length) :
     (vals l)[i]'(by simpa [vals_length] using h) = (l[i]'h).val := by
   simp [vals]
 
-theorem vals_drop (l : List Std.U32) (i : Nat) : vals (l.drop i) = (vals l).drop i := by
-  simp [vals, List.map_drop]
+theorem count_take_succ (l : List Std.U32) (i : Nat) (h : i < l.length) (x : Nat) :
+    (vals (l.take (i + 1))).count x = (vals (l.take i)).count x + if (l[i]'h).val = x then 1 else 0 := by
+  have e : vals (l.take (i + 1)) = vals (l.take i) ++ [(l[i]'h).val] := by
+    rw [List.take_add_one, List.getElem?_eq_getElem h]
+    simp only [vals, List.map_append]
+    simp
+  rw [e, List.count_append]
+  by_cases hh : (l[i]'h).val = x <;> simp [hh]
 
-theorem drop_cons_vals (l : List Std.U32) (i : Nat) (h : i < l.length) :
-    (vals l).drop i = (l[i]'h).val :: (vals l).drop (i + 1) := by
-  have h' : i < (vals l).length := by simpa [vals_length] using h
-  rw [List.drop_eq_getElem_cons h', vals_getElem l i h]
 
-theorem sorted_tail (l : List Std.U32) (i : Nat) (h : i < l.length) (hs : (vals l).Pairwise (· ≤ ·)) :
-    ∀ a ∈ (vals l).drop (i + 1), (l[i]'h).val ≤ a := by
-  have h1 := hs.sublist (List.drop_sublist i (vals l))
-  rw [drop_cons_vals l i h] at h1
-  exact (List.pairwise_cons.mp h1).1
-
-/-- Loop 0 of `label_lower_bound`: the merge of two sorted lists, counting equal heads. -/
-@[step] theorem llb_loop_spec (la lb : alloc.vec.Vec Std.U32) (i j : Std.Usize) (common : Std.U32)
-    (hsa : (vals la.val).Pairwise (· ≤ ·)) (hsb : (vals lb.val).Pairwise (· ≤ ·))
-    (hla : la.length < 2 ^ 31)
-    (hi : i.val ≤ la.length) (hj : j.val ≤ lb.length) (hc : common.val ≤ i.val) :
-    ted_core.label_lower_bound_loop la lb i j common ⦃ r =>
-      r.val = common.val + overlap ((vals la.val).drop i.val) ((vals lb.val).drop j.val) ⦄ := by
-  unfold ted_core.label_lower_bound_loop
+/-- Loop 0 finds a bound on the labels of `a`. -/
+@[step] theorem llb_top_loop_spec (a : ted.PostTree) (top i : Std.Usize)
+    (hA : ∀ j < a.label.length, (a.label.val[j]!).val < 2 ^ 31)
+    (hi : i.val ≤ a.label.length) (htop : top.val ≤ 2 ^ 31)
+    (hlt : ∀ j < i.val, (a.label.val[j]!).val < top.val) :
+    ted.label_lower_bound_loop0 a top i ⦃ r =>
+      r = (a.label, a.lml, a.keyroots, a.kids, a.kind, r.2.2.2.2.2) ∧
+      r.2.2.2.2.2.val ≤ 2 ^ 31 ∧ ∀ j < a.label.length, (a.label.val[j]!).val < r.2.2.2.2.2.val ⦄ := by
+  unfold ted.label_lower_bound_loop0
   apply loop.spec_decr_nat
-    (measure := fun p => (la.length - p.1.val) + (lb.length - p.2.1.val))
-    (inv := fun p => p.1.val ≤ la.length ∧ p.2.1.val ≤ lb.length ∧ p.2.2.val ≤ p.1.val ∧
-      p.2.2.val + overlap ((vals la.val).drop p.1.val) ((vals lb.val).drop p.2.1.val) =
-        common.val + overlap ((vals la.val).drop i.val) ((vals lb.val).drop j.val))
+    (measure := fun p => a.label.length - p.2.val)
+    (inv := fun p => p.2.val ≤ a.label.length ∧ p.1.val ≤ 2 ^ 31 ∧
+      ∀ j < p.2.val, (a.label.val[j]!).val < p.1.val)
   · intro p hp
-    obtain ⟨c, d, m⟩ := p
-    obtain ⟨hc1, hd1, hm1, hfin⟩ := hp
-    unfold ted_core.label_lower_bound_loop.body
-    dsimp only at hc1 hd1 hm1 hfin ⊢
-    have hlal : (alloc.vec.Vec.len la).val = la.length := alloc.vec.Vec.len_val la
-    have hlbl : (alloc.vec.Vec.len lb).val = lb.length := alloc.vec.Vec.len_val lb
+    obtain ⟨tp, c⟩ := p
+    obtain ⟨hc, ht, hl⟩ := hp
+    unfold ted.label_lower_bound_loop0.body
+    dsimp only at hc ht hl ⊢
+    have hlen := alloc.vec.Vec.len_val a.label
     split
     · rename_i hci
-      have hci' : c.val < la.length := by scalar_tac
+      have hci' : c.val < a.label.length := by scalar_tac
+      step as ⟨i2, hi2⟩
+      step as ⟨l, hl'⟩
+      have hlv : l.val = (a.label.val[c.val]!).val := by
+        rw [hl', U32.cast_Usize_val_eq, hi2, getU_eq _ _ hci']
+      have hAc := hA c.val hci'
       split
-      · rename_i hdj
-        have hdj' : d.val < lb.length := by scalar_tac
-        step as ⟨x, x_post⟩
-        step as ⟨y, y_post⟩
-        have hx : x = la.val[c.val]'hci' := x_post
-        have hy : y = lb.val[d.val]'hdj' := y_post
-        have hdA := drop_cons_vals la.val c.val hci'
-        have hdB := drop_cons_vals lb.val d.val hdj'
-        have hxs := sorted_tail la.val c.val hci' hsa
-        have hys := sorted_tail lb.val d.val hdj' hsb
-        rw [← hx] at hdA hxs
-        rw [← hy] at hdB hys
-        split
-        · rename_i hxy
-          have hxy' : x.val < y.val := by scalar_tac
-          step as ⟨i5, i5_post⟩
-          refine ⟨by omega, by omega, by omega, ?_, by omega⟩
-          rw [i5_post, ← hfin, hdA, overlap_cons_lt _ _ _ ?_]
-          intro z hz
-          rw [hdB] at hz
-          rcases List.mem_cons.mp hz with hz | hz
-          · omega
-          · have := hys z hz; omega
-        · rename_i hxy
-          split
-          · rename_i hyx
-            have hyx' : y.val < x.val := by scalar_tac
-            step as ⟨j1, j1_post⟩
-            refine ⟨by omega, by omega, by omega, ?_, by omega⟩
-            rw [j1_post, ← hfin, hdB, overlap_cons_gt _ _ _ ?_]
-            intro z hz
-            rw [hdA] at hz
-            rcases List.mem_cons.mp hz with hz | hz
-            · omega
-            · have := hxs z hz; omega
-          · rename_i hyx
-            have hxe : x.val = y.val := by scalar_tac
-            step as ⟨common1, common1_post⟩
-            step as ⟨i5, i5_post⟩
-            step as ⟨j1, j1_post⟩
-            refine ⟨by omega, by omega, by omega, ?_, by omega⟩
-            rw [i5_post, j1_post, ← hfin, hdA, hdB, hxe, overlap_cons_eq]
-            omega
-      · rename_i hdj
-        have hd2 : lb.length ≤ d.val := by scalar_tac
-        have hB : (vals lb.val).drop d.val = [] :=
-          List.drop_of_length_le (by rw [vals_length]; exact hd2)
-        rw [hB, overlap_nil_right] at hfin
-        simp only [WP.spec_ok]
-        omega
+      · rename_i hlt'
+        have hge : tp.val ≤ l.val := by scalar_tac
+        step as ⟨top1, htop1⟩
+        step as ⟨i3, hi3⟩
+        refine ⟨by omega, by omega, ?_, by omega⟩
+        intro j hj
+        by_cases hjc : j = c.val
+        · subst hjc; omega
+        · have := hl j (by omega); omega
+      · rename_i hlt'
+        have hge : l.val < tp.val := by scalar_tac
+        step as ⟨i3, hi3⟩
+        refine ⟨by omega, by omega, ?_, by omega⟩
+        intro j hj
+        by_cases hjc : j = c.val
+        · subst hjc; omega
+        · have := hl j (by omega); omega
     · rename_i hci
-      have hc2 : la.length ≤ c.val := by scalar_tac
-      have hA : (vals la.val).drop c.val = [] :=
-        List.drop_of_length_le (by rw [vals_length]; exact hc2)
-      rw [hA, overlap_nil_left] at hfin
+      have hc2 : a.label.length ≤ c.val := by scalar_tac
+      refine ⟨rfl, ht, ?_⟩
+      intro j hj; exact hl j (by omega)
+  · exact ⟨hi, htop, hlt⟩
+
+
+/-- Loop 1 counts the labels of `a` into `cnt`. -/
+@[step] theorem llb_count_loop_spec (v cnt : alloc.vec.Vec Std.U32) (i : Std.Usize) (top : Nat)
+    (hv : ∀ j < v.length, (v.val[j]!).val < top) (hlen : v.length < 2 ^ 31)
+    (hcnt : cnt.length = top) (hi : i.val ≤ v.length)
+    (hinv : ∀ x < top, (cnt.val[x]!).val = (vals (v.val.take i.val)).count x) :
+    ted.label_lower_bound_loop1 v i cnt ⦃ r =>
+      r.length = top ∧ ∀ x < top, (r.val[x]!).val = (vals v.val).count x ⦄ := by
+  unfold ted.label_lower_bound_loop1
+  apply loop.spec_decr_nat
+    (measure := fun p => v.length - p.1.val)
+    (inv := fun p => p.1.val ≤ v.length ∧ p.2.length = top ∧
+      ∀ x < top, (p.2.val[x]!).val = (vals (v.val.take p.1.val)).count x)
+  · intro p hp
+    obtain ⟨c, o⟩ := p
+    obtain ⟨hc, hl, hI⟩ := hp
+    unfold ted.label_lower_bound_loop1.body
+    dsimp only at hc hl hI ⊢
+    have hlenv := alloc.vec.Vec.len_val v
+    split
+    · rename_i hci
+      have hci' : c.val < v.length := by scalar_tac
+      step as ⟨i2, hi2⟩
+      step as ⟨l, hl'⟩
+      have hlv : l.val = (v.val[c.val]!).val := by
+        rw [hl', U32.cast_Usize_val_eq, hi2, getU_eq _ _ hci']
+      have hlt := hv c.val hci'
+      have hlc : l.val < o.val.length := by
+        have : o.length = top := hl
+        have : l.val < top := by omega
+        have h3 : o.val.length = top := hl
+        omega
+      step as ⟨i3, imb, hi3, himb⟩
+      have hb : l.val < o.val.length := hlc
+      have e : (o.val[l.val]'hb) = o.val[l.val]! := (getU_eq _ _ hb).symm
+      have hi3v : i3.val = (vals (v.val.take c.val)).count l.val := by
+        rw [hi3, e]; exact hI l.val (by omega)
+      have hcle : (vals (v.val.take c.val)).count l.val ≤ c.val := by
+        have := List.count_le_length (a := l.val) (l := vals (v.val.take c.val))
+        rw [vals_length, List.length_take] at this
+        omega
+      step as ⟨i4, hi4⟩
+      step as ⟨i5, hi5⟩
+      have hset : (imb i4).val = o.val.set l.val i4 := by
+        rw [himb, alloc.vec.Vec.set_val_eq]
+      refine ⟨by omega, ?_, ?_, by omega⟩
+      · simp only [alloc.vec.Vec.length, hset, List.length_set]; exact hl
+      · intro x hx
+        rw [hset]
+        have hsucc := count_take_succ v.val c.val hci' x
+        have hi5' : i5.val = c.val + 1 := by omega
+        rw [hi5']
+        rw [hsucc]
+        by_cases hxl : x = l.val
+        · subst hxl
+          rw [getU_set_eq _ _ _ hb]
+          have hvl : (v.val[c.val]'hci').val = l.val := by rw [hlv, getU_eq _ _ hci']
+          simp [hi4, hi3v, hvl]
+        · rw [getU_set_ne _ _ _ _ hxl, hI x hx]
+          have : ¬ (v.val[c.val]'hci').val = x := by
+            intro h; apply hxl; rw [hlv, ← h, getU_eq _ _ hci']
+          simp [this]
+    · rename_i hci
+      have hc2 : v.length ≤ c.val := by scalar_tac
       simp only [WP.spec_ok]
-      omega
-  · exact ⟨hi, hj, hc, rfl⟩
+      refine ⟨hl, ?_⟩
+      intro x hx
+      rw [hI x hx]
+      have : c.val = v.length := by omega
+      rw [this]
+      simp [vals]
+  · exact ⟨hi, hcnt, hinv⟩
 
 
-/-- What the proof assumes about `<[u32]>::sort_unstable`, which stock Aeneas leaves as an opaque axiom:
-it returns a sorted permutation of its argument. This is the documented behaviour of the Rust function. -/
-def SortSpec : Prop := ∀ s : Slice Std.U32,
-  core.slice.Slice.sort_unstable core.cmp.OrdU32 s ⦃ r => r.val.Perm s.val ∧ (vals r.val).Pairwise (· ≤ ·) ⦄
+/-- Loop 2 consumes the counts with the labels of `b`; `C` collects the matched labels. -/
+@[step] theorem llb_consume_loop_spec (b : ted.PostTree) (top i : Std.Usize) (cnt : alloc.vec.Vec Std.U32)
+    (common : Std.U32) (A : List Nat)
+    (hAtop : ∀ x ∈ A, x < top.val) (hcnt : cnt.length = top.val) (hb : b.label.length < 2 ^ 31)
+    (hi : i.val ≤ b.label.length) (hcom : common.val ≤ i.val)
+    (hinv : ∃ C : List Nat, (∀ x, C.count x = min (A.count x) ((vals (b.label.val.take i.val)).count x)) ∧
+      C.length = common.val ∧ ∀ x < top.val, (cnt.val[x]!).val = A.count x - C.count x) :
+    ted.label_lower_bound_loop2 b top i cnt common ⦃ r =>
+      r = (b.label, b.lml, b.keyroots, b.kids, b.kind, r.2.2.2.2.2) ∧
+      ∃ C : List Nat, (∀ x, C.count x = min (A.count x) ((vals b.label.val).count x)) ∧
+        C.length = r.2.2.2.2.2.val ⦄ := by
+  unfold ted.label_lower_bound_loop2
+  apply loop.spec_decr_nat
+    (measure := fun p => b.label.length - p.1.val)
+    (inv := fun p => p.1.val ≤ b.label.length ∧ p.2.2.val ≤ p.1.val ∧ p.2.1.length = top.val ∧
+      ∃ C : List Nat, (∀ x, C.count x = min (A.count x) ((vals (b.label.val.take p.1.val)).count x)) ∧
+        C.length = p.2.2.val ∧ ∀ x < top.val, (p.2.1.val[x]!).val = A.count x - C.count x)
+  · intro p hp
+    obtain ⟨c, o, m⟩ := p
+    obtain ⟨hc, hm, hl, C, hC, hCl, hCc⟩ := hp
+    unfold ted.label_lower_bound_loop2.body
+    dsimp only at hc hm hl hC hCl hCc ⊢
+    have hlenv := alloc.vec.Vec.len_val b.label
+    split
+    · rename_i hci
+      have hci' : c.val < b.label.length := by scalar_tac
+      step as ⟨i2, hi2⟩
+      step as ⟨l, hl'⟩
+      have hlv : l.val = (b.label.val[c.val]!).val := by
+        rw [hl', U32.cast_Usize_val_eq, hi2, getU_eq _ _ hci']
+      have hsucc := count_take_succ b.label.val c.val hci'
+      have hbl : (b.label.val[c.val]'hci').val = l.val := by rw [hlv, getU_eq _ _ hci']
+      have hso : ∀ x, (vals (b.label.val.take (c.val + 1))).count x =
+          (vals (b.label.val.take c.val)).count x + if l.val = x then 1 else 0 := by
+        intro x; rw [hsucc x, hbl]
+      have hlen' : o.val.length = top.val := hl
+      split
+      · rename_i hlt'
+        have hlt2 : l.val < top.val := hlt'
+        have hlo : l.val < o.val.length := by omega
+        step as ⟨i3, hi3⟩
+        have hi3v : i3.val = A.count l.val - C.count l.val := by
+          rw [hi3, ← getU_eq _ _ hlo]; exact hCc l.val hlt2
+        split
+        · rename_i hpos
+          have hpos' : 0 < i3.val := hpos
+          step as ⟨pr, hpr1, hpr2⟩
+          obtain ⟨i4, imb⟩ := pr
+          dsimp only at hpr1 hpr2 ⊢
+          step as ⟨i5, hi5⟩
+          step as ⟨common2, hcm2⟩
+          step as ⟨i6, hi6⟩
+          have hset : (imb i5).val = o.val.set l.val i5 := by
+            rw [hpr2, alloc.vec.Vec.set_val_eq]
+          have hi4v : i4.val = i3.val := by
+            rw [hpr1, hi3]
+          have hCl' : C.count l.val < A.count l.val := by omega
+          have hi6' : i6.val = c.val + 1 := by omega
+          refine ⟨by omega, by omega, ?_, ⟨l.val :: C, ?_, ?_, ?_⟩, by omega⟩
+          · simp only [alloc.vec.Vec.length, hset, List.length_set]; exact hl
+          · intro x
+            rw [hi6', hso x, List.count_cons, hC x]
+            have hCx := hC l.val
+            by_cases hxl : l.val = x
+            · subst hxl; simp; omega
+            · simp [hxl]
+          · simp [hCl]; omega
+          · intro x hx
+            rw [hset]
+            by_cases hxl : x = l.val
+            · subst hxl
+              rw [getU_set_eq _ _ _ hlo]
+              simp [List.count_cons]; omega
+            · rw [getU_set_ne _ _ _ _ hxl, hCc x hx]
+              simp [List.count_cons, Ne.symm hxl]
+        · rename_i hz
+          have hz' : i3.val = 0 := by have : ¬ 0 < i3.val := hz; omega
+          step as ⟨i6, hi6⟩
+          have hi6' : i6.val = c.val + 1 := by omega
+          refine ⟨by omega, by omega, hl, ⟨C, ?_, hCl, hCc⟩, by omega⟩
+          · intro x
+            rw [hi6', hso x, hC x]
+            by_cases hxl : l.val = x
+            · subst hxl
+              have := hC l.val
+              omega
+            · simp [hxl]
+      · rename_i hlt'
+        have hge : top.val ≤ l.val := by have : ¬ l.val < top.val := hlt'; omega
+        have hA0 : A.count l.val = 0 := List.count_eq_zero.mpr (fun h => by have := hAtop _ h; omega)
+        step as ⟨i6, hi6⟩
+        have hi6' : i6.val = c.val + 1 := by omega
+        refine ⟨by omega, by omega, hl, ⟨C, ?_, hCl, hCc⟩, by omega⟩
+        intro x
+        rw [hi6', hso x, hC x]
+        by_cases hxl : l.val = x
+        · subst hxl; omega
+        · simp [hxl]
+    · rename_i hci
+      have hc2 : b.label.length ≤ c.val := by scalar_tac
+      simp only [WP.spec_ok]
+      refine ⟨trivial, C, ?_, hCl⟩
+      intro x
+      rw [hC x]
+      have : c.val = b.label.length := by omega
+      rw [this]
+      congr 3
+      simp [List.take_of_length_le]
+  · exact ⟨hi, hcom, hcnt, hinv⟩
 
-theorem clone_u32 (v : alloc.vec.Vec Std.U32) :
-    alloc.vec.CloneVec.clone core.clone.CloneU32 v ⦃ r => r = v ⦄ := by
-  unfold alloc.vec.CloneVec.clone
-  have h := Slice.clone_spec (clone := core.clone.CloneU32.clone) (s := v.slice) (by intro x _; rfl)
-  obtain ⟨s', hs', hh⟩ := WP.spec_imp_exists h
-  rw [hs']
-  simp only [bind_tc_ok, WP.spec_ok]
-  rw [← hh]
 
-theorem label_lower_bound_spec (hsort : SortSpec) (a b : ted_core.PostTree)
-    (ha : a.label.length < 2 ^ 31) (hb : b.label.length < 2 ^ 31) :
-    ted_core.label_lower_bound a b ⦃ r =>
+/-- `label_lower_bound` returns `max(n, m)` minus the size of the label multiset overlap. Hypotheses: fewer
+than `2^31` nodes, and labels of `a` below `2^31` (the count table is indexed by label). -/
+theorem label_lower_bound_spec (a b : ted.PostTree)
+    (ha : a.label.length < 2 ^ 31) (hb : b.label.length < 2 ^ 31)
+    (hla : ∀ j < a.label.length, (a.label.val[j]!).val < 2 ^ 31) :
+    ted.label_lower_bound a b ⦃ r =>
       r.val = max a.label.length b.label.length - overlap (vals a.label.val) (vals b.label.val) ⦄ := by
-  unfold ted_core.label_lower_bound
-  step with clone_u32 a.label as ⟨la, la_post⟩
-  step with clone_u32 b.label as ⟨lb, lb_post⟩
-  subst la_post lb_post
-  simp only [lift, bind_tc_ok, alloc.vec.Vec.deref_mut]
-  step with hsort a.label.slice as ⟨s1, hs1, hs1s⟩
-  step with hsort b.label.slice as ⟨s3, hs3, hs3s⟩
-  have hl1 : s1.val.length = a.label.length := hs1.length_eq
-  have hl3 : s3.val.length = b.label.length := hs3.length_eq
-  have hov : overlap (vals s1.val) (vals s3.val) = overlap (vals a.label.val) (vals b.label.val) :=
-    overlap_perm (hs1.map _) (hs3.map _)
-  step with llb_loop_spec ({ slice := s1 } : alloc.vec.Vec Std.U32) ({ slice := s3 } : alloc.vec.Vec Std.U32)
-    0#usize 0#usize 0#u32 hs1s hs3s (by show s1.val.length < 2 ^ 31; omega) (by simp) (by simp) (by simp)
-    as ⟨common, hcommon⟩
+  unfold ted.label_lower_bound
+  obtain ⟨r0, he0, hr0, hr1, hr2⟩ : ∃ r0, ted.label_lower_bound_loop0 a 0#usize 0#usize = ok r0 ∧
+      r0 = (a.label, a.lml, a.keyroots, a.kids, a.kind, r0.2.2.2.2.2) ∧ r0.2.2.2.2.2.val ≤ 2 ^ 31 ∧
+      ∀ j < a.label.length, (a.label.val[j]!).val < r0.2.2.2.2.2.val := by
+    obtain ⟨r, hr, hh⟩ := WP.spec_imp_exists
+      (llb_top_loop_spec a 0#usize 0#usize hla (by simp) (by simp) (by simp))
+    exact ⟨r, hr, hh⟩
+  obtain ⟨v, v1, v2, v3, v4, top⟩ := r0
+  simp only [Prod.mk.injEq] at hr0
+  obtain ⟨e1, e2, e3, e4, e5, -⟩ := hr0
+  subst e1 e2 e3 e4 e5
+  dsimp only at hr1 hr2
+  rw [he0]
+  simp only [bind_tc_ok]
+  have hlenA := alloc.vec.Vec.len_val a.label
+  have hlenB := alloc.vec.Vec.len_val b.label
+  step as ⟨cnt, hcnt, hcntl⟩
+  have hcnt0 : ∀ x < top.val, (cnt.val[x]!).val = (vals (a.label.val.take 0)).count x := by
+    intro x hx
+    rw [hcnt]
+    simp [List.getElem!_eq_getElem?_getD, List.getElem?_replicate, hx, vals]
+  obtain ⟨cnt1, he1, hc1l, hc1⟩ : ∃ cnt1, ted.label_lower_bound_loop1 a.label 0#usize cnt = ok cnt1 ∧
+      cnt1.length = top.val ∧ ∀ x < top.val, (cnt1.val[x]!).val = (vals a.label.val).count x := by
+    obtain ⟨r, hr, hh⟩ := WP.spec_imp_exists
+      (llb_count_loop_spec a.label cnt 0#usize top.val hr2 ha hcntl (by simp) hcnt0)
+    exact ⟨r, hr, hh⟩
+  rw [he1]
+  simp only [bind_tc_ok]
+  obtain ⟨r2, he2, hr2e, C, hC, hCl⟩ : ∃ r2, ted.label_lower_bound_loop2 b top 0#usize cnt1 0#u32 = ok r2 ∧
+      r2 = (b.label, b.lml, b.keyroots, b.kids, b.kind, r2.2.2.2.2.2) ∧
+      ∃ C : List Nat, (∀ x, C.count x = min ((vals a.label.val).count x) ((vals b.label.val).count x)) ∧
+        C.length = r2.2.2.2.2.2.val := by
+    have hAtop : ∀ x ∈ vals a.label.val, x < top.val := by
+      intro x hx
+      simp only [vals, List.mem_map] at hx
+      obtain ⟨u, hu, rfl⟩ := hx
+      obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hu
+      have := hr2 j hj
+      rwa [getU_eq _ _ hj] at this
+    obtain ⟨r, hr, hh, C, hC, hCl⟩ := WP.spec_imp_exists
+      (llb_consume_loop_spec b top 0#usize cnt1 0#u32 (vals a.label.val) hAtop hc1l hb (by simp) (by simp)
+        ⟨[], by intro x; simp [vals], by simp, by intro x hx; rw [hc1 x hx]; simp⟩)
+    exact ⟨r, hr, hh, C, hC, hCl⟩
+  obtain ⟨v5, v6, v7, v8, v9, common⟩ := r2
+  simp only [Prod.mk.injEq] at hr2e
+  obtain ⟨f1, f2, f3, f4, f5, -⟩ := hr2e
+  subst f1 f2 f3 f4 f5
+  rw [he2]
+  simp only [bind_tc_ok, ted.PostTree.len]
   step as ⟨i2, hi2⟩
-  have hla := alloc.vec.Vec.len_val a.label
-  have hlb := alloc.vec.Vec.len_val b.label
   have hc3 : (UScalar.cast .U32 i2).val = max a.label.length b.label.length := by
     rw [UScalar.cast_val_eq]
     simp only [UScalarTy.numBits]
-    rw [hi2, Nat.mod_eq_of_lt (by omega)]
-    omega
-  have hcommon' : common.val = 0 + overlap (List.drop 0 (vals s1.val)) (List.drop 0 (vals s3.val)) := hcommon
+    rw [hi2, hlenA, hlenB, Nat.mod_eq_of_lt (by omega)]
   have hcv : common.val = overlap (vals a.label.val) (vals b.label.val) := by
-    rw [hcommon', ← hov]; simp
+    rw [← hCl]; exact (length_of_counts hC)
   have hle : overlap (vals a.label.val) (vals b.label.val) ≤ max a.label.length b.label.length := by
     have := overlap_le_left (vals a.label.val) (vals b.label.val)
     rw [vals_length] at this
     exact Nat.le_trans this (Nat.le_max_left _ _)
+  have hsub : common.val ≤ (UScalar.cast .U32 i2).val := by omega
   step as ⟨r, hr⟩
-  rw [hr, hc3, hcv]
+  subst hr
+  step as ⟨s, hs⟩
+  rw [hs, hc3, hcv]
+
 
 end difffold_lines_extract

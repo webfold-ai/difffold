@@ -10,88 +10,51 @@
 //!    uses them);
 //! 4. linear-space bidirectional Myers (middle snake) solves what is left.
 //!
-//! **No `while`, `loop`, `for` or iterator chain appears in this file.** Every traversal is a
-//! structural recursion, and wherever the traversal order does not matter it halves the slice, so the
-//! call depth is `O(log n)`. The one inherently sequential recursion is the edit-distance sweep
-//! (`sweep`): its depth is at most `D / 2 + 1` for edit distance `D`; callers with adversarial inputs
-//! of unbounded `D` should call from a thread with a large stack (see `tests/adversarial.rs`).
-//! The standard library's hash table and slice primitives (`fill`, `==` on slices) are used as
-//! primitives and are not part of the recursion discipline.
+//! Traversals over slices of slices are structural recursions that halve the slice, so the call depth is
+//! `O(log n)`; the Aeneas extraction used for the proofs cannot carry nested borrows through a loop. Plain
+//! index loops (`while`) are used for the hash, the interner table and the histogram index, which hold no
+//! nested borrows. The one inherently sequential recursion is the edit-distance sweep (`sweep`): its depth is
+//! at most `D / 2 + 1` for edit distance `D`; callers with adversarial inputs of unbounded `D` should call from
+//! a thread with a large stack (see `tests/adversarial.rs`). Slice primitives (`fill`, `==` on slices) are used
+//! as primitives.
 
-use std::collections::HashMap;
-use std::hash::{BuildHasher, Hasher};
-
-/// A keyed 64-bit multiply-fold hasher over bytes, eight at a time. The key is random per diff call,
-/// so an attacker cannot precompute colliding lines.
-#[derive(Clone, Copy)]
-pub struct FoldState(u64);
-
-impl FoldState {
-    fn random() -> Self {
-        let seed = std::collections::hash_map::RandomState::new().hash_one(0xD1FF_F01Du64);
-        FoldState(seed | 1)
-    }
-}
-
-/// The hasher state for [`FoldState`].
-pub struct Fold(u64);
-
-impl BuildHasher for FoldState {
-    type Hasher = Fold;
-    fn build_hasher(&self) -> Fold {
-        Fold(self.0)
-    }
-}
+use std::hash::BuildHasher;
 
 const K: u64 = 0x9E37_79B9_7F4A_7C15;
+const NIL: u32 = u32::MAX;
 
-/// Fold eight-byte words of `bytes` into `h`, by recursion on the word count.
-fn fold_words(h: u64, bytes: &[u8]) -> u64 {
-    if bytes.len() < 8 {
-        fold_tail(h, bytes, 0, 0)
-    } else {
+/// A fresh random hash seed, one per diff call, so that an attacker cannot precompute colliding lines.
+fn random_seed() -> u64 {
+    let seed = std::collections::hash_map::RandomState::new().hash_one(0xD1FF_F01Du64);
+    seed | 1
+}
+
+/// A keyed 64-bit multiply-fold hash of a line, eight bytes at a time.
+fn hash_line(seed: u64, l: &[u8]) -> u64 {
+    let mut h = seed ^ (l.len() as u64).wrapping_mul(K);
+    let mut i = 0usize;
+    while l.len() - i >= 8 {
         let w = u64::from_le_bytes([
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            l[i],
+            l[i + 1],
+            l[i + 2],
+            l[i + 3],
+            l[i + 4],
+            l[i + 5],
+            l[i + 6],
+            l[i + 7],
         ]);
-        fold_words((h ^ w).wrapping_mul(K).rotate_left(29), &bytes[8..])
+        h = (h ^ w).wrapping_mul(K).rotate_left(29);
+        i += 8;
     }
+    let mut acc = 0u64;
+    while i < l.len() {
+        acc = (acc << 8) | u64::from(l[i]);
+        i += 1;
+    }
+    h = (h ^ acc).wrapping_mul(K).rotate_left(29);
+    h ^ (h >> 32)
 }
-
-/// Fold the fewer-than-eight remaining bytes.
-fn fold_tail(h: u64, rest: &[u8], at: usize, acc: u64) -> u64 {
-    if at == rest.len() {
-        (h ^ acc).wrapping_mul(K).rotate_left(29)
-    } else {
-        fold_tail(h, rest, at + 1, acc | (u64::from(rest[at]) << (8 * at)))
-    }
-}
-
-/// Fold a byte string: blocks of at most 64 bytes word by word, longer strings by halving at a word
-/// boundary and combining the two halves, so the depth is `O(log n)` in every build profile.
-fn fold_bytes(h: u64, bytes: &[u8]) -> u64 {
-    if bytes.len() <= 64 {
-        fold_words(h, bytes)
-    } else {
-        let mid = (bytes.len() / 2) & !7;
-        let (l, r) = (
-            fold_bytes(h, &bytes[..mid]),
-            fold_bytes(h ^ K, &bytes[mid..]),
-        );
-        (l.rotate_left(17) ^ r).wrapping_mul(K).rotate_left(29)
-    }
-}
-
-impl Hasher for Fold {
-    fn finish(&self) -> u64 {
-        self.0 ^ (self.0 >> 32)
-    }
-    fn write(&mut self, bytes: &[u8]) {
-        let h = self.0 ^ (bytes.len() as u64).wrapping_mul(K);
-        self.0 = fold_bytes(h, bytes);
-    }
-}
-
-type FoldMap<'a> = HashMap<&'a [u8], u32, FoldState>;
 
 /// Result of a line diff: which lines of the old text are deleted and which of the new are inserted.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,6 +104,21 @@ fn nl_mask(w: u64) -> u64 {
     !(((x & LOW7) + LOW7) | x | LOW7)
 }
 
+/// Number of set marks of a `nl_mask` word: its bits are 0 or 1 at bit 7 of each byte, so the product
+/// sums the eight marks into the top byte.
+fn newline_count(m: u64) -> usize {
+    ((m >> 7).wrapping_mul(0x0101_0101_0101_0101) >> 56) as usize
+}
+
+/// Index of the lowest nonzero byte of a nonzero word, by shifting a byte at a time.
+fn lowest_byte(m: u64, k: usize) -> usize {
+    if m & 0xFF != 0 || k >= 7 {
+        k
+    } else {
+        lowest_byte(m >> 8, k + 1)
+    }
+}
+
 /// Load up to eight bytes as a word; missing high bytes are zero, which never equals a newline.
 fn word(t: &[u8]) -> u64 {
     match t.len() {
@@ -155,7 +133,7 @@ fn count_block(t: &[u8]) -> usize {
     if t.is_empty() {
         0
     } else {
-        nl_mask(word(t)).count_ones() as usize + count_block(&t[t.len().min(8)..])
+        newline_count(nl_mask(word(t))) + count_block(&t[t.len().min(8)..])
     }
 }
 
@@ -208,7 +186,7 @@ fn first_in_block(t: &[u8], at: usize) -> Option<usize> {
     } else {
         let m = nl_mask(word(&t[at..]));
         if m != 0 {
-            Some(at + (m.trailing_zeros() / 8) as usize)
+            Some(at + lowest_byte(m, 0))
         } else {
             first_in_block(t, at + 8)
         }
@@ -216,11 +194,18 @@ fn first_in_block(t: &[u8], at: usize) -> Option<usize> {
 }
 
 /// Index of the first newline, by halving down to word blocks.
+#[allow(clippy::manual_map)] // Explicit `match` keeps the function extractable by Aeneas.
 fn first_nl(t: &[u8]) -> Option<usize> {
     if t.len() <= 64 {
         first_in_block(t, 0)
     } else {
-        first_nl(&t[..t.len() / 2]).or_else(|| first_nl(&t[t.len() / 2..]).map(|i| i + t.len() / 2))
+        match first_nl(&t[..t.len() / 2]) {
+            Some(i) => Some(i),
+            None => match first_nl(&t[t.len() / 2..]) {
+                Some(i) => Some(i + t.len() / 2),
+                None => None,
+            },
+        }
     }
 }
 
@@ -238,9 +223,10 @@ fn last_nl(t: &[u8]) -> Option<usize> {
     if t.len() <= 64 {
         last_in_block(t)
     } else {
-        last_nl(&t[t.len() / 2..])
-            .map(|i| i + t.len() / 2)
-            .or_else(|| last_nl(&t[..t.len() / 2]))
+        match last_nl(&t[t.len() / 2..]) {
+            Some(i) => Some(i + t.len() / 2),
+            None => last_nl(&t[..t.len() / 2]),
+        }
     }
 }
 
@@ -257,7 +243,7 @@ fn split_seq<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
     if !t.is_empty() {
         match first_nl(t) {
             Some(i) => {
-                out.push(&t[..=i]);
+                out.push(&t[..i + 1]);
                 split_seq(&t[i + 1..], out);
             }
             None => out.push(t),
@@ -267,16 +253,20 @@ fn split_seq<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
 
 /// Split into lines, each keeping its terminator, by cutting the text at a newline near the middle
 /// until chunks are short, then splitting each chunk sequentially.
+#[allow(clippy::manual_map)] // Explicit `match` keeps the function extractable by Aeneas.
 fn split_into<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
     if t.len() <= SEQ_CHUNK {
         split_seq(t, out);
     } else {
         let mid = t.len() / 2;
         // Cut after the first newline at or past the middle; fall back to the last newline before it.
-        let cut = first_nl(&t[mid..])
-            .map(|i| mid + i + 1)
-            .filter(|&c| c < t.len())
-            .or_else(|| last_nl(&t[..mid]).map(|i| i + 1));
+        let cut = match first_nl(&t[mid..]) {
+            Some(i) if mid + i + 1 < t.len() => Some(mid + i + 1),
+            _ => match last_nl(&t[..mid]) {
+                Some(i) => Some(i + 1),
+                None => None,
+            },
+        };
         match cut {
             Some(c) => {
                 split_into(&t[..c], out);
@@ -298,19 +288,89 @@ pub fn split_lines(t: &[u8]) -> Vec<&[u8]> {
 
 // ------------------------------------------------------------------ interning
 
+/// Ids of the lines of both sides, in order of first appearance: equal ids exactly for equal lines, all
+/// below the returned count. The hash only picks a bucket; lines are compared byte for byte.
 fn intern<'a>(a: &[&'a [u8]], b: &[&'a [u8]]) -> (Vec<u32>, Vec<u32>, usize) {
-    let mut map: FoldMap<'a> =
-        HashMap::with_capacity_and_hasher(a.len() + b.len(), FoldState::random());
+    intern_seeded(a, b, random_seed())
+}
+
+/// `intern` with an explicit hash seed. Lines hash into `head`, a table of at least `a.len() + b.len()`
+/// buckets; each bucket heads a chain of ids through `nxt`, newest first, and `reps[id]` is the line.
+fn intern_seeded<'a>(a: &[&'a [u8]], b: &[&'a [u8]], seed: u64) -> (Vec<u32>, Vec<u32>, usize) {
+    let total = a.len() + b.len();
+    let mut head = vec![NIL; table_size(total)];
+    let mut nxt: Vec<u32> = Vec::with_capacity(total);
+    let mut reps: Vec<&'a [u8]> = Vec::with_capacity(total);
     let mut ia = vec![0u32; a.len()];
     let mut ib = vec![0u32; b.len()];
-    let mut take = |l: &'a [u8]| -> u32 {
-        let next = u32::try_from(map.len()).expect("fewer than 2^32 distinct lines");
-        *map.entry(l).or_insert(next)
-    };
-    each(a, 0, &mut |i, l| ia[i] = take(l));
-    each(b, 0, &mut |i, l| ib[i] = take(l));
-    let n = map.len();
+    intern_all(a, 0, &mut head, &mut nxt, &mut reps, seed, &mut ia);
+    intern_all(b, 0, &mut head, &mut nxt, &mut reps, seed, &mut ib);
+    let n = reps.len();
     (ia, ib, n)
+}
+
+/// A power of two that is at least `total` and at least 2, so a bucket mask is `size - 1`.
+fn table_size(total: usize) -> usize {
+    let mut cap = 2usize;
+    while cap < total {
+        cap *= 2;
+    }
+    cap
+}
+
+/// Intern every line of `xs` in order, writing the id of `xs[k]` to `out[base + k]`. Halving keeps
+/// the call depth `O(log n)`.
+fn intern_all<'a>(
+    xs: &[&'a [u8]],
+    base: usize,
+    head: &mut Vec<u32>,
+    nxt: &mut Vec<u32>,
+    reps: &mut Vec<&'a [u8]>,
+    seed: u64,
+    out: &mut [u32],
+) {
+    match xs.len() {
+        0 => {}
+        1 => out[base] = intern_line(head, nxt, reps, seed, xs[0]),
+        n => {
+            let h = n / 2;
+            intern_all(&xs[..h], base, head, nxt, reps, seed, out);
+            intern_all(&xs[h..], base + h, head, nxt, reps, seed, out);
+        }
+    }
+}
+
+/// The id of line `l`, adding it with the next free id if no earlier line equals it.
+#[allow(clippy::ptr_arg)] // Uniform `&mut Vec` arguments keep the table state extractable.
+fn intern_line<'a>(
+    head: &mut Vec<u32>,
+    nxt: &mut Vec<u32>,
+    reps: &mut Vec<&'a [u8]>,
+    seed: u64,
+    l: &'a [u8],
+) -> u32 {
+    let bucket = (hash_line(seed, l) as usize) & (head.len() - 1);
+    let k = find_in_chain(reps, nxt, head[bucket], l);
+    if k != NIL {
+        k
+    } else {
+        let id = reps.len();
+        assert!(id < NIL as usize, "fewer than 2^32 distinct lines");
+        nxt.push(head[bucket]);
+        head[bucket] = id as u32;
+        reps.push(l);
+        id as u32
+    }
+}
+
+/// The first id on the chain starting at `k` whose line equals `l`, or `NIL`. Each link points to an
+/// older id, so the walk ends; it is a tail call.
+fn find_in_chain(reps: &Vec<&[u8]>, nxt: &Vec<u32>, k: u32, l: &[u8]) -> u32 {
+    if k == NIL || reps[k as usize] == l {
+        k
+    } else {
+        find_in_chain(reps, nxt, nxt[k as usize], l)
+    }
 }
 
 // ------------------------------------------------------------------ the diff
@@ -333,6 +393,31 @@ pub fn diff_text(old: &[u8], new: &[u8]) -> LineDiff {
 /// Diff two texts line by line with the chosen algorithm.
 #[must_use]
 pub fn diff_text_with(old: &[u8], new: &[u8], algo: Algo) -> LineDiff {
+    diff_text_core::<HashLines>(old, new, algo)
+}
+
+/// The two stages of `diff_text_with` that depend on how lines are identified: interning lines to ids
+/// and the (non-minimal) histogram differ. The minimal path runs `diff_ids` directly.
+trait LineIds {
+    /// Ids for the lines of both sides: equal ids exactly for equal lines, all below the returned count.
+    fn intern(a: &[&[u8]], b: &[&[u8]]) -> (Vec<u32>, Vec<u32>, usize);
+    fn histogram(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff;
+}
+
+/// The production interner and histogram differ.
+struct HashLines;
+
+impl LineIds for HashLines {
+    fn intern(a: &[&[u8]], b: &[&[u8]]) -> (Vec<u32>, Vec<u32>, usize) {
+        intern(a, b)
+    }
+    fn histogram(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
+        diff_histogram_ids(a, b, n_ids)
+    }
+}
+
+/// `diff_text_with` over an abstract line identification.
+fn diff_text_core<L: LineIds>(old: &[u8], new: &[u8], algo: Algo) -> LineDiff {
     // Prefix: back up to the start of the line where the texts first differ.
     let p = line_start(old, common_prefix(old, new));
     let (ro, rn) = (&old[p..], &new[p..]);
@@ -345,10 +430,10 @@ pub fn diff_text_with(old: &[u8], new: &[u8], algo: Algo) -> LineDiff {
         count_lines(&rn[rn.len() - q..]),
     );
     let (la, lb) = (split_lines(mo), split_lines(mn));
-    let (ia, ib, n_ids) = intern(&la, &lb);
+    let (ia, ib, n_ids) = L::intern(&la, &lb);
     let mid = match algo {
         Algo::Minimal => diff_ids(&ia, &ib, n_ids),
-        Algo::Histogram => diff_histogram_ids(&ia, &ib, n_ids),
+        Algo::Histogram => L::histogram(&ia, &ib, n_ids),
     };
     let mut deleted = vec![false; pre_lines + la.len() + suf_old];
     let mut inserted = vec![false; pre_lines + lb.len() + suf_new];
@@ -359,17 +444,32 @@ pub fn diff_text_with(old: &[u8], new: &[u8], algo: Algo) -> LineDiff {
 
 /// The largest line start at or before byte `p`: one past the last newline before `p`.
 fn line_start(t: &[u8], p: usize) -> usize {
-    last_nl(&t[..p]).map_or(0, |i| i + 1)
+    match last_nl(&t[..p]) {
+        Some(i) => i + 1,
+        None => 0,
+    }
+}
+
+/// Offset arithmetic of the shrink: the suffix restarts after its first newline.
+fn shrink_suffix(ro: &[u8], q: usize) -> usize {
+    match first_nl(&ro[ro.len() - q..]) {
+        Some(k) => q - k - 1,
+        None => 0,
+    }
 }
 
 /// Shrink the common suffix length `q` until the suffix starts a line in both texts. The suffix
 /// bytes are equal in both texts, so the first newline inside the suffix has the same offset in each.
+#[allow(clippy::if_same_then_else)] // Separate arms keep each side check explicit.
 fn suffix_on_line_start(ro: &[u8], rn: &[u8], q: usize) -> usize {
-    let starts = |t: &[u8]| q >= t.len() || t[t.len() - q - 1] == b'\n';
-    if q == 0 || (starts(ro) && starts(rn)) {
+    if q == 0 {
         q
+    } else if q < ro.len() && ro[ro.len() - q - 1] != b'\n' {
+        shrink_suffix(ro, q)
+    } else if q < rn.len() && rn[rn.len() - q - 1] != b'\n' {
+        shrink_suffix(ro, q)
     } else {
-        first_nl(&ro[ro.len() - q..]).map_or(0, |k| q - k - 1)
+        q
     }
 }
 
@@ -383,36 +483,73 @@ pub fn diff_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
     let (am, bm) = (&a[pre..a.len() - suf], &b[pre..b.len() - suf]);
     let mut in_a = vec![false; n_ids];
     let mut in_b = vec![false; n_ids];
-    each(am, 0, &mut |_, &x| in_a[x as usize] = true);
-    each(bm, 0, &mut |_, &x| in_b[x as usize] = true);
+    mark_ids(am, &mut in_a);
+    mark_ids(bm, &mut in_b);
     // Compact: keep only lines whose id occurs on the other side; the rest are certain edits.
     let (mut ca, mut pa) = (Vec::new(), Vec::new());
-    each(am, pre, &mut |i, &x| {
-        if in_b[x as usize] {
-            ca.push(x);
-            pa.push(i);
-        } else {
-            deleted[i] = true;
-        }
-    });
+    compact_ids(am, pre, &in_b, &mut ca, &mut pa, &mut deleted);
     let (mut cb, mut pb) = (Vec::new(), Vec::new());
-    each(bm, pre, &mut |j, &x| {
-        if in_a[x as usize] {
-            cb.push(x);
-            pb.push(j);
-        } else {
-            inserted[j] = true;
-        }
-    });
+    compact_ids(bm, pre, &in_a, &mut cb, &mut pb, &mut inserted);
     let mut ra = vec![false; ca.len()];
     let mut rb = vec![false; cb.len()];
     let size = 2 * (ca.len() + cb.len()) + 3;
     let mut vf = vec![0i32; size];
     let mut vb = vec![0i32; size];
     solve(&ca, &cb, 0, 0, &mut ra, &mut rb, &mut vf, &mut vb);
-    each(&ra, 0, &mut |k, &d| deleted[pa[k]] = d);
-    each(&rb, 0, &mut |k, &d| inserted[pb[k]] = d);
+    scatter_flags(&ra, &pa, &mut deleted);
+    scatter_flags(&rb, &pb, &mut inserted);
     LineDiff { deleted, inserted }
+}
+
+/// Set `flags[x]` for every id `x` of `xs`, by halving.
+fn mark_ids(xs: &[u32], flags: &mut [bool]) {
+    match xs.len() {
+        0 => {}
+        1 => flags[xs[0] as usize] = true,
+        n => {
+            mark_ids(&xs[..n / 2], flags);
+            mark_ids(&xs[n / 2..], flags);
+        }
+    }
+}
+
+/// Split `xs` (whose first element sits at position `base`) into the ids that occur on the other side,
+/// pushed with their positions, and the certain edits, flagged in `edit`.
+fn compact_ids(
+    xs: &[u32],
+    base: usize,
+    other: &[bool],
+    keep: &mut Vec<u32>,
+    pos: &mut Vec<usize>,
+    edit: &mut [bool],
+) {
+    match xs.len() {
+        0 => {}
+        1 => {
+            if other[xs[0] as usize] {
+                keep.push(xs[0]);
+                pos.push(base);
+            } else {
+                edit[base] = true;
+            }
+        }
+        n => {
+            compact_ids(&xs[..n / 2], base, other, keep, pos, edit);
+            compact_ids(&xs[n / 2..], base + n / 2, other, keep, pos, edit);
+        }
+    }
+}
+
+/// Copy the solved flags `r[k]` back to position `pos[k]`, by halving.
+fn scatter_flags(r: &[bool], pos: &[usize], out: &mut [bool]) {
+    match r.len() {
+        0 => {}
+        1 => out[pos[0]] = r[0],
+        n => {
+            scatter_flags(&r[..n / 2], &pos[..n / 2], out);
+            scatter_flags(&r[n / 2..], &pos[n / 2..], out);
+        }
+    }
 }
 
 /// Mark the minimal edits between `a` and `b`; `ao`/`bo` are the offsets of the slices in `ra`/`rb`.
@@ -513,7 +650,10 @@ fn forward(s: &mut Search, d: i32, lo: i32, hi: i32) -> Option<(usize, usize)> {
         forward_seq(s, d, lo, hi)
     } else {
         let mid = lo + (((hi - lo) / 2) & !1);
-        forward(s, d, lo, mid).or_else(|| forward(s, d, mid + 2, hi))
+        match forward(s, d, lo, mid) {
+            Some(p) => Some(p),
+            None => forward(s, d, mid + 2, hi),
+        }
     }
 }
 
@@ -536,7 +676,7 @@ fn forward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
         s.vf[ikm] + 1
     };
     let y0 = x0 - k;
-    let run = snake(s, x0, y0);
+    let run = snake(s.a, s.b, x0, y0);
     let (x, y) = (x0 + run, y0 + run);
     let ik = s.ix(k);
     s.vf[ik] = x;
@@ -555,7 +695,10 @@ fn backward(s: &mut Search, d: i32, lo: i32, hi: i32) -> Option<(usize, usize)> 
         backward_seq(s, d, lo, hi)
     } else {
         let mid = lo + (((hi - lo) / 2) & !1);
-        backward(s, d, lo, mid).or_else(|| backward(s, d, mid + 2, hi))
+        match backward(s, d, lo, mid) {
+            Some(p) => Some(p),
+            None => backward(s, d, mid + 2, hi),
+        }
     }
 }
 
@@ -578,7 +721,7 @@ fn backward_one(s: &mut Search, d: i32, k: i32) -> Option<(usize, usize)> {
         s.vb[ikm] + 1
     };
     let y0 = x0 - k;
-    let run = snake_back(s, x0, y0);
+    let run = snake_back(s.a, s.b, x0, y0);
     let (x, y) = (x0 + run, y0 + run);
     let ik = s.ix(k);
     s.vb[ik] = x;
@@ -618,11 +761,7 @@ pub fn replay_ok(old: &[u8], new: &[u8], d: &LineDiff) -> bool {
 const HIST_LIMIT: u32 = 64;
 /// Recursion depth after which the rest of a range is handed to the minimal search, bounding stack use.
 const HIST_DEPTH: u32 = 1500;
-const NIL: u32 = u32::MAX;
-
-struct Hist<'a> {
-    a: &'a [u32],
-    b: &'a [u32],
+struct Hist {
     cnt: Vec<u32>,
     head: Vec<u32>,
     nxt: Vec<u32>,
@@ -648,8 +787,6 @@ struct Anchor {
 pub fn diff_histogram_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
     let size = 2 * (a.len() + b.len()) + 3;
     let mut h = Hist {
-        a,
-        b,
         cnt: vec![0; n_ids],
         head: vec![NIL; n_ids],
         nxt: vec![NIL; a.len()],
@@ -658,37 +795,44 @@ pub fn diff_histogram_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
         vf: vec![0; size],
         vb: vec![0; size],
     };
-    hist(&mut h, (0, a.len()), (0, b.len()), 0);
+    hist(a, b, &mut h, (0, a.len()), (0, b.len()), 0);
     LineDiff {
         deleted: h.del,
         inserted: h.ins,
     }
 }
 
-fn hist(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize), depth: u32) {
-    let p = common_prefix(&h.a[alo..ahi], &h.b[blo..bhi]);
+fn hist(
+    a: &[u32],
+    b: &[u32],
+    h: &mut Hist,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+    depth: u32,
+) {
+    let p = common_prefix(&a[alo..ahi], &b[blo..bhi]);
     let (alo, blo) = (alo + p, blo + p);
-    let sfx = common_suffix(&h.a[alo..ahi], &h.b[blo..bhi]);
+    let sfx = common_suffix(&a[alo..ahi], &b[blo..bhi]);
     let (ahi, bhi) = (ahi - sfx, bhi - sfx);
     if alo == ahi {
         h.ins[blo..bhi].fill(true);
     } else if blo == bhi {
         h.del[alo..ahi].fill(true);
     } else if depth >= HIST_DEPTH {
-        hist_fallback(h, (alo, ahi), (blo, bhi));
+        hist_fallback(a, b, h, (alo, ahi), (blo, bhi));
     } else {
-        index_a(h, alo, ahi);
-        let best = find_anchor(h, (alo, ahi), (blo, bhi));
-        let common = any_common(h, blo, bhi);
-        unindex_a(h, alo, ahi);
+        index_a(a, h, alo, ahi);
+        let best = find_anchor(a, b, h, (alo, ahi), (blo, bhi));
+        let common = any_common(b, h, blo, bhi);
+        unindex_a(a, h, alo, ahi);
         match best {
             Some(an) => {
                 let (i0, j0) = (an.i - an.bl, an.j - an.bl);
                 let (i1, j1) = (i0 + an.len, j0 + an.len);
-                hist(h, (alo, i0), (blo, j0), depth + 1);
-                hist(h, (i1, ahi), (j1, bhi), depth + 1);
+                hist(a, b, h, (alo, i0), (blo, j0), depth + 1);
+                hist(a, b, h, (i1, ahi), (j1, bhi), depth + 1);
             }
-            None if common => hist_fallback(h, (alo, ahi), (blo, bhi)),
+            None if common => hist_fallback(a, b, h, (alo, ahi), (blo, bhi)),
             None => {
                 h.del[alo..ahi].fill(true);
                 h.ins[blo..bhi].fill(true);
@@ -698,8 +842,13 @@ fn hist(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize), de
 }
 
 /// Solve a range with the minimal search.
-fn hist_fallback(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize)) {
-    let (a, b) = (h.a, h.b);
+fn hist_fallback(
+    a: &[u32],
+    b: &[u32],
+    h: &mut Hist,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+) {
     solve(
         &a[alo..ahi],
         &b[blo..bhi],
@@ -712,48 +861,74 @@ fn hist_fallback(h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, u
     );
 }
 
-fn index_a(h: &mut Hist, alo: usize, ahi: usize) {
-    let a = h.a;
-    each(&a[alo..ahi], alo, &mut |i, &id| {
-        let id = id as usize;
+/// Chain every position of `a[alo..ahi]` under its id, newest first, and count the occurrences.
+fn index_a(a: &[u32], h: &mut Hist, alo: usize, ahi: usize) {
+    let mut i = alo;
+    while i < ahi {
+        let id = a[i] as usize;
         h.cnt[id] += 1;
         h.nxt[i] = h.head[id];
         h.head[id] = i as u32;
-    });
+        i += 1;
+    }
 }
 
-fn unindex_a(h: &mut Hist, alo: usize, ahi: usize) {
-    let a = h.a;
-    each(&a[alo..ahi], alo, &mut |_, &id| {
-        h.cnt[id as usize] = 0;
-        h.head[id as usize] = NIL;
-    });
+/// Reset the counts and chain heads set by `index_a`.
+fn unindex_a(a: &[u32], h: &mut Hist, alo: usize, ahi: usize) {
+    let mut i = alo;
+    while i < ahi {
+        let id = a[i] as usize;
+        h.cnt[id] = 0;
+        h.head[id] = NIL;
+        i += 1;
+    }
 }
 
-fn any_common(h: &mut Hist, blo: usize, bhi: usize) -> bool {
-    let b = h.b;
+fn any_common(b: &[u32], h: &Hist, blo: usize, bhi: usize) -> bool {
     let mut found = false;
-    each(&b[blo..bhi], blo, &mut |_, &id| {
-        found |= h.cnt[id as usize] > 0
-    });
+    let mut j = blo;
+    while j < bhi {
+        if h.cnt[b[j] as usize] > 0 {
+            found = true;
+        }
+        j += 1;
+    }
     found
 }
 
 /// The rarest common line of `b[blo..bhi]` that occurs at most `HIST_LIMIT` times in the old range,
 /// extended to the longest equal run around it.
-fn find_anchor(h: &Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize)) -> Option<Anchor> {
+fn find_anchor(
+    a: &[u32],
+    b: &[u32],
+    h: &Hist,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+) -> Option<Anchor> {
     let mut best: Option<Anchor> = None;
-    each(&h.b[blo..bhi], blo, &mut |j, &id| {
-        let c = h.cnt[id as usize];
-        if c > 0 && c <= HIST_LIMIT && best.is_none_or(|bst| c <= bst.cnt) {
-            best = walk_chain(h, h.head[id as usize], (alo, ahi), (blo, bhi), j, c, best);
+    let mut j = blo;
+    while j < bhi {
+        let id = b[j] as usize;
+        let c = h.cnt[id];
+        if c > 0 && c <= HIST_LIMIT {
+            let rarer = match best {
+                None => true,
+                Some(bst) => c <= bst.cnt,
+            };
+            if rarer {
+                best = walk_chain(a, b, h, h.head[id], (alo, ahi), (blo, bhi), j, c, best);
+            }
         }
-    });
+        j += 1;
+    }
     best
 }
 
 /// Try every old position of the line, keeping the better anchor. Recursion over the chain.
+#[allow(clippy::too_many_arguments)]
 fn walk_chain(
+    a: &[u32],
+    b: &[u32],
     h: &Hist,
     at: u32,
     (alo, ahi): (usize, usize),
@@ -766,8 +941,8 @@ fn walk_chain(
         best
     } else {
         let i = at as usize;
-        let bl = common_suffix(&h.a[alo..i], &h.b[blo..j]);
-        let fl = common_prefix(&h.a[i..ahi], &h.b[j..bhi]);
+        let bl = common_suffix(&a[alo..i], &b[blo..j]);
+        let fl = common_prefix(&a[i..ahi], &b[j..bhi]);
         let cand = Anchor {
             cnt: c,
             len: bl + fl,
@@ -777,9 +952,17 @@ fn walk_chain(
         };
         let better = match best {
             None => true,
-            Some(b0) => cand.cnt < b0.cnt || (cand.cnt == b0.cnt && cand.len > b0.len),
+            Some(b0) => {
+                if cand.cnt < b0.cnt {
+                    true
+                } else {
+                    cand.cnt == b0.cnt && cand.len > b0.len
+                }
+            }
         };
         walk_chain(
+            a,
+            b,
             h,
             h.nxt[i],
             (alo, ahi),
@@ -792,20 +975,22 @@ fn walk_chain(
 }
 
 /// Forward run of equal ids from `(x, y)`; most snakes are empty, so test one element first.
-fn snake(s: &Search, x: i32, y: i32) -> i32 {
-    if x >= s.n || y >= s.m || s.a[x as usize] != s.b[y as usize] {
+fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
+    let (n, m) = (a.len() as i32, b.len() as i32);
+    if x >= n || y >= m || a[x as usize] != b[y as usize] {
         0
     } else {
-        common_prefix(&s.a[x as usize..], &s.b[y as usize..]) as i32
+        common_prefix(&a[x as usize..], &b[y as usize..]) as i32
     }
 }
 
 /// Backward run of equal ids ending before `(n - x, m - y)`.
-fn snake_back(s: &Search, x: i32, y: i32) -> i32 {
-    if x >= s.n || y >= s.m || s.a[(s.n - 1 - x) as usize] != s.b[(s.m - 1 - y) as usize] {
+fn snake_back(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
+    let (n, m) = (a.len() as i32, b.len() as i32);
+    if x >= n || y >= m || a[(n - 1 - x) as usize] != b[(m - 1 - y) as usize] {
         0
     } else {
-        common_suffix(&s.a[..(s.n - x) as usize], &s.b[..(s.m - y) as usize]) as i32
+        common_suffix(&a[..(n - x) as usize], &b[..(m - y) as usize]) as i32
     }
 }
 
@@ -823,37 +1008,15 @@ pub mod proof_api {
     pub fn last_nl(t: &[u8]) -> Option<usize> {
         super::last_nl(t)
     }
-    /// `snake` of the real source on a search state with the given lists (`tests/myers_core.rs`).
+    /// `snake` of the real source.
     #[must_use]
     pub fn snake(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-        let s = super::Search {
-            a,
-            b,
-            n: a.len() as i32,
-            m: b.len() as i32,
-            delta: 0,
-            odd: false,
-            off: 0,
-            vf: &mut [],
-            vb: &mut [],
-        };
-        super::snake(&s, x, y)
+        super::snake(a, b, x, y)
     }
-    /// `snake_back` of the real source on a search state with the given lists.
+    /// `snake_back` of the real source.
     #[must_use]
     pub fn snake_back(a: &[u32], b: &[u32], x: i32, y: i32) -> i32 {
-        let s = super::Search {
-            a,
-            b,
-            n: a.len() as i32,
-            m: b.len() as i32,
-            delta: 0,
-            odd: false,
-            off: 0,
-            vf: &mut [],
-            vb: &mut [],
-        };
-        super::snake_back(&s, x, y)
+        super::snake_back(a, b, x, y)
     }
     /// `line_start` of the real source.
     #[must_use]

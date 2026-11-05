@@ -195,9 +195,11 @@ def mid (a b : List Nat) : Nat × Nat :=
   | some (x, y) => (x.toNat, y.toNat)
   | none => (0, 0)
 
-/-- The middle-snake lemma, in the form `solve_optimal` consumes. -/
-theorem mid_spec : MidSpec mid := by
-  intro a b ha hb hh hl
+/-- The middle-snake lemma at the level of the sweep result: `midPt` is a point of the rectangle on an
+optimal path and not a corner. -/
+theorem midPt_spec (a b : List Nat) (ha : a ≠ []) (hb : b ≠ []) (hh : HeadsDiff a b) (hl : LastsDiff a b) :
+    ∃ x y : Nat, midPt a b = some ((x : Int), (y : Int)) ∧ x ≤ a.length ∧ y ≤ b.length ∧ Split a b x y ∧
+      ¬(x = 0 ∧ y = 0) ∧ ¬(x = a.length ∧ y = b.length) := by
   have hD2 := two_le a b ha hb hh hl
   obtain ⟨k0, hk0, hh0⟩ := exists_hit a b
   have hLL := lcs_two_le a b
@@ -208,10 +210,15 @@ theorem mid_spec : MidSpec mid := by
   have hmp : midPt a b = some p := hp
   rcases hcase with ⟨hh1, rfl⟩ | ⟨hh1, rfl⟩
   · obtain ⟨x, y, e, g1, g2, g3, g4, g5⟩ := fhit_good hF hdom hh1 hD2
-    have : mid a b = (x, y) := by unfold mid; rw [hmp, e]; simp
-    rw [this]; exact ⟨g1, g2, g3, g4, g5⟩
+    exact ⟨x, y, by rw [hmp, e], g1, g2, g3, g4, g5⟩
   · obtain ⟨x, y, e, g1, g2, g3, g4, g5⟩ := bhit_good hF hdom hh1 hD2
-    have : mid a b = (x, y) := by unfold mid; rw [hmp, e]; simp
-    rw [this]; exact ⟨g1, g2, g3, g4, g5⟩
+    exact ⟨x, y, by rw [hmp, e], g1, g2, g3, g4, g5⟩
+
+/-- The middle-snake lemma, in the form `solve_optimal` consumes. -/
+theorem mid_spec : MidSpec mid := by
+  intro a b ha hb hh hl
+  obtain ⟨x, y, e, g1, g2, g3, g4, g5⟩ := midPt_spec a b ha hb hh hl
+  have : mid a b = (x, y) := by unfold mid; rw [e]; simp
+  rw [this]; exact ⟨g1, g2, g3, g4, g5⟩
 
 end Myers

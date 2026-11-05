@@ -1,6 +1,6 @@
 diff -ruN a/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java b/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java
---- a/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java	2026-11-04 22:59:26.484154512 +0000
-+++ b/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java	2026-11-04 22:59:26.514626864 +0000
+--- a/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java	2026-11-04 23:40:01.235977184 +0000
++++ b/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java	2026-11-04 23:40:01.253006356 +0000
 @@ -6,6 +6,7 @@
  import benchmark.generators.tools.models.IASTDiffTool;
  import benchmark.generators.tools.runners.IASTMapper;
@@ -22,7 +22,7 @@ diff -ruN a/src/main/java/benchmark/generators/tools/ASTDiffToolEnum.java b/src/
      SPN___("Spoon Compatible (Before applying translation rules)", (benchmarkCase, query) -> new SpoonWithOffsetTranslation(benchmarkCase, query, false)),
 diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/ConversionStats.java b/src/main/java/benchmark/generators/tools/runners/difffold/ConversionStats.java
 --- a/src/main/java/benchmark/generators/tools/runners/difffold/ConversionStats.java	1970-01-01 00:00:00.000000000 +0000
-+++ b/src/main/java/benchmark/generators/tools/runners/difffold/ConversionStats.java	2026-11-04 22:59:26.486865150 +0000
++++ b/src/main/java/benchmark/generators/tools/runners/difffold/ConversionStats.java	2026-11-04 23:40:01.238428110 +0000
 @@ -0,0 +1,49 @@
 +package benchmark.generators.tools.runners.difffold;
 +
@@ -75,7 +75,7 @@ diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/Conversion
 +}
 diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldASTDiffProvider.java b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldASTDiffProvider.java
 --- a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldASTDiffProvider.java	1970-01-01 00:00:00.000000000 +0000
-+++ b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldASTDiffProvider.java	2026-11-04 22:59:26.486989114 +0000
++++ b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldASTDiffProvider.java	2026-11-04 23:40:01.238472942 +0000
 @@ -0,0 +1,32 @@
 +package benchmark.generators.tools.runners.difffold;
 +
@@ -111,8 +111,8 @@ diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldAS
 +}
 diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBinary.java b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBinary.java
 --- a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBinary.java	1970-01-01 00:00:00.000000000 +0000
-+++ b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBinary.java	2026-11-04 22:59:26.486946726 +0000
-@@ -0,0 +1,92 @@
++++ b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBinary.java	2026-11-04 23:40:01.238451361 +0000
+@@ -0,0 +1,94 @@
 +package benchmark.generators.tools.runners.difffold;
 +
 +import com.fasterxml.jackson.databind.JsonNode;
@@ -158,7 +158,9 @@ diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBi
 +            Path out = dir.resolve("out.json");
 +            Files.write(b, before);
 +            Files.write(a, after);
-+            Process proc = new ProcessBuilder(binaryPath(), "--algo", algo, b.toString(), a.toString())
++            // The address space limit keeps one pathological file from exhausting the shared memory.
++            Process proc = new ProcessBuilder("prlimit", "--as=" + Long.getLong("difffold.memlimit", 3_000_000_000L),
++                    binaryPath(), "--algo", algo, b.toString(), a.toString())
 +                    .redirectOutput(out.toFile())
 +                    .redirectError(ProcessBuilder.Redirect.DISCARD)
 +                    .start();
@@ -207,7 +209,7 @@ diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldBi
 +}
 diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldMatcher.java b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldMatcher.java
 --- a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldMatcher.java	1970-01-01 00:00:00.000000000 +0000
-+++ b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldMatcher.java	2026-11-04 22:59:26.486784398 +0000
++++ b/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldMatcher.java	2026-11-04 23:40:01.238386749 +0000
 @@ -0,0 +1,215 @@
 +package benchmark.generators.tools.runners.difffold;
 +
@@ -426,8 +428,8 @@ diff -ruN a/src/main/java/benchmark/generators/tools/runners/difffold/DifffoldMa
 +}
 diff -ruN a/src/main/java/rq/difffold/ConversionCeiling.java b/src/main/java/rq/difffold/ConversionCeiling.java
 --- a/src/main/java/rq/difffold/ConversionCeiling.java	1970-01-01 00:00:00.000000000 +0000
-+++ b/src/main/java/rq/difffold/ConversionCeiling.java	2026-11-04 22:59:26.487125690 +0000
-@@ -0,0 +1,82 @@
++++ b/src/main/java/rq/difffold/ConversionCeiling.java	2026-11-04 23:40:01.238550839 +0000
+@@ -0,0 +1,83 @@
 +package rq.difffold;
 +
 +import benchmark.generators.tools.runners.difffold.ConversionStats;
@@ -445,7 +447,7 @@ diff -ruN a/src/main/java/rq/difffold/ConversionCeiling.java b/src/main/java/rq/
 +
 +/**
 + * Measures the loss of the byte-range to JDT conversion alone: each fixture's before file is diffed
-+ * against itself, so every JDT node has a true counterpart. The fraction of JDT nodes (outside
++ * against itself plus a trailing comment (RefactoringMiner reports no diff for identical files), so every JDT node has a true counterpart. The fraction of JDT nodes (outside
 + * comments) that stay unmapped is the ceiling the conversion puts on any difffold result.
 + *
 + * usage: ConversionCeiling FIXTURES_DIR OUT_CSV [limit]
@@ -453,7 +455,7 @@ diff -ruN a/src/main/java/rq/difffold/ConversionCeiling.java b/src/main/java/rq/
 +public class ConversionCeiling {
 +    public static void main(String[] args) throws Exception {
 +        Path fixtures = Path.of(args[0]);
-+        int limit = args.length > 2 ? Integer.parseInt(args[2]) : Integer.MAX_VALUE;
++        int limit = args.length > 2 && Integer.parseInt(args[2]) > 0 ? Integer.parseInt(args[2]) : Integer.MAX_VALUE;
 +        List<Path> dirs = new ArrayList<>();
 +        try (var ds = Files.newDirectoryStream(fixtures)) {
 +            for (Path d : ds) if (Files.exists(d.resolve("before.java.test"))) dirs.add(d);
@@ -471,11 +473,12 @@ diff -ruN a/src/main/java/rq/difffold/ConversionCeiling.java b/src/main/java/rq/
 +                Files.createDirectories(b);
 +                Files.createDirectories(a);
 +                Files.copy(d.resolve("before.java.test"), b.resolve("F.java"));
-+                Files.copy(d.resolve("before.java.test"), a.resolve("F.java"));
++                Files.writeString(a.resolve("F.java"), Files.readString(d.resolve("before.java.test")) + "\n// ceiling\n");
 +                ProjectASTDiff p = new GitHistoryRefactoringMinerImpl().diffAtDirectories(b, a);
 +                ASTDiff diff = p.getDiffSet().iterator().next();
 +                String content = p.getFileContentsBefore().get(diff.getSrcPath());
-+                MappingStore ms = new DifffoldMatcher("topdown", content, content, cs).match(diff.src.getRoot(), diff.dst.getRoot());
++                String after = p.getFileContentsAfter().get(diff.getDstPath());
++                MappingStore ms = new DifffoldMatcher("topdown", content, after, cs).match(diff.src.getRoot(), diff.dst.getRoot());
 +                for (Tree t : diff.src.getRoot().preOrder()) {
 +                    boolean comment = false;
 +                    for (Tree x = t; x != null; x = x.getParent()) {
@@ -512,8 +515,8 @@ diff -ruN a/src/main/java/rq/difffold/ConversionCeiling.java b/src/main/java/rq/
 +}
 diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/difffold/D4JAccuracyDriver.java
 --- a/src/main/java/rq/difffold/D4JAccuracyDriver.java	1970-01-01 00:00:00.000000000 +0000
-+++ b/src/main/java/rq/difffold/D4JAccuracyDriver.java	2026-11-04 22:59:26.487162155 +0000
-@@ -0,0 +1,281 @@
++++ b/src/main/java/rq/difffold/D4JAccuracyDriver.java	2026-11-04 23:40:01.238574829 +0000
+@@ -0,0 +1,335 @@
 +package rq.difffold;
 +
 +import benchmark.data.dataset.IBenchmarkDataset;
@@ -539,6 +542,7 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 +
 +import java.io.File;
++import java.io.FileWriter;
 +import java.io.PrintWriter;
 +import java.nio.file.Files;
 +import java.nio.file.Path;
@@ -640,19 +644,22 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +        for (String k : bugs.keySet()) if (idx++ % shardN == shardI) bugKeys.add(k);
 +        if (limit > 0 && bugKeys.size() > limit) bugKeys = bugKeys.subList(0, limit);
 +
-+        List<Object[]> results = Collections.synchronizedList(new ArrayList<>());
-+        List<String> failures = Collections.synchronizedList(new ArrayList<>());
-+        List<String> timings = Collections.synchronizedList(new ArrayList<>());
++        Sink sink = new Sink(out, tools);
++        Set<String> done = sink.loadDone();
 +        ExecutorService pool = Executors.newFixedThreadPool(threads);
 +        List<Future<?>> futs = new ArrayList<>();
-+        int total = bugKeys.size();
++        List<String> todo = new ArrayList<>();
++        for (String k : bugKeys) if (!done.contains(k)) todo.add(k);
++        int total = todo.size();
++        System.out.println("bugs to run=" + total + " already done=" + (bugKeys.size() - total));
 +        ConcurrentHashMap<String, Integer> progress = new ConcurrentHashMap<>();
-+        for (String bugKey : bugKeys) {
++        for (String bugKey : todo) {
 +            futs.add(pool.submit(() -> {
 +                try {
-+                    runBug(bugKey, bugs.get(bugKey), fx, oracle, out, tools, results, failures, timings);
++                    runBug(bugKey, bugs.get(bugKey), fx, oracle, out, tools, sink);
++                    sink.markDone(bugKey);
 +                } catch (Throwable t) {
-+                    failures.add(bugKey + ",*,case," + t.toString().replace(',', ';').replace('\n', ' '));
++                    sink.failure(bugKey + ",*,case," + t.toString().replace(',', ';').replace('\n', ' '));
 +                    t.printStackTrace();
 +                }
 +                int n = progress.merge("n", 1, Integer::sum);
@@ -661,12 +668,78 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +        }
 +        for (Future<?> f : futs) f.get();
 +        pool.shutdown();
++        sink.close();
++        try (PrintWriter w = new PrintWriter(new FileWriter(out.resolve("conversion.csv").toFile(), true))) {
++            for (var e : DifffoldASTDiffProvider.STATS.entrySet()) w.println(e.getKey() + "," + e.getValue());
++        }
++        summarize(out, tools);
++        System.out.println("scored (see summary-*.csv); oracle files=" + oracleFiles);
++    }
 +
-+        writeOutputs(out, tools, results, failures, timings, oracleFiles);
++    /** Append-only outputs so a killed run loses at most the bugs in flight. */
++    static class Sink {
++        final Path out;
++        final List<ASTDiffToolEnum> tools;
++        final FileWriter[] native_ = new FileWriter[2];
++        final FileWriter[] records = new FileWriter[2];
++        final FileWriter doneW, failW, timeW;
++
++        Sink(Path out, List<ASTDiffToolEnum> tools) throws Exception {
++            this.out = out;
++            this.tools = tools;
++            String[] names = {"NO_FILTER", "INTRA_FILE_ONLY"};
++            for (int i = 0; i < 2; i++) {
++                File nf = out.resolve("d4j-" + names[i] + ".csv").toFile();
++                File rf = out.resolve("records-" + names[i] + ".csv").toFile();
++                boolean newN = !nf.exists() || nf.length() == 0, newR = !rf.exists() || rf.length() == 0;
++                native_[i] = new FileWriter(nf, true);
++                records[i] = new FileWriter(rf, true);
++                if (newR) records[i].write("bug,file,tool,mapping_TP_raw,mapping_ignored,mapping_FP,mapping_FN,element_TP_raw,element_ignored,element_FP,element_FN,perfect_stats,perfect_bytes\n");
++                headerPending[i] = newN;
++            }
++            doneW = new FileWriter(out.resolve("done.txt").toFile(), true);
++            failW = new FileWriter(out.resolve("failures.csv").toFile(), true);
++            File tf = out.resolve("timings.csv").toFile();
++            boolean newT = !tf.exists() || tf.length() == 0;
++            timeW = new FileWriter(tf, true);
++            if (newT) timeW.write("bug,file,tool,millis,status\n");
++        }
++        final boolean[] headerPending = new boolean[2];
++
++        Set<String> loadDone() throws Exception {
++            Path p = out.resolve("done.txt");
++            return Files.exists(p) ? new HashSet<>(Files.readAllLines(p)) : new HashSet<>();
++        }
++        synchronized void markDone(String k) throws Exception { doneW.write(k + "\n"); doneW.flush(); }
++        synchronized void failure(String l) { try { failW.write(l + "\n"); failW.flush(); } catch (Exception e) { throw new RuntimeException(e); } }
++        synchronized void timing(String l) { try { timeW.write(l + "\n"); timeW.flush(); } catch (Exception e) { throw new RuntimeException(e); } }
++        synchronized void result(int fi, FileDiffComparisonResult r, String bug, String flat, boolean[] perfectBytes) throws Exception {
++            if (headerPending[fi]) { r.writeHeader(native_[fi]); headerPending[fi] = false; }
++            r.writeData(native_[fi]);
++            native_[fi].flush();
++            int igM = r.getIgnore().getIntraFileMappings().getMappings().size();
++            int igE = r.getIgnore().getIntraFileMappings().getMatchedElements().size();
++            int ti = 0;
++            for (ASTDiffToolEnum tool : tools) {
++                DiffStats ds = r.getDiffStatsList().get(tool.name());
++                boolean p = ds.getAbstractMappingStats().getFP() == 0 && ds.getAbstractMappingStats().getFN() == 0
++                        && ds.getProgramElementStats().getFP() == 0 && ds.getProgramElementStats().getFN() == 0;
++                records[fi].write(bug + "," + flat + "," + tool.name() + ","
++                        + ds.getAbstractMappingStats().getTP() + "," + igM + "," + ds.getAbstractMappingStats().getFP() + "," + ds.getAbstractMappingStats().getFN() + ","
++                        + ds.getProgramElementStats().getTP() + "," + igE + "," + ds.getProgramElementStats().getFP() + "," + ds.getProgramElementStats().getFN() + ","
++                        + (p ? 1 : 0) + "," + (perfectBytes[ti++] ? 1 : 0) + "\n");
++            }
++            records[fi].flush();
++        }
++        void close() throws Exception {
++            for (FileWriter w : native_) w.close();
++            for (FileWriter w : records) w.close();
++            doneW.close(); failW.close(); timeW.close();
++        }
 +    }
 +
 +    static void runBug(String bugKey, List<String> flats, Map<String, Fixture> fx, Path oracle, Path out,
-+                       List<ASTDiffToolEnum> tools, List<Object[]> results, List<String> failures, List<String> timings) throws Exception {
++                       List<ASTDiffToolEnum> tools, Sink sink) throws Exception {
 +        String[] pb = bugKey.split("/");
 +        Path tmp = Files.createTempDirectory("d4jcase");
 +        Path bdir = tmp.resolve("before");
@@ -677,7 +750,7 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +        for (String flat : flats) {
 +            Fixture f = fx.get(bugKey + "/" + flat);
 +            if (f == null) {
-+                failures.add(bugKey + "," + flat + ",nofixture,");
++                sink.failure(bugKey + "," + flat + ",nofixture,");
 +                continue;
 +            }
 +            Files.copy(f.dir().resolve("before.java.test"), bdir.resolve(flat + ".java"), StandardCopyOption.REPLACE_EXISTING);
@@ -691,7 +764,7 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +        for (ASTDiff d : project.getDiffSet()) have.add(d.getSrcPath());
 +        for (String flat : usable) {
 +            if (!have.contains(flat + ".java")) {
-+                failures.add(bugKey + "," + flat + ",noASTDiff,RefactoringMiner produced no diff for the file");
++                sink.failure(bugKey + "," + flat + ",noASTDiff,RefactoringMiner produced no diff for the file");
 +                continue;
 +            }
 +            Path fileOut = out.resolve("hrd").resolve(pb[0]).resolve(pb[1]).resolve(flat);
@@ -710,10 +783,10 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +                    hrd = GenerationStrategy.NO_COMMENTS_AND_JAVADOCS.apply(c, diff);
 +                } catch (Throwable t) {
 +                    status = t.getClass().getSimpleName();
-+                    failures.add(bugKey + "," + flat + "," + tool.name() + "," + t.toString().replace(',', ';').replace('\n', ' '));
++                    sink.failure(bugKey + "," + flat + "," + tool.name() + "," + t.toString().replace(',', ';').replace('\n', ' '));
 +                    hrd = HumanReadableDiff.makeEmpty();
 +                }
-+                timings.add(bugKey + "," + flat + "," + tool.name() + "," + (System.nanoTime() - t0) / 1_000_000 + "," + status);
++                sink.timing(bugKey + "," + flat + "," + tool.name() + "," + (System.nanoTime() - t0) / 1_000_000 + "," + status);
 +                HumanReadableDiff.write(fileOut.resolve(tool.name() + ".json").toFile(), hrd);
 +            }
 +            for (int fi = 0; fi < 2; fi++) {
@@ -727,7 +800,7 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +                    byte[] god = Files.readAllBytes(fileOut.resolve("GOD.json"));
 +                    perfect[ti++] = Arrays.equals(god, Files.readAllBytes(fileOut.resolve(tool.name() + ".json")));
 +                }
-+                results.add(new Object[]{fi, r, perfect});
++                sink.result(fi, r, bugKey, flat, perfect);
 +            }
 +            if (!KEEP_HRD) deleteRec(fileOut.toFile());
 +        }
@@ -740,53 +813,37 @@ diff -ruN a/src/main/java/rq/difffold/D4JAccuracyDriver.java b/src/main/java/rq/
 +        f.delete();
 +    }
 +
-+    static void writeOutputs(Path out, List<ASTDiffToolEnum> tools, List<Object[]> results, List<String> failures,
-+                             List<String> timings, int oracleFiles) throws Exception {
-+        for (int fi = 0; fi < 2; fi++) {
-+            String filterName = fi == 0 ? "NO_FILTER" : "INTRA_FILE_ONLY";
-+            List<BaseDiffComparisonResult> rs = new ArrayList<>();
-+            List<boolean[]> perfects = new ArrayList<>();
-+            for (Object[] o : results) if ((int) o[0] == fi) { rs.add((BaseDiffComparisonResult) o[1]); perfects.add((boolean[]) o[2]); }
-+            MetricsCsvWriter.exportToCSV(rs, "d4j-" + filterName + ".csv", true, out + "/");
-+            // Aggregate in the benchmark's terms: TP_raw, TP (raw minus trivially ignorable), FP, FN.
++    /** Aggregates records-*.csv into summary-*.csv, in the benchmark's TP_raw / TP / FP / FN terms. */
++    static void summarize(Path out, List<ASTDiffToolEnum> tools) throws Exception {
++        for (String filterName : new String[]{"NO_FILTER", "INTRA_FILE_ONLY"}) {
++            Map<String, long[]> agg = new LinkedHashMap<>();
++            Set<String> files = new HashSet<>();
++            List<String> lines = Files.readAllLines(out.resolve("records-" + filterName + ".csv"));
++            for (String line : lines.subList(1, lines.size())) {
++                String[] c = line.split(",");
++                files.add(c[0] + "/" + c[1]);
++                long[] v = agg.computeIfAbsent(c[2], k -> new long[13]);
++                for (int i = 3; i < 13; i++) v[i - 3] += Long.parseLong(c[i]);
++            }
 +            try (PrintWriter w = new PrintWriter(out.resolve("summary-" + filterName + ".csv").toFile())) {
 +                w.println("tool,files,kind,TP_raw,TP,FP,FN,precision,recall,f1,precision_raw,recall_raw,perfect_files_stats,perfect_files_bytes");
-+                for (int ti = 0; ti < tools.size(); ti++) {
-+                    String name = tools.get(ti).name();
++                for (ASTDiffToolEnum tool : tools) {
++                    long[] v = agg.get(tool.name());
++                    if (v == null) continue;
++                    // v: 0 mTPraw, 1 mIgnoredSum, 2 mFP, 3 mFN, 4 eTPraw, 5 eIgnoredSum, 6 eFP, 7 eFN, 8 perfStats, 9 perfBytes
 +                    for (String kind : new String[]{"abstractMapping", "programElement", "all"}) {
 +                        long tpRaw = 0, tp = 0, fp = 0, fn = 0;
-+                        int perfectStats = 0, perfectBytes = 0;
-+                        for (int k = 0; k < rs.size(); k++) {
-+                            BaseDiffComparisonResult r = rs.get(k);
-+                            DiffStats ds = r.getDiffStatsList().get(name);
-+                            int igM = r.getIgnore().getIntraFileMappings().getMappings().size();
-+                            int igE = r.getIgnore().getIntraFileMappings().getMatchedElements().size();
-+                            boolean doM = !kind.equals("programElement"), doE = !kind.equals("abstractMapping");
-+                            if (doM) { tpRaw += ds.getAbstractMappingStats().getTP(); tp += ds.getAbstractMappingStats().getTP() - igM; fp += ds.getAbstractMappingStats().getFP(); fn += ds.getAbstractMappingStats().getFN(); }
-+                            if (doE) { tpRaw += ds.getProgramElementStats().getTP(); tp += ds.getProgramElementStats().getTP() - igE; fp += ds.getProgramElementStats().getFP(); fn += ds.getProgramElementStats().getFN(); }
-+                            if (kind.equals("all")) {
-+                                boolean p = ds.getAbstractMappingStats().getFP() == 0 && ds.getAbstractMappingStats().getFN() == 0
-+                                        && ds.getProgramElementStats().getFP() == 0 && ds.getProgramElementStats().getFN() == 0;
-+                                perfectStats += p ? 1 : 0;
-+                                perfectBytes += perfects.get(k)[ti] ? 1 : 0;
-+                            }
-+                        }
++                        if (!kind.equals("programElement")) { tpRaw += v[0]; tp += v[0] - v[1]; fp += v[2]; fn += v[3]; }
++                        if (!kind.equals("abstractMapping")) { tpRaw += v[4]; tp += v[4] - v[5]; fp += v[6]; fn += v[7]; }
 +                        double pr = tp / (double) (tp + fp), rc = tp / (double) (tp + fn);
 +                        double prr = tpRaw / (double) (tpRaw + fp), rcr = tpRaw / (double) (tpRaw + fn);
-+                        w.printf(Locale.ROOT, "%s,%d,%s,%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f,%.4f,%s,%s%n", name, rs.size(), kind, tpRaw, tp, fp, fn,
++                        w.printf(Locale.ROOT, "%s,%d,%s,%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f,%.4f,%s,%s%n", tool.name(), files.size(), kind, tpRaw, tp, fp, fn,
 +                                pr, rc, 2 * pr * rc / (pr + rc), prr, rcr,
-+                                kind.equals("all") ? perfectStats : "", kind.equals("all") ? perfectBytes : "");
++                                kind.equals("all") ? v[8] : "", kind.equals("all") ? v[9] : "");
 +                    }
 +                }
 +            }
 +        }
-+        Files.write(out.resolve("failures.csv"), (String.join("\n", sorted(failures)) + "\n").getBytes());
-+        Files.write(out.resolve("timings.csv"), ("bug,file,tool,millis,status\n" + String.join("\n", sorted(timings)) + "\n").getBytes());
-+        try (PrintWriter w = new PrintWriter(out.resolve("conversion.csv").toFile())) {
-+            w.println("tool_algo,stats");
-+            for (var e : DifffoldASTDiffProvider.STATS.entrySet()) w.println(e.getKey() + "," + e.getValue());
-+        }
-+        System.out.println("scored files=" + results.size() / 2 + " of oracle files=" + oracleFiles + ", failures=" + failures.size());
 +    }
 +
 +    static List<String> sorted(List<String> l) {

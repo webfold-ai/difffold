@@ -43,8 +43,8 @@ theorem bandIdx_inj (w t x y x' y' : Nat) (hw : w = 2 * t + 1) (h : InBand t x y
 
 @[step] theorem bidx_spec (w t x y : Std.Usize) (hx : x.val ≤ y.val + t.val)
     (hw1 : 1 ≤ w.val) (htot : x.val * w.val + (y.val + t.val - x.val) < 2 ^ 32) :
-    ted_core.bidx w t x y ⦃ r => r.val = bandIdx w.val t.val x.val y.val ⦄ := by
-  unfold ted_core.bidx bandIdx
+    ted.bidx w t x y ⦃ r => r.val = bandIdx w.val t.val x.val y.val ⦄ := by
+  unfold ted.bidx bandIdx
   have hxw : x.val ≤ x.val * w.val := Nat.le_mul_of_pos_right _ hw1
   step*
 
@@ -55,8 +55,8 @@ theorem inBand_iff (t x y d : Nat) (hd : d = x - y + (y - x)) : d ≤ t ↔ InBa
 @[step] theorem get_spec (fd : Slice Std.U32) (w t : Std.Usize) (inf : Std.U32) (pp qq : Std.Usize)
     (hw : w.val = 2 * t.val + 1) (hlen : (pp.val + 1) * w.val ≤ fd.val.length)
     (hbig : (pp.val + 1) * w.val < 2 ^ 32) :
-    ted_core.get fd w t inf pp qq ⦃ r => r.val = rd fd.val w.val t.val inf.val pp.val qq.val ⦄ := by
-  unfold ted_core.get
+    ted.get_cell fd w t inf pp qq ⦃ r => r.val = rd fd.val w.val t.val inf.val pp.val qq.val ⦄ := by
+  unfold ted.get_cell
   step as ⟨d, hd⟩
   split
   · rename_i hdt
@@ -101,7 +101,7 @@ def cellNew (fdL tdL : List Std.U32) (w t inf li lj p q x lx ly ren : Nat) : Nat
 theorem tdv_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (inf : Std.U32) (i7 : Std.Usize)
     (hw : w.val = 2 * t.val + 1) (hi7 : i7.val = x.val - y.val + (y.val - x.val))
     (htdlen : (x.val + 1) * w.val ≤ td.val.length) (htdbig : (x.val + 1) * w.val < 2 ^ 32) :
-    (if i7 ≤ t then (do let i8 ← ted_core.bidx w t x y; Slice.index_usize td i8) else ok inf) ⦃ r =>
+    (if i7 ≤ t then (do let i8 ← ted.bidx w t x y; Slice.index_usize td i8) else ok inf) ⦃ r =>
       r.val = rd td.val w.val t.val inf.val x.val y.val ⦄ := by
   split
   · rename_i hdt
@@ -123,7 +123,7 @@ theorem tdv_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (inf : Std.U32) (
 theorem upd_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (v4 : Std.U32) (i13 : Std.Usize)
     (hw : w.val = 2 * t.val + 1) (hi13 : i13.val = x.val - y.val + (y.val - x.val))
     (htdlen : (x.val + 1) * w.val ≤ td.val.length) (htdbig : (x.val + 1) * w.val < 2 ^ 32) :
-    (if i13 ≤ t then (do let i14 ← ted_core.bidx w t x y; Slice.update td i14 v4) else ok td) ⦃ s =>
+    (if i13 ≤ t then (do let i14 ← ted.bidx w t x y; Slice.update td i14 v4) else ok td) ⦃ s =>
       s.val = if InBand t.val x.val y.val then td.val.set (bandIdx w.val t.val x.val y.val) v4 else td.val ⦄ := by
   split
   · rename_i hdt
@@ -141,46 +141,79 @@ theorem upd_if_spec (td : Slice Std.U32) (w t x y : Std.Usize) (v4 : Std.U32) (i
     have : ¬ InBand t.val x.val y.val := fun h => hdt (by have := (inBand_iff _ _ _ _ hi13).mpr h; scalar_tac)
     simp [this]
 
-theorem ren_spec (i8 i9 : Std.U32) :
-    (if (i8 != i9) = true then ok 1#u32 else ok 0#u32) ⦃ r => r.val = if i8 = i9 then 0 else 1 ⦄ := by
+/-- The relabel cost of node `x` of `a` to node `y` of `b` (1-based). -/
+def rcost (a b : ted.PostTree) (x y : Nat) : Nat :=
+  if a.label.val[x - 1]! = b.label.val[y - 1]! then 0
+  else if a.kind.val[x - 1]! = b.kind.val[y - 1]! then 1 else 2
+
+theorem relabel_cost_spec (a b : ted.PostTree) (x y : Std.Usize) (hx : 1 ≤ x.val) (hy : 1 ≤ y.val)
+    (hxa : x.val - 1 < a.label.length) (hxk : x.val - 1 < a.kind.length)
+    (hyb : y.val - 1 < b.label.length) (hyk : y.val - 1 < b.kind.length) :
+    ted.relabel_cost a b x y ⦃ r => r.val = rcost a b x.val y.val ⦄ := by
+  unfold ted.relabel_cost
+  have hxa' : x.val - 1 < a.label.val.length := hxa
+  have hxk' : x.val - 1 < a.kind.val.length := hxk
+  have hyb' : y.val - 1 < b.label.val.length := hyb
+  have hyk' : y.val - 1 < b.kind.val.length := hyk
+  step as ⟨i, hi⟩
+  step as ⟨i1, hi1⟩
+  step as ⟨i2, hi2⟩
+  step as ⟨i3, hi3⟩
+  have e1 : i1 = a.label.val[x.val - 1]! := by
+    exact (hi1.trans (getU_eq' _ _ _ (by have : i.val = x.val - 1 := hi; omega) (by omega)))
+  have e3 : i3 = b.label.val[y.val - 1]! := by
+    exact (hi3.trans (getU_eq' _ _ _ (by have : i2.val = y.val - 1 := hi2; omega) (by omega)))
   split
   · rename_i h
-    simp only [bne_iff_ne, ne_eq] at h
-    simp [h]
+    simp only [WP.spec_ok]
+    simp [rcost, ← e1, ← e3, h]
   · rename_i h
-    simp only [bne_iff_ne, ne_eq, not_not] at h
-    simp [h]
+    step as ⟨i4, hi4⟩
+    step as ⟨i5, hi5⟩
+    have e4 : i4 = a.kind.val[x.val - 1]! := by
+      exact (hi4.trans (getU_eq' _ _ _ (by have : i.val = x.val - 1 := hi; omega) (by omega)))
+    have e5 : i5 = b.kind.val[y.val - 1]! := by
+      exact (hi5.trans (getU_eq' _ _ _ (by have : i2.val = y.val - 1 := hi2; omega) (by omega)))
+    split
+    · rename_i h2
+      simp only [WP.spec_ok]
+      simp [rcost, ← e1, ← e3, ← e4, ← e5, h, h2]
+    · rename_i h2
+      simp only [WP.spec_ok]
+      simp [rcost, ← e1, ← e3, ← e4, ← e5, h, h2]
 
 /-- One iteration of the inner loop of `fill_window` computes one cell of the forest-distance table. -/
 theorem cell_step
-    (v v1 v2 : alloc.vec.Vec Std.U32) (t : Std.Usize) (inf : Std.U32) (w li lj p qhi x lx : Std.Usize)
-    (td fd : Slice Std.U32) (q : Std.Usize) (row_min : Std.U32)
+    (a b : ted.PostTree) (t : Std.Usize) (inf : Std.U32) (w li lj p qhi x lx : Std.Usize)
+    (td fd : Slice Std.U32) (st : ted.Stats) (q : Std.Usize) (row_min : Std.U32)
     (hw : w.val = 2 * t.val + 1) (hinf : inf.val = t.val + 1)
     (hq : q.val ≤ qhi.val) (hq1 : 1 ≤ q.val) (hp1 : 1 ≤ p.val)
     (hband : InBand t.val p.val q.val) (hlj : 1 ≤ lj.val) (hli : 1 ≤ li.val)
     (hx : x.val = li.val + p.val - 1)
-    (hv : x.val - 1 < v.length) (hv1 : lj.val + q.val - 2 < v1.length) (hv2 : lj.val + q.val - 2 < v2.length)
+    (hv : x.val - 1 < a.label.length) (hv1 : lj.val + q.val - 2 < b.label.length) (hv2 : lj.val + q.val - 2 < b.lml.length)
     (hlxli : li.val ≤ lx.val) (hlx : lx.val ≤ x.val)
+    (hak : x.val - 1 < a.kind.length) (hbk : lj.val + q.val - 2 < b.kind.length)
     (hlq : lj.val + q.val < 2 ^ 32)
-    (hlylj : lj.val ≤ (v2.val[lj.val + q.val - 2]!).val)
+    (hlylj : lj.val ≤ (b.lml.val[lj.val + q.val - 2]!).val)
     (hfdlen : (p.val + 1) * w.val ≤ fd.val.length) (hfdbig : (p.val + 1) * w.val < 2 ^ 32)
     (htdlen : (x.val + 1) * w.val ≤ td.val.length) (htdbig : (x.val + 1) * w.val < 2 ^ 32)
     (hfdb : ∀ k < fd.val.length, (fd.val[k]!).val ≤ inf.val)
     (htdb : ∀ k < td.val.length, (td.val[k]!).val ≤ inf.val)
     (hinfbig : 2 * inf.val + 1 < 2 ^ 32) :
-    ted_core.fill_window_loop2_loop0.body v v1 v2 t inf w li lj p qhi x lx td fd q row_min ⦃ r =>
+    ted.fill_window_loop2_loop0.body a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind
+      t inf w li lj p qhi x lx td fd st q row_min ⦃ r =>
       match r with
       | done _ => False
       | cont s => ∃ vv : Std.U32,
           vv.val = cellNew fd.val td.val w.val t.val inf.val li.val lj.val p.val q.val x.val lx.val
-            (v2.val[lj.val + q.val - 2]!).val
-            (if v.val[x.val - 1]! = v1.val[lj.val + q.val - 2]! then 0 else 1) ∧
+            (b.lml.val[lj.val + q.val - 2]!).val
+            (rcost a b x.val (lj.val + q.val - 1)) ∧
           s.2.1.val = fd.val.set (bandIdx w.val t.val p.val q.val) vv ∧
-          s.1.val = (if lx.val = li.val ∧ (v2.val[lj.val + q.val - 2]!).val = lj.val ∧
+          s.1.val = (if lx.val = li.val ∧ (b.lml.val[lj.val + q.val - 2]!).val = lj.val ∧
               InBand t.val x.val (lj.val + q.val - 1)
             then td.val.set (bandIdx w.val t.val x.val (lj.val + q.val - 1)) vv else td.val) ∧
-          s.2.2.1.val = q.val + 1 ∧ s.2.2.2.val = min row_min.val vv.val ⦄ := by
-  unfold ted_core.fill_window_loop2_loop0.body
+          s.2.2.2.1.val = q.val + 1 ∧ s.2.2.2.2.val = min row_min.val vv.val ⦄ := by
+  unfold ted.fill_window_loop2_loop0.body
   split
   · rename_i hqq
     have hLfd : ∀ x' y', x' ≤ p.val → rd fd.val w.val t.val inf.val x' y' ≤ inf.val := by
@@ -201,16 +234,17 @@ theorem cell_step
       intro r hr
       have : (r + 1) * w.val ≤ (p.val + 1) * w.val := Nat.mul_le_mul_right _ (by omega)
       omega
+    step as ⟨ic, hic⟩
     step as ⟨i, hi⟩
     step as ⟨y, hy⟩
     step as ⟨i1, hi1⟩
     step as ⟨i2, hi2⟩
     step as ⟨ly, hly⟩
     have hi1v : i1.val = lj.val + q.val - 2 := by omega
-    have hlyv : ly.val = (v2.val[lj.val + q.val - 2]!).val := by
-      have hv2' : lj.val + q.val - 2 < v2.val.length := hv2
-      have hb : i1.val < v2.val.length := by omega
-      have e : v2.val[lj.val + q.val - 2]! = v2.val[i1.val]'hb := by
+    have hlyv : ly.val = (b.lml.val[lj.val + q.val - 2]!).val := by
+      have hv2' : lj.val + q.val - 2 < b.lml.val.length := hv2
+      have hb : i1.val < b.lml.val.length := by omega
+      have e : b.lml.val[lj.val + q.val - 2]! = b.lml.val[i1.val]'hb := by
         rw [← hi1v]; exact getU_eq _ _ hb
       rw [e, hly, U32.cast_Usize_val_eq, hi2]
     have hlyl : lj.val ≤ ly.val := by rw [hlyv]; exact hlylj
@@ -221,32 +255,21 @@ theorem cell_step
     step with get_spec fd w t inf p i5 hw (hrow p.val (by omega)).1 (hrow p.val (by omega)).2 as ⟨i6, hi6⟩
     step as ⟨ins, hins⟩
     have hyv : y.val = lj.val + q.val - 1 := by omega
-    have hxv : x.val - 1 < v.val.length := hv
-    have hv1' : lj.val + q.val - 2 < v1.val.length := hv1
+    have hxv : x.val - 1 < a.label.val.length := hv
+    have hv1' : lj.val + q.val - 2 < b.label.val.length := hv1
     have hdelv : del.val = rd fd.val w.val t.val inf.val (p.val - 1) q.val + 1 := by rw [hdel, hi4, hi3]
     have hinsv : ins.val = rd fd.val w.val t.val inf.val p.val (q.val - 1) + 1 := by rw [hins, hi6, hi5]
     split
     · rename_i hlxeq
       split
       · rename_i hlyeq
-        step as ⟨i7, hi7⟩
-        step as ⟨i8, hi8⟩
-        step as ⟨i9, hi9⟩
-        have hi8v : i8 = v.val[x.val - 1]! := by
-          have hb : i7.val < v.val.length := by have := hxv; omega
-          have e : v.val[x.val - 1]! = v.val[i7.val]'hb := by
-            have h7 : i7.val = x.val - 1 := by omega
-            rw [← h7]; exact getU_eq _ _ hb
-          rw [e, hi8]
-        have hi9v : i9 = v1.val[lj.val + q.val - 2]! := by
-          have hb : i1.val < v1.val.length := by have := hv1'; omega
-          have e : v1.val[lj.val + q.val - 2]! = v1.val[i1.val]'hb := by
-            rw [← hi1v]; exact getU_eq _ _ hb
-          rw [e, hi9]
-        step with ren_spec i8 i9 as ⟨ren, hren⟩
+        step with relabel_cost_spec a b x y (by omega) (by omega) hv hak (by omega) (by omega) as ⟨ren, hren⟩
+        have hyv' : y.val - 1 = lj.val + q.val - 2 := by omega
+        have hren' : ren.val = rcost a b x.val (lj.val + q.val - 1) := by
+          rw [hren, hyv]
         step with get_spec fd w t inf i3 i5 hw (hrow i3.val (by omega)).1 (hrow i3.val (by omega)).2 as ⟨i10, hi10⟩
         have hi10_le : i10.val ≤ inf.val := by rw [hi10]; exact hLfd _ _ (by omega)
-        have hren_le : ren.val ≤ 1 := by rw [hren]; split <;> omega
+        have hren_le : ren.val ≤ 2 := by rw [hren']; unfold rcost; split <;> (try split) <;> omega
         step as ⟨diag, hdiag⟩
         step as ⟨i11, hi11⟩
         step as ⟨i12, hi12⟩
@@ -258,12 +281,13 @@ theorem cell_step
         step as ⟨fd', hfd'⟩
         step as ⟨rm, hrm⟩
         step as ⟨q1, hq1'⟩
-        have h1 : lx.val = li.val := by scalar_tac
-        have h2 : (v2.val[lj.val + q.val - 2]!).val = lj.val := by rw [← hlyv]; scalar_tac
+        have h1 : lx.val = li.val := congrArg Aeneas.Std.UScalar.val hlxeq
+        have h2 : (b.lml.val[lj.val + q.val - 2]!).val = lj.val := by
+          rw [← hlyv]; exact congrArg Aeneas.Std.UScalar.val hlyeq
         refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
         · unfold cellNew cellX
           rw [if_pos ⟨h1, h2⟩]
-          simp only [hv4, hi12, hi11, hdiag, hren, hdelv, hinsv, hi10, hi3, hi5, hi8v, hi9v]
+          simp only [hv4, hi12, hi11, hdiag, hren', hdelv, hinsv, hi10, hi3, hi5, hren']
         · rw [hfd', Slice.set_val_eq, hib]
         · simp only [h1, h2, true_and, hs, hyv]
         · exact hq1'
@@ -285,7 +309,7 @@ theorem cell_step
         step as ⟨fd', hfd'⟩
         step as ⟨rm, hrm⟩
         step as ⟨q1, hq1'⟩
-        have hnot : ¬ (lx.val = li.val ∧ (v2.val[lj.val + q.val - 2]!).val = lj.val) := by
+        have hnot : ¬ (lx.val = li.val ∧ (b.lml.val[lj.val + q.val - 2]!).val = lj.val) := by
           intro h; apply hlyne; scalar_tac
         refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
         · unfold cellNew cellX
@@ -312,7 +336,7 @@ theorem cell_step
       step as ⟨fd', hfd'⟩
       step as ⟨rm, hrm⟩
       step as ⟨q1, hq1'⟩
-      have hnot : ¬ (lx.val = li.val ∧ (v2.val[lj.val + q.val - 2]!).val = lj.val) := by
+      have hnot : ¬ (lx.val = li.val ∧ (b.lml.val[lj.val + q.val - 2]!).val = lj.val) := by
         intro h; apply hlxne; scalar_tac
       refine ⟨v4, ?_, ?_, ?_, ?_, ?_⟩
       · unfold cellNew cellX
@@ -325,5 +349,29 @@ theorem cell_step
   · rename_i hn
     exfalso
     scalar_tac
+
+
+/-- Capping commutes with the cell recurrence. If the four values a cell reads hold `min (true value) inf`
+(the delete, insert, and diagonal or subtree neighbours, and the stored subtree distance), then the cell
+holds `min (recurrence on the true values) inf`. This is the algebra that lets the banded, capped table
+stand for the exact forest distances; what it does not supply is the identification of the true values
+with `Ted.fdist` of postorder prefixes (not proved). -/
+theorem cellNew_cap (fdL tdL : List Std.U32) (w t inf li lj p q x lx ly ren D I G T : Nat)
+    (hD : rd fdL w t inf (p - 1) q = min D inf) (hI : rd fdL w t inf p (q - 1) = min I inf)
+    (hG : (if lx = li ∧ ly = lj then rd fdL w t inf (p - 1) (q - 1) else rd fdL w t inf (lx - li) (ly - lj))
+      = min G inf)
+    (hT : rd tdL w t inf x (lj + q - 1) = min T inf) (hren : ren ≤ 1) :
+    cellNew fdL tdL w t inf li lj p q x lx ly ren =
+      min (min (min (D + 1) (I + 1)) (if lx = li ∧ ly = lj then G + ren else G + T)) inf := by
+  unfold cellNew cellX
+  split
+  · rename_i h
+    rw [if_pos h] at hG
+    rw [hD, hI, hG]
+    omega
+  · rename_i h
+    rw [if_neg h] at hG
+    rw [hD, hI, hG, hT]
+    omega
 
 end difffold_lines_extract

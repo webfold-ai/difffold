@@ -11,6 +11,7 @@ proof/**/.lake/
 proof/.lake/
 proof/build-kernel/
 proof/build-lines/
+proof/build-ted/
 proof/build-model/
 proof/build/
 target/

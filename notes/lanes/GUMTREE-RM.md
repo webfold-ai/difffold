@@ -1,6 +1,6 @@
 # GumTree, RefactoringMiner: mapping accuracy on OmniDiff's ground truth
 
-Pinned: GumTree commit f0e38db (core 4.2.0-SNAPSHOT), 17 matchers, JDT Java generator; RefactoringMiner 3.1.6
+Pinned: unreleased snapshot after GumTree 4.1.0 (core 4.2.0-SNAPSHOT), 17 matchers, JDT Java generator; RefactoringMiner 3.1.6
 (`diffAtFileContents` on a one-file project). DiffBenchmark was cloned and built but its experiments were NOT run.
 
 Method: each tool's node mapping is converted by byte range onto the scorer's tree-sitter preorder numbering

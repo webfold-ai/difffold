@@ -48,4 +48,4 @@ java -Xmx8g -cp "$WORK/classes:$CP" -Ddifffold.bin="$TED_MAP" -Ddifffold.timeout
   --out "$WORK/out" --tools "$TOOLS" --threads "$THREADS" --limit "$LIMIT"
 
 # 5. Conversion ceiling (before file against itself).
-java -Xmx4g -cp "$WORK/classes:$CP" -Ddifffold.bin="$TED_MAP" rq.difffold.ConversionCeiling "$FIXTURES" "$WORK/out/conversion-ceiling.csv"
+java -Xmx4g -cp "$WORK/classes:$CP" -Ddifffold.bin="$TED_MAP" rq.difffold.ConversionCeiling "$FIXTURES" "$WORK/out/conversion-ceiling.csv" "${LIMIT:-0}"

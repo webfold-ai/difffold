@@ -161,10 +161,27 @@ fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
         .iter()
         .map(|&(x, y)| (oa[x as usize - 1], ob[y as usize - 1]))
         .collect();
+    if std::env::var("DFOLD_HYGIENE").is_ok() {
+        drop_orphan_updates(bt, at, &mut pairs);
+    }
     if std::env::var("DFOLD_MOVES").is_ok() {
         recover_moves(bt, at, &mut pairs);
     }
     pairs
+}
+
+/// Mapping hygiene. A leaf paired with a leaf of different text (an update) is kept only when the parents of the two
+/// leaves are paired with each other; otherwise the pairing is an accident of the cost model and is dropped.
+fn drop_orphan_updates(bt: &Tree, at: &Tree, pairs: &mut Vec<(u32, u32)>) {
+    let set: std::collections::HashSet<(u32, u32)> = pairs.iter().copied().collect();
+    pairs.retain(|&(x, y)| {
+        let (xu, yu) = (x as usize, y as usize);
+        if bt.label[xu] == at.label[yu] || !bt.kids[xu].is_empty() || !at.kids[yu].is_empty() {
+            return true;
+        }
+        let (px, py) = (bt.parent[xu], at.parent[yu]);
+        px != NIL && py != NIL && set.contains(&(px, py))
+    });
 }
 
 /// Move recovery. Classical edit distance has no move operation, so a moved or reordered subtree is deleted on
