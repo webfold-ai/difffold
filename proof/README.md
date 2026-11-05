@@ -255,7 +255,13 @@ anchor choice is a heuristic), and nothing here relates its cost to `lcs`. Its r
 beyond the `u32` increment of the depth.
 
 Performance of the refactors (release build, same machine, outputs byte for byte identical on every fixture):
-PERF_PLACEHOLDER
+a synthetic 60,000-line `diff_text` micro-benchmark (best of 15, interleaved runs, a noisy shared machine) gives
+6.5 to 8.5 ms before and 6.7 to 8.6 ms after (same cost 6032); the real corpus `linebench` (2302 fixtures,
+sum of per-fixture medians of 5 runs, three interleaved repetitions) gives 92.6 to 95.2 ms before and 96.5 to
+102.7 ms after for `difffold-lines` (about 4 percent slower, inside the run-to-run spread but not clearly below it)
+and 129.4 to 132.2 ms before and 127.0 to 133.4 ms after for `difffold-histogram`. Edit costs are identical on
+every fixture (26,913 minimal, 27,277 histogram), and the returned flag vectors hash identically before and
+after on all 2302 fixtures for both algorithms.
 
 ### Not yet done (open, nothing here is claimed proved)
 
