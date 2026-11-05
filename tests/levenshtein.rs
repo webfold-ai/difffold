@@ -3,8 +3,9 @@
 //! randomised on long inputs. They are tested, not proved.
 
 use difffold::levenshtein::{
-    levenshtein, levenshtein_full_dp, levenshtein_within, levenshtein_within_band,
-    levenshtein_within_myers_multi, levenshtein_within_myers_single, levenshtein_within_u32,
+    histogram_lower_bound_u32, levenshtein, levenshtein_full_dp, levenshtein_within,
+    levenshtein_within_band, levenshtein_within_myers_banded, levenshtein_within_myers_multi,
+    levenshtein_within_myers_single, levenshtein_within_u32, levenshtein_within_wavefront,
 };
 
 type Within = fn(&[u32], &[u32], u32) -> Option<u32>;
@@ -17,6 +18,8 @@ fn implementations() -> Vec<(&'static str, Within)> {
         ("myers_multi", levenshtein_within_myers_multi::<u32>),
         ("dispatch", levenshtein_within::<u32>),
         ("u32_path", levenshtein_within_u32),
+        ("wavefront", levenshtein_within_wavefront::<u32>),
+        ("myers_banded", levenshtein_within_myers_banded::<u32>),
     ]
 }
 
@@ -301,4 +304,222 @@ fn generic_non_integer_tokens() {
     assert_eq!(levenshtein_within(&a, &b, 1), None);
     assert_eq!(levenshtein_within(&a, &b, 2), Some(2));
     assert_eq!(levenshtein_within_band(&a, &b, 2), Some(2));
+}
+
+/// Checks one bounded kernel against the oracle at every limit in `limits`.
+fn check_kernel(name: &str, f: Within, a: &[u32], b: &[u32], limits: &[u32]) {
+    let d = levenshtein_full_dp(a, b);
+    for &limit in limits {
+        assert_eq!(
+            f(a, b, limit),
+            expected(d, limit),
+            "{name}: a={a:?} b={b:?} limit={limit} oracle={d}"
+        );
+    }
+}
+
+#[test]
+fn wavefront_exhaustive_alphabet3_length6() {
+    let seqs = all_sequences(3, 6);
+    let limits: Vec<u32> = (0..=7).collect();
+    for (i, a) in seqs.iter().enumerate() {
+        for b in &seqs[i..] {
+            check_kernel(
+                "wavefront",
+                levenshtein_within_wavefront::<u32>,
+                a,
+                b,
+                &limits,
+            );
+            check_kernel(
+                "wavefront",
+                levenshtein_within_wavefront::<u32>,
+                b,
+                a,
+                &limits,
+            );
+        }
+    }
+}
+
+#[test]
+fn wavefront_exhaustive_alphabet4_length5() {
+    let seqs = all_sequences(4, 5);
+    let limits: Vec<u32> = (0..=6).collect();
+    for (i, a) in seqs.iter().enumerate() {
+        for b in &seqs[i..] {
+            check_kernel(
+                "wavefront",
+                levenshtein_within_wavefront::<u32>,
+                a,
+                b,
+                &limits,
+            );
+        }
+    }
+}
+
+#[test]
+fn banded_bit_parallel_exhaustive_small() {
+    // A single block per pattern. The band still shifts across columns, so the window logic runs.
+    let seqs = all_sequences(3, 6);
+    let limits: Vec<u32> = (0..=7).collect();
+    for (i, a) in seqs.iter().enumerate() {
+        for b in &seqs[i..] {
+            check_kernel(
+                "myers_banded",
+                levenshtein_within_myers_banded::<u32>,
+                a,
+                b,
+                &limits,
+            );
+            check_kernel(
+                "myers_banded",
+                levenshtein_within_myers_banded::<u32>,
+                b,
+                a,
+                &limits,
+            );
+        }
+    }
+}
+
+#[test]
+fn banded_bit_parallel_multiword_boundary_lengths() {
+    // Pattern lengths on both sides of each 64-token block boundary, against mutated and independent
+    // texts, probed at thresholds around the distance and at the fixed bounds 1, 8, 32 and 128.
+    let mut rng = Rng(0xBA4D_0000_0064);
+    for &len in &[63usize, 64, 65, 127, 128, 129, 191, 192, 193] {
+        for &alpha in &[2usize, 4, 256, 0] {
+            let a = random_seq(&mut rng, len, alpha);
+            let edits = 1 + rng.below(12);
+            let b = mutate(&mut rng, &a, edits, alpha);
+            let c_len = len + rng.below(9);
+            let c = random_seq(&mut rng, c_len, alpha);
+            for other in [&b, &c] {
+                let d = levenshtein_full_dp(&a, other);
+                let mut limits = threshold_limits(d, a.len().max(other.len()));
+                limits.extend([1, 8, 32, 128]);
+                limits.sort_unstable();
+                limits.dedup();
+                check_kernel(
+                    "myers_banded",
+                    levenshtein_within_myers_banded::<u32>,
+                    &a,
+                    other,
+                    &limits,
+                );
+                check_kernel(
+                    "myers_banded",
+                    levenshtein_within_myers_banded::<u32>,
+                    other,
+                    &a,
+                    &limits,
+                );
+                check_pair(&a, other, &limits);
+            }
+        }
+    }
+}
+
+#[test]
+fn random_long_pairs_threshold_regimes() {
+    // Distances below, equal to, one above, and far above the bound, across alphabets 2, 4, 256 and sparse.
+    let mut rng = Rng(0x7E61_0E5A_0042);
+    for &alpha in &[2usize, 4, 256, 0] {
+        for round in 0..6 {
+            let len = 200 + rng.below(1800);
+            let base = random_seq(&mut rng, len, alpha);
+            let other = if round % 3 == 2 {
+                let other_len = 200 + rng.below(1800);
+                random_seq(&mut rng, other_len, alpha)
+            } else {
+                let edits = 1 + rng.below(100);
+                mutate(&mut rng, &base, edits, alpha)
+            };
+            let d = levenshtein_full_dp(&base, &other);
+            let longest = base.len().max(other.len());
+            let mut limits = Vec::new();
+            if d >= 1 {
+                limits.push(u32::try_from(d - 1).unwrap()); // d > k
+            }
+            limits.push(u32::try_from(d).unwrap()); // d == k
+            limits.push(u32::try_from(d + 1).unwrap()); // d < k
+            limits.push(u32::try_from(d.saturating_sub(10)).unwrap()); // d >> k when d is large
+            limits.push(u32::try_from(d / 2 + 1).unwrap());
+            limits.push(u32::try_from(longest + 1).unwrap());
+            limits.sort_unstable();
+            limits.dedup();
+            check_pair(&base, &other, &limits);
+            check_pair(&other, &base, &limits);
+            for &k in &[1u32, 8, 32, 128] {
+                check_kernel(
+                    "wavefront",
+                    levenshtein_within_wavefront::<u32>,
+                    &base,
+                    &other,
+                    &[k],
+                );
+                check_kernel(
+                    "myers_banded",
+                    levenshtein_within_myers_banded::<u32>,
+                    &base,
+                    &other,
+                    &[k],
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn histogram_bound_never_exceeds_distance_exhaustive() {
+    // Dense ids take the counting path. Sparse ids take the sorting path, selected by large ids.
+    let sparse = |x: u32| x.wrapping_mul(1_000_003).wrapping_add(7_000_000);
+    for (alpha, max_len) in [(3u32, 6usize), (4, 5)] {
+        let seqs = all_sequences(alpha, max_len);
+        for a in &seqs {
+            for b in &seqs {
+                let d = levenshtein_full_dp(a, b);
+                assert!(
+                    histogram_lower_bound_u32(a, b) <= d,
+                    "dense a={a:?} b={b:?}"
+                );
+                let sa: Vec<u32> = a.iter().map(|&x| sparse(x)).collect();
+                let sb: Vec<u32> = b.iter().map(|&x| sparse(x)).collect();
+                assert_eq!(
+                    histogram_lower_bound_u32(&sa, &sb),
+                    histogram_lower_bound_u32(a, b)
+                );
+                assert!(
+                    histogram_lower_bound_u32(&sa, &sb) <= d,
+                    "sparse a={a:?} b={b:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn histogram_bound_never_exceeds_distance_random() {
+    let mut rng = Rng(0x4157_0004_0001);
+    for &alpha in &[2usize, 4, 256, 0] {
+        for _ in 0..60 {
+            let a_len = rng.below(300);
+            let a = random_seq(&mut rng, a_len, alpha);
+            let b = if rng.below(2) == 0 {
+                let edits = rng.below(30);
+                mutate(&mut rng, &a, edits, alpha)
+            } else {
+                let b_len = rng.below(300);
+                random_seq(&mut rng, b_len, alpha)
+            };
+            let d = levenshtein_full_dp(&a, &b);
+            let lb = histogram_lower_bound_u32(&a, &b);
+            assert!(lb <= d, "alpha={alpha} lb={lb} d={d} a={a:?} b={b:?}");
+            assert!(histogram_lower_bound_u32(&b, &a) <= d);
+        }
+    }
+    assert_eq!(histogram_lower_bound_u32(&[1, 2, 2], &[2, 1, 2]), 0);
+    assert_eq!(histogram_lower_bound_u32(&[1, 2, 3], &[4, 5, 6]), 3);
 }
