@@ -580,6 +580,86 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
     Mapping { cost, pairs }
 }
 
+/// The window cell `(p, q)` is a pair of nodes on the left paths of both windows.
+fn is_leaf_case(p: usize, q: usize, lx: usize, ly: usize, li: usize, lj: usize) -> bool {
+    if p > 0 && q > 0 && lx == li {
+        ly == lj
+    } else {
+        false
+    }
+}
+
+/// Whether the table value `v` at `(p, q)` is explained by matching the last tree of both forests.
+#[allow(clippy::too_many_arguments)]
+fn diag_test(
+    a: &PostTree,
+    b: &PostTree,
+    fd: &[u32],
+    td: &[u32],
+    w: usize,
+    t: usize,
+    inf: u32,
+    (li, lj): (usize, usize),
+    (p, q): (usize, usize),
+    (x, y): (usize, usize),
+    (lx, ly): (usize, usize),
+    leaf_case: bool,
+    v: u32,
+) -> bool {
+    if p > 0 && q > 0 {
+        if leaf_case {
+            let rc = relabel_cost(a, b, x, y);
+            rc < 2 && eq32(get_cell(fd, w, t, inf, p - 1, q - 1) + rc, v)
+        } else {
+            let tdv = get_cell(td, w, t, inf, x, y);
+            eq32(get_cell(fd, w, t, inf, lx - li, ly - lj) + tdv, v)
+        }
+    } else {
+        false
+    }
+}
+
+/// Whether the table value `v` at `(p, q)` is explained by deleting the last node of the first forest.
+fn del_test(fd: &[u32], w: usize, t: usize, inf: u32, (p, q): (usize, usize), v: u32) -> bool {
+    if p > 0 {
+        eq32(get_cell(fd, w, t, inf, p - 1, q) + 1, v)
+    } else {
+        false
+    }
+}
+
+/// Whether the table value `v` at `(p, q)` is explained by inserting the last node of the second forest.
+fn ins_test(fd: &[u32], w: usize, t: usize, inf: u32, (p, q): (usize, usize), v: u32) -> bool {
+    if q > 0 {
+        eq32(get_cell(fd, w, t, inf, p, q - 1) + 1, v)
+    } else {
+        false
+    }
+}
+
+/// The step the traceback takes: matching the last trees, unless deleting or inserting explains the cell and
+/// matching is not preferred or not possible.
+fn choose_diag(prefer_match: bool, diag_ok: bool, del_ok: bool, ins_ok: bool) -> bool {
+    if prefer_match && diag_ok {
+        true
+    } else if del_ok {
+        false
+    } else {
+        !ins_ok
+    }
+}
+
+/// Put `(x, y)` in slot `top` of the stack, which has `top` live entries.
+fn push_slot(stack_i: &mut Vec<usize>, stack_j: &mut Vec<usize>, top: usize, x: usize, y: usize) {
+    if top == stack_i.len() {
+        stack_i.push(x);
+        stack_j.push(y);
+    } else {
+        stack_i[top] = x;
+        stack_j[top] = y;
+    }
+}
+
 /// The image in `b` of every node of `a` (both 1-based, 0 for a node without image) under an optimal mapping,
 /// recovered by tracing back through the forest tables at the exact distance `cost`.
 ///
@@ -616,33 +696,18 @@ fn traceback(a: &PostTree, b: &PostTree, cost: u32, prefer_match: bool) -> Vec<u
             let y = lj + umax(q, 1) - 1;
             let lx = a.lml[x - 1] as usize;
             let ly = b.lml[y - 1] as usize;
-            let leaf_case = p > 0 && q > 0 && lx == li && ly == lj;
-            let mut diag_ok = false;
-            if p > 0 && q > 0 {
-                if leaf_case {
-                    let rc = relabel_cost(a, b, x, y);
-                    diag_ok = rc < 2 && eq32(get_cell(&fd, w, t, inf, p - 1, q - 1) + rc, v);
-                } else {
-                    let tdv = get_cell(&td, w, t, inf, x, y);
-                    diag_ok = eq32(get_cell(&fd, w, t, inf, lx - li, ly - lj) + tdv, v);
-                }
-            }
-            let del_ok = p > 0 && eq32(get_cell(&fd, w, t, inf, p - 1, q) + 1, v);
-            let ins_ok = q > 0 && eq32(get_cell(&fd, w, t, inf, p, q - 1) + 1, v);
-            let go_diag = (prefer_match && diag_ok) || (!del_ok && !ins_ok);
+            let leaf_case = is_leaf_case(p, q, lx, ly, li, lj);
+            let diag_ok = diag_test(a, b, &fd, &td, w, t, inf, (li, lj), (p, q), (x, y), (lx, ly), leaf_case, v);
+            let del_ok = del_test(&fd, w, t, inf, (p, q), v);
+            let ins_ok = ins_test(&fd, w, t, inf, (p, q), v);
+            let go_diag = choose_diag(prefer_match, diag_ok, del_ok, ins_ok);
             if go_diag {
                 if leaf_case {
                     to_b[x] = y;
                     p -= 1;
                     q -= 1;
                 } else {
-                    if top == stack_i.len() {
-                        stack_i.push(x);
-                        stack_j.push(y);
-                    } else {
-                        stack_i[top] = x;
-                        stack_j[top] = y;
-                    }
+                    push_slot(&mut stack_i, &mut stack_j, top, x, y);
                     top += 1;
                     p = lx - li;
                     q = ly - lj;
