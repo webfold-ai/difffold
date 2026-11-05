@@ -91,9 +91,12 @@ theorem okT_out (C : Ctx) (td : List Std.U32) {x y : Nat} (hx : 1 ≤ x) (hy : 1
 def LeafPair (C : Ctx) (x y : Nat) : Prop := C.la x = C.li ∧ C.lb y = C.lj
 
 /-- Pairs whose subtree-distance entry is final once the window cells before `(p, q)` are done. -/
-def Done (C : Ctx) (p q x y : Nat) : Prop :=
+def Done0 (C : Ctx) (p q x y : Nat) : Prop :=
   x ≤ C.i0 ∧ y ≤ C.j0 ∧ (¬ C.LeafPair x y ∨
     (C.LeafPair x y ∧ (x < C.li + p - 1 ∨ (x = C.li + p - 1 ∧ y < C.lj + q - 1))))
+
+/-- Done pairs lie inside the subtrees of the two window roots. -/
+def Done (C : Ctx) (p q x y : Nat) : Prop := C.li ≤ x ∧ C.lj ≤ y ∧ C.Done0 p q x y
 
 /-- The subtree-distance table: never below the capped truth, never above `inf`, exact for done pairs. -/
 def TdInv (C : Ctx) (td : List Std.U32) (p q : Nat) : Prop :=
@@ -152,7 +155,7 @@ theorem cellNew_fok (C : Ctx) (hG : C.Good) (fd td : List Std.U32) {p q : Nat} (
       (by have := hG.j0b; omega)
     refine cell_truth_nonleaf hG.wa hG.wb hli hlj hp hq hcA hcB hl hF1 hF2 hF3 ⟨hTx.1.1, hTx.1.2, ?_⟩
     intro hb
-    refine hTx.2 ⟨hxi, hyj, Or.inl hl⟩ hb
+    refine hTx.2 ⟨by omega, by omega, hxi, hyj, Or.inl hl⟩ hb
 
 
 /-- A pair whose subtree distance fits the remaining budget lies in the band `|x - y| <= t`. -/
@@ -192,9 +195,9 @@ theorem TD_eq_Dw (C : Ctx) {p q : Nat} (hp : 1 ≤ p) (hq : 1 ≤ q) (hli : 1 �
     TD C.la C.lb C.ren (C.li + p - 1) (C.lj + q - 1) = Dw C.la C.lb C.ren C.li C.lj p q := by
   unfold TD Dw; rw [hlx, hly]
 
-theorem done_succ (C : Ctx) {p q x y : Nat} (hq : 1 ≤ q) (h : C.Done p (q + 1) x y) :
-    C.Done p q x y ∨ (x = C.li + p - 1 ∧ y = C.lj + q - 1 ∧ C.LeafPair x y) := by
-  unfold Done at *
+theorem done_succ (C : Ctx) {p q x y : Nat} (hq : 1 ≤ q) (h : C.Done0 p (q + 1) x y) :
+    C.Done0 p q x y ∨ (x = C.li + p - 1 ∧ y = C.lj + q - 1 ∧ C.LeafPair x y) := by
+  unfold Done0 at *
   obtain ⟨h1, h2, h3⟩ := h
   rcases h3 with h3 | ⟨h3, h4 | ⟨h4, h5⟩⟩
   · exact Or.inl ⟨h1, h2, Or.inl h3⟩
@@ -270,14 +273,16 @@ theorem inner_step (C : Ctx) (hG : C.Good) (hw : C.w = 2 * C.t + 1) (fd td fd' t
         rw [hteq, hne]
         refine ⟨hold.1, ?_⟩
         intro hd hb
-        rcases done_succ C hq hd with hd' | ⟨h1, h2, h3⟩
-        · exact hold.2 hd' hb
+        obtain ⟨hd1, hd2, hd0⟩ := hd
+        rcases done_succ C hq hd0 with hd' | ⟨h1, h2, h3⟩
+        · exact hold.2 ⟨hd1, hd2, hd'⟩ hb
         · exact absurd ⟨h1, h2⟩ e
     · rw [htd2 hc]
       refine ⟨hold.1, ?_⟩
       intro hd hb
-      rcases done_succ C hq hd with hd' | ⟨h1, h2, h3⟩
-      · exact hold.2 hd' hb
+      obtain ⟨hd1, hd2, hd0⟩ := hd
+      rcases done_succ C hq hd0 with hd' | ⟨h1, h2, h3⟩
+      · exact hold.2 ⟨hd1, hd2, hd'⟩ hb
       · subst h1; subst h2
         exact absurd (band_of_budget C hG.wa hG.wb (by omega) (by omega) hb) (fun hb' => hc ⟨h3, hb'⟩)
   · rw [hfd']; exact FdB_set hFB _ _ hvle
@@ -512,11 +517,12 @@ theorem td_start (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {
   intro x y hx1 hx2 hy1 hy2
   have hold := hT x y hx1 hx2 hy1 hy2
   refine ⟨hold.1, fun hd hb => ?_⟩
-  by_cases hd1 : C.Done p 1 x y
-  · exact hold.2 hd1 hb
+  obtain ⟨hda, hdb, hd⟩ := hd
+  by_cases hd1 : C.Done0 p 1 x y
+  · exact hold.2 ⟨hda, hdb, hd1⟩ hb
   · exfalso
     obtain ⟨h1, h2, h3⟩ := hd
-    unfold Ctx.Done at hd1
+    unfold Ctx.Done0 at hd1
     rcases h3 with h3 | ⟨h3, h4 | ⟨h4, h5⟩⟩
     · exact hd1 ⟨h1, h2, Or.inl h3⟩
     · exact hd1 ⟨h1, h2, Or.inr ⟨h3, Or.inl h4⟩⟩
@@ -552,11 +558,11 @@ theorem td_end (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {td
   intro x y hx1 hx2 hy1 hy2
   have hold := hT x y hx1 hx2 hy1 hy2
   refine ⟨hold.1, fun hd hb => ?_⟩
-  obtain ⟨h1, h2, h3⟩ := hd
-  by_cases hdn : C.Done p (qhi + 1) x y
-  · exact hold.2 hdn hb
+  obtain ⟨hda, hdb, h1, h2, h3⟩ := hd
+  by_cases hdn : C.Done0 p (qhi + 1) x y
+  · exact hold.2 ⟨hda, hdb, hdn⟩ hb
   · exfalso
-    unfold Ctx.Done at hdn
+    unfold Ctx.Done0 at hdn
     rcases h3 with h3 | ⟨h3, h4⟩
     · exact hdn ⟨h1, h2, Or.inl h3⟩
     · have hly := (hG.wb.1 y hy1).2
@@ -612,11 +618,12 @@ theorem exit_final (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
   intro x y hx1 hx2 hy1 hy2
   have hold := hT x y hx1 hx2 hy1 hy2
   refine ⟨hold.1, fun hd hb => ?_⟩
-  by_cases hdn : C.Done p (qhi + 1) x y
-  · exact hold.2 hdn hb
+  obtain ⟨hda, hdb, hd⟩ := hd
+  by_cases hdn : C.Done0 p (qhi + 1) x y
+  · exact hold.2 ⟨hda, hdb, hdn⟩ hb
   · exfalso
     obtain ⟨h1, h2, h3⟩ := hd
-    unfold Ctx.Done at hdn
+    unfold Ctx.Done0 at hdn
     rcases h3 with h3 | ⟨h3, h4⟩
     · exact hdn ⟨h1, h2, Or.inl h3⟩
     · have hly := (hG.wb.1 y hy1).2

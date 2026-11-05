@@ -47,6 +47,27 @@ theorem trim_slices (a b : List U32) (s e : Nat)
           simp [vals, List.getElem?_map, hy])
   simpa [vals_len, vals_take, vals_drop] using this
 
+theorem setSlice_splice (l d : List Bool) (i : Nat) (h : i + d.length ≤ l.length) :
+    l.setSlice! i d = Myers.splice l i d := by
+  have : min d.length (l.length - i) = d.length := by omega
+  unfold List.setSlice! Myers.splice
+  simp only []
+  rw [this, List.take_length]
+
+theorem splice_trim_all (l core : List Bool) (i p s : Nat) (hb : i + (p + core.length + s) ≤ l.length)
+    (hf : ∀ j, j < p + core.length + s → l[i + j]? = some false) :
+    Myers.splice l i (List.replicate p false ++ core ++ List.replicate s false) = Myers.splice l (i + p) core :=
+  Myers.splice_trim l core i p s (by omega) (fun j hj => hf j (by omega)) (fun j hj => by
+    have := hf (p + core.length + j) (by omega)
+    rwa [show i + (p + core.length + j) = i + p + core.length + j by omega] at this)
+
+/-- What `solve` achieves: the model flags, written into the two flag arrays, scratch arrays keep their size. -/
+def SolvePost (A B : List Nat) (ao bo : Usize) (ra rb : Slice Bool) (vf vb : Slice I32)
+    (r : Slice Bool × Slice Bool × Slice I32 × Slice I32) : Prop :=
+  ∃ da di, Myers.Solve Myers.mid A B da di ∧
+    r.1.val = Myers.splice ra.val ao.val da ∧ r.2.1.val = Myers.splice rb.val bo.val di ∧
+    r.2.2.1.val.length = vf.val.length ∧ r.2.2.2.val.length = vb.val.length
+
 theorem solve_spec :
     ∀ (N : Nat) (a b : Slice U32) (A B : List Nat) (ao bo : Usize) (ra rb : Slice Bool) (vf vb : Slice I32),
     A.length + B.length = N → vals a.val = A → vals b.val = B → A.length + B.length ≤ NMAX →
@@ -54,9 +75,7 @@ theorem solve_spec :
     (∀ j, j < A.length → ra.val[ao.val + j]? = some false) →
     (∀ j, j < B.length → rb.val[bo.val + j]? = some false) →
     2 * (A.length + B.length) + 3 ≤ vf.val.length → 2 * (A.length + B.length) + 3 ≤ vb.val.length →
-    lines.solve a b ao bo ra rb vf vb ⦃ r => ∃ da di, Myers.Solve Myers.mid A B da di ∧
-      r.1.val = Myers.splice ra.val ao.val da ∧ r.2.1.val = Myers.splice rb.val bo.val di ∧
-      r.2.2.1.val.length = vf.val.length ∧ r.2.2.2.val.length = vb.val.length ⦄ := by
+    lines.solve a b ao bo ra rb vf vb ⦃ r => SolvePost A B ao bo ra rb vf vb r ⦄ := by
   intro N
   induction N using Nat.strongRecOn with
   | _ N ih =>
@@ -109,7 +128,76 @@ theorem solve_spec :
     have := congrArg List.length hT.2.1; simp at this; omega
   have hao1v : ao1.val = ao.val + s.val := hao1
   have hbo1v : bo1.val = bo.val + s.val := hbo1
-  trace_state
-  sorry
+  clear hs1 hs2 he1 he2 hs1a hs2a hs1b hs2b hTrim ha1v hb1v ha1' hb1' hi1 hi3
+  split
+  · rename_i hb2t
+    have hA1e : A1 = [] := by
+      have h0 : a1.length = 0 := by rw [hb2] at hb2t; simpa using hb2t
+      have : A1.length = 0 := by rw [hA1l]; simpa [Slice.length] using h0
+      exact List.length_eq_zero_iff.mp this
+    subst hA1e
+    have hb1e : b1.val.length = B1.length := hB1l.symm
+    step as ⟨i5, hi5⟩
+    step as ⟨s3, bk, hs3v, hs3l, hbk⟩
+    step as ⟨s4, hs4l, hs4v⟩
+    try simp only [Aeneas.Std.WP.spec_ok]
+    unfold SolvePost
+    have hAl' : A.length = p.length + 0 + sf.length := by
+      have := congrArg List.length hT.1; simpa using this
+    have hBl' : B.length = p.length + B1.length + sf.length := by
+      have := congrArg List.length hT.2.1; simp at this; omega
+    refine ⟨_, _, Myers.Solve.emptyA hT, ?_, ?_, rfl, rfl⟩
+    · rw [splice_trim_all ra.val [] ao.val p.length sf.length (by simp; omega) (by
+        intro j hj; exact hfa j (by omega)), Myers.splice_nil]
+    · have hi5v : i5.val = bo1.val + b1.val.length := by rw [hi5]; simp [Slice.len]
+      have hs3len : s3.val.length = B1.length := by
+        have : s3.length = i5.val - bo1.val := hs3l
+        simp only [Slice.length] at this; omega
+      rw [hbk, Slice.setSlice!_val, hs4v]
+      simp only [Slice.length] at hs3len ⊢
+      rw [hs3len]
+      rw [setSlice_splice _ _ _ (by simp; omega)]
+      rw [splice_trim_all rb.val (List.replicate B1.length true) bo.val p.length sf.length (by rw [List.length_replicate]; omega) (by
+        intro j hj; exact hfb j (by rw [List.length_replicate] at hj; omega))]
+      rw [hbo1v, hpl]
+  · rename_i hb2f
+    have hA1ne : A1 ≠ [] := by
+      intro h
+      have h0 : a1.length = 0 := by
+        have : a1.val.length = 0 := by rw [← hA1l, h]; rfl
+        simpa [Slice.length] using this
+      apply hb2f; rw [hb2]; simpa using h0
+    step as ⟨b3, hb3⟩
+    split
+    · rename_i hb3t
+      have hB1e : B1 = [] := by
+        have h0 : b1.length = 0 := by rw [hb3] at hb3t; simpa using hb3t
+        have : B1.length = 0 := by rw [hB1l]; simpa [Slice.length] using h0
+        exact List.length_eq_zero_iff.mp this
+      subst hB1e
+      step as ⟨i5, hi5⟩
+      step as ⟨s3, bk, hs3v, hs3l, hbk⟩
+      step as ⟨s4, hs4l, hs4v⟩
+      try simp only [Aeneas.Std.WP.spec_ok]
+      unfold SolvePost
+      have hAl' : A.length = p.length + A1.length + sf.length := by
+        have := congrArg List.length hT.1; simp at this; omega
+      have hBl' : B.length = p.length + 0 + sf.length := by
+        have := congrArg List.length hT.2.1; simpa using this
+      refine ⟨_, _, Myers.Solve.emptyB hT, ?_, ?_, rfl, rfl⟩
+      · have hi5v : i5.val = ao1.val + a1.val.length := by rw [hi5]; simp [Slice.len]
+        have hs3len : s3.val.length = A1.length := by
+          have : s3.length = i5.val - ao1.val := hs3l
+          simp only [Slice.length] at this; omega
+        rw [hbk, Slice.setSlice!_val, hs4v]
+        simp only [Slice.length] at hs3len ⊢
+        rw [hs3len]
+        rw [setSlice_splice _ _ _ (by simp; omega)]
+        rw [splice_trim_all ra.val (List.replicate A1.length true) ao.val p.length sf.length (by rw [List.length_replicate]; omega) (by
+          intro j hj; exact hfa j (by rw [List.length_replicate] at hj; omega))]
+        rw [hao1v, hpl]
+      · rw [splice_trim_all rb.val [] bo.val p.length sf.length (by simp; omega) (by
+          intro j hj; exact hfb j (by omega)), Myers.splice_nil]
+    · sorry
 
 end difffold_myers_extract
