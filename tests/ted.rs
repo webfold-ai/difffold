@@ -321,7 +321,7 @@ fn legal(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> bool {
 
 #[test]
 fn the_checker_accepts_exactly_the_legal_mappings() {
-    use difffold::ted::check_mapping;
+    use difffold::ted::{check_mapping, replay_script};
     let mut r = Rng(0x1234_5678_9abc_def1);
     let (mut yes, mut no) = (0, 0);
     for round in 0..20000 {
@@ -339,6 +339,11 @@ fn the_checker_accepts_exactly_the_legal_mappings() {
             .collect();
         let ok = check_mapping(&pa, &pb, &pairs).is_ok();
         assert_eq!(ok, legal(&pa, &pb, &pairs), "round {round}: {a:?} {b:?} {pairs:?}");
+        let replayed = replay_script(&pa, &pb, &pairs);
+        assert_eq!(replayed.is_ok(), ok, "round {round}: replay {a:?} {b:?} {pairs:?}");
+        if ok {
+            assert_eq!(replayed.unwrap(), check_mapping(&pa, &pb, &pairs).unwrap());
+        }
         if ok {
             yes += 1;
         } else {

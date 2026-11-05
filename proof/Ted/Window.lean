@@ -701,11 +701,18 @@ theorem rowmin_if_spec (fd : Slice Std.U32) (w t : Std.Usize) (inf : Std.U32) (p
     have hp : ¬ p.val ≤ t.val := h
     simp only [WP.spec_ok, hp, ↓reduceIte]
 
+theorem Ctx.rows_out (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {fd : List Std.U32} {p1 : Nat}
+    (hR : C.RowsInv fd p1 1) (hbig : C.sj + C.t < p1) : C.RowsInv fd (C.si + 1) 1 := by
+  intro p' q' hp' hq' hc
+  by_cases hlt : p' < p1
+  · exact hR p' q' hp' hq' (Or.inl hlt)
+  · exact Ctx.okF_out C fd hli hlj p' q' (by unfold InBand; omega)
+
 /-- The row loop of `fill_window`. -/
 theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Link a b)
     (hw : C.w = 2 * C.t + 1) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
     (tau : Std.U32) (t : Std.Usize) (inf : Std.U32) (w li lj si sj : Std.Usize)
-    (td fd : Slice Std.U32) (st : ted.Stats) (q p : Std.Usize) (td0 : List Std.U32)
+    (td fd : Slice Std.U32) (stop : Bool) (st : ted.Stats) (q p : Std.Usize) (td0 : List Std.U32)
     (htau : tau.val = C.t) (ht : t.val = C.t) (hinf : inf.val = C.inf) (hww : w.val = C.w)
     (hlii : li.val = C.li) (hljj : lj.val = C.lj) (hsi : si.val = C.si) (hsj : sj.val = C.sj)
     (hp1 : 1 ≤ p.val) (hp2 : p.val ≤ C.si + 1)
@@ -713,20 +720,21 @@ theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C
     (hR : C.RowsInv fd.val p.val 1) (hT : C.TdInv td.val p.val 1)
     (hFB : Ctx.FdB fd.val C.inf) (hTB : Ctx.FdB td.val C.inf) (hFr : C.Frame td0 td.val) :
     ted.fill_window_loop2 a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind
-      td fd tau st t inf w li lj si sj q p ⦃ r =>
+      td fd tau stop st t inf w li lj si sj q p ⦃ r =>
       r.1.val.length = td.val.length ∧ Ctx.FdB r.1.val C.inf ∧ C.TdInv r.1.val (C.si + 1) 1 ∧
-        C.Frame td0 r.1.val ∧ r.2.1.val.length = fd.val.length ∧ Ctx.FdB r.2.1.val C.inf ⦄ := by
+        C.Frame td0 r.1.val ∧ r.2.1.val.length = fd.val.length ∧ Ctx.FdB r.2.1.val C.inf ∧
+        (stop = false → C.RowsInv r.2.1.val (C.si + 1) 1) ⦄ := by
   unfold ted.fill_window_loop2
   apply loop.spec_decr_nat
-    (measure := fun s => C.si + 1 - s.2.2.2.2.val)
-    (inv := fun s => 1 ≤ s.2.2.2.2.val ∧ s.2.2.2.2.val ≤ C.si + 1 ∧
+    (measure := fun s => C.si + 1 - s.2.2.2.2.2.val)
+    (inv := fun s => s.2.2.1 = stop ∧ 1 ≤ s.2.2.2.2.2.val ∧ s.2.2.2.2.2.val ≤ C.si + 1 ∧
       s.1.val.length = td.val.length ∧ s.2.1.val.length = fd.val.length ∧
-      C.RowsInv s.2.1.val s.2.2.2.2.val 1 ∧ C.TdInv s.1.val s.2.2.2.2.val 1 ∧
+      C.RowsInv s.2.1.val s.2.2.2.2.2.val 1 ∧ C.TdInv s.1.val s.2.2.2.2.2.val 1 ∧
       Ctx.FdB s.2.1.val C.inf ∧ Ctx.FdB s.1.val C.inf ∧ C.Frame td0 s.1.val)
   · intro s hs
-    obtain ⟨td1, fd1, st1, q1, p1⟩ := s
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hs
-    dsimp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 ⊢
+    obtain ⟨td1, fd1, stop1, st1, q1, p1⟩ := s
+    obtain ⟨hst, h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hs
+    dsimp only at hst h1 h2 h3 h4 h5 h6 h7 h8 h9 ⊢
     unfold ted.fill_window_loop2.body
     by_cases hpp : p1 ≤ si
     · rw [if_pos hpp]
@@ -798,20 +806,30 @@ theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C
         dsimp only at k1 k2 k3 k4 k5 k6 k7 k8 k9
         have hnq : ¬ qlo > qhi := by have : qlo.val ≤ qhi.val := hnev; intro h; have : qhi.val < qlo.val := h; omega
         show (if qlo > qhi then ok (done (td2, fd2, st2)) else
-          (if rm2 > tau then ok (done (td2, fd2, st2))
-          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, st2, q2, p1'))))) ⦃ _ ⦄
+          (if stop1 then (if rm2 > tau then ok (done (td2, fd2, st2))
+            else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, true, st2, q2, p1'))))
+          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, false, st2, q2, p1'))))) ⦃ _ ⦄
         simp only [if_neg hnq]
-        show (if rm2 > tau then ok (done (td2, fd2, st2))
-          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, st2, q2, p1')))) ⦃ _ ⦄
-        by_cases hrm : rm2 > tau
-        · simp only [if_pos hrm]
-          simp only [WP.spec_ok]
-          have hrmv : C.t < rm2.val := by have : tau.val < rm2.val := hrm; omega
-          have hall := Ctx.hall_of_rowmin C hli hlj k4 k8 hpps hqhiv hqlov hrmv
-          exact ⟨by rw [k2, h3], k7, Ctx.exit_final C hG hli hlj h1 hpps hall k5, k9, by rw [k3, h4], k6⟩
-        · simp only [if_neg hrm]
+        by_cases hs : stop1 = true
+        · rw [if_pos hs]
+          by_cases hrm : rm2 > tau
+          · simp only [if_pos hrm]
+            simp only [WP.spec_ok]
+            have hrmv : C.t < rm2.val := by have : tau.val < rm2.val := hrm; omega
+            have hall := Ctx.hall_of_rowmin C hli hlj k4 k8 hpps hqhiv hqlov hrmv
+            exact ⟨by rw [k2, h3], k7, Ctx.exit_final C hG hli hlj h1 hpps hall k5, k9, by rw [k3, h4], k6,
+              fun h => absurd (hst ▸ hs) (by simp [h])⟩
+          · simp only [if_neg hrm]
+            step as ⟨p2, hp2'⟩
+            refine ⟨hs ▸ hst, by omega, by omega, by rw [k2, h3], by rw [k3, h4], ?_, ?_, k6, k7, k9, by omega⟩
+            · have := Ctx.rows_end C hli hlj hqhiv k4
+              rw [hp2']; exact this
+            · have := Ctx.td_end C hG hli hlj h1 hqhiv k5
+              rw [hp2']; exact this
+        · rw [if_neg hs]
+          have hsf : stop1 = false := by simpa using hs
           step as ⟨p2, hp2'⟩
-          refine ⟨by omega, by omega, by rw [k2, h3], by rw [k3, h4], ?_, ?_, k6, k7, k9, by omega⟩
+          refine ⟨hsf ▸ hst, by omega, by omega, by rw [k2, h3], by rw [k3, h4], ?_, ?_, k6, k7, k9, by omega⟩
           · have := Ctx.rows_end C hli hlj hqhiv k4
             rw [hp2']; exact this
           · have := Ctx.td_end C hG hli hlj h1 hqhiv k5
@@ -829,20 +847,22 @@ theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C
         subst e1 e2
         have hqq : qlo > qhi := by have : ¬ qlo.val ≤ qhi.val := hemp; show qhi.val < qlo.val; omega
         show (if qlo > qhi then ok (done (td2, fd2, st2)) else
-          (if rm2 > tau then ok (done (td2, fd2, st2))
-          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, st2, q2, p1'))))) ⦃ _ ⦄
+          (if stop1 then (if rm2 > tau then ok (done (td2, fd2, st2))
+            else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, true, st2, q2, p1'))))
+          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, false, st2, q2, p1'))))) ⦃ _ ⦄
         simp only [if_pos hqq]
         simp only [WP.spec_ok]
         have hall := Ctx.hall_of_small C hli hlj hbig
-        exact ⟨h3, h8, Ctx.exit_final C hG hli hlj h1 hpps hall (qhi := 0) h6, h9, h4, h7⟩
+        exact ⟨h3, h8, Ctx.exit_final C hG hli hlj h1 hpps hall (qhi := 0) h6, h9, h4, h7,
+          fun _ => Ctx.rows_out C hli hlj h5 hbig⟩
     · rw [if_neg hpp]
       simp only [WP.spec_ok]
       have : p1.val = C.si + 1 := by
         have : ¬ p1.val ≤ si.val := hpp
         omega
-      rw [this] at h6
-      exact ⟨h3, h8, h6, h9, h4, h7⟩
-  · exact ⟨hp1, hp2, rfl, rfl, hR, hT, hFB, hTB, hFr⟩
+      rw [this] at h6 h5
+      exact ⟨h3, h8, h6, h9, h4, h7, fun _ => h5⟩
+  · exact ⟨rfl, hp1, hp2, rfl, rfl, hR, hT, hFB, hTB, hFr⟩
 
 
 theorem cast_u32_usize (q : Std.Usize) (h : q.val < 2 ^ 32) : (UScalar.cast .U32 q).val = q.val := by
@@ -1019,13 +1039,14 @@ theorem init_rows (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (fd : List Std
 /-- One window of the forest-distance computation. -/
 theorem fill_window_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Link a b)
     (hw : C.w = 2 * C.t + 1) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
-    (td fd : Slice Std.U32) (st : ted.Stats) (i0 j0 : Std.Usize) (tau : Std.U32)
+    (td fd : Slice Std.U32) (stop : Bool) (st : ted.Stats) (i0 j0 : Std.Usize) (tau : Std.U32)
     (hi0 : i0.val = C.i0) (hj0 : j0.val = C.j0) (htau : tau.val = C.t)
     (hfdlen : (C.si + 1) * C.w ≤ fd.val.length) (htdlen : (C.n + 1) * C.w ≤ td.val.length)
     (hFB : Ctx.FdB fd.val C.inf) (hTB : Ctx.FdB td.val C.inf) (hT : C.TdInv td.val 1 1) :
-    ted.fill_window a b td fd (i0, j0) tau st ⦃ r =>
+    ted.fill_window a b td fd (i0, j0) tau stop st ⦃ r =>
       r.1.val.length = td.val.length ∧ Ctx.FdB r.1.val C.inf ∧ C.TdInv r.1.val (C.si + 1) 1 ∧
-        C.Frame td.val r.1.val ∧ r.2.1.val.length = fd.val.length ∧ Ctx.FdB r.2.1.val C.inf ⦄ := by
+        C.Frame td.val r.1.val ∧ r.2.1.val.length = fd.val.length ∧ Ctx.FdB r.2.1.val C.inf ∧
+        (stop = false → C.RowsInv r.2.1.val (C.si + 1) 1) ⦄ := by
   unfold ted.fill_window
   have hn := hK.nbig
   have hm := hK.mbig
@@ -1117,11 +1138,11 @@ theorem fill_window_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Li
     · intro k hk1 hk2
       rw [hinfdef]; exact l3 k hk1 (by omega)
   have hsi1 : C.si + 1 ≥ 1 := by omega
-  refine WP.spec_mono (fill_rows_loop_spec C hG a b hK hw hli hlj tau t inf w li lj si sj td fd2 st q1 1#usize td.val
+  refine WP.spec_mono (fill_rows_loop_spec C hG a b hK hw hli hlj tau t inf w li lj si sj td fd2 stop st q1 1#usize td.val
     htau htv hinfv hwv hlie hlje hsiv hsjv (by simp) (by simp)
     (by rw [l1, k1, hslen]; exact hfdlen) htdlen hR hT l2 hTB (fun _ _ _ => rfl)) ?_
   intro r hr
-  obtain ⟨r1, r2, r3, r4, r5, r6⟩ := hr
-  exact ⟨r1, r2, r3, r4, by rw [r5, l1, k1, hslen], r6⟩
+  obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hr
+  exact ⟨r1, r2, r3, r4, by rw [r5, l1, k1, hslen], r6, r7⟩
 
 end difffold_lines_extract

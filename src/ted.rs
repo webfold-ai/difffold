@@ -383,6 +383,14 @@ fn adiff(x: usize, y: usize) -> usize {
 
 /// The smaller of two `u32`.
 #[inline]
+fn eq32(x: u32, y: u32) -> bool {
+    if x == y {
+        true
+    } else {
+        false
+    }
+}
+
 fn min32(x: u32, y: u32) -> u32 {
     if x <= y {
         x
@@ -558,75 +566,109 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
             pairs: Vec::new(),
         };
     }
-    let (n, m) = (a.len(), b.len());
+    let to_b = traceback(a, b, cost, prefer_match);
+    let n = a.len();
+    let mut pairs = Vec::new();
+    let mut x = 1;
+    while x <= n {
+        let y = to_b[x];
+        if y != 0 {
+            pairs.push((x as u32, y as u32));
+        }
+        x += 1;
+    }
+    Mapping { cost, pairs }
+}
+
+/// The image in `b` of every node of `a` (both 1-based, 0 for a node without image) under an optimal mapping,
+/// recovered by tracing back through the forest tables at the exact distance `cost`.
+///
+/// The stack holds the pairs of subtrees whose forest tables still have to be traced; `top` entries are live.
+fn traceback(a: &PostTree, b: &PostTree, cost: u32, prefer_match: bool) -> Vec<usize> {
+    let n = a.label.len();
+    let m = b.label.len();
     let mut st = Stats::default();
-    let (d, mut td) = within_td(a, b, cost, &mut st);
-    debug_assert_eq!(d, Some(cost));
+    let (_d, mut td) = within_td(a, b, cost, &mut st);
     let t = cost as usize;
     let inf = cost + 1;
     let w = 2 * t + 1;
-    let tdi = |x: usize, y: usize| x * w + (y + t - x);
-    let mut pairs = Vec::new();
-    let mut stack = vec![(n, m)];
-    while let Some((i, j)) = stack.pop() {
-        let (li, lj) = (a.lml[i - 1] as usize, b.lml[j - 1] as usize);
-        let (si, sj) = (i - li + 1, j - lj + 1);
-        let fdi = |p: usize, q: usize| p * w + (q + t - p);
+    let mut to_b = vec![0usize; n + 1];
+    let mut stack_i = Vec::new();
+    let mut stack_j = Vec::new();
+    stack_i.push(n);
+    stack_j.push(m);
+    let mut top = 1;
+    while top > 0 {
+        top -= 1;
+        let i = stack_i[top];
+        let j = stack_j[top];
+        let li = a.lml[i - 1] as usize;
+        let lj = b.lml[j - 1] as usize;
+        let si = i - li + 1;
+        let sj = j - lj + 1;
         let mut fd = vec![inf; (si + 1) * w];
         fill_window(a, b, &mut td, &mut fd, (i, j), cost, false, &mut st);
-        let get = |p: usize, q: usize| {
-            if p.abs_diff(q) <= t {
-                fd[fdi(p, q)]
-            } else {
-                inf
-            }
-        };
-        let (mut p, mut q) = (si, sj);
+        let mut p = si;
+        let mut q = sj;
         while p > 0 || q > 0 {
-            let v = get(p, q);
-            let (x, y) = (li + p.max(1) - 1, lj + q.max(1) - 1);
-            let leaf_case =
-                p > 0 && q > 0 && a.lml[x - 1] as usize == li && b.lml[y - 1] as usize == lj;
-            // The diagonal candidate: relabel or match a whole pair, or a subtree pair through the table.
-            let diag_ok = if p == 0 || q == 0 {
-                false
-            } else if leaf_case {
-                relabel_cost(a, b, x, y) < 2 && get(p - 1, q - 1) + relabel_cost(a, b, x, y) == v
-            } else {
-                let tdv = if x.abs_diff(y) <= t {
-                    td[tdi(x, y)]
+            let v = get_cell(&fd, w, t, inf, p, q);
+            let x = li + umax(p, 1) - 1;
+            let y = lj + umax(q, 1) - 1;
+            let lx = a.lml[x - 1] as usize;
+            let ly = b.lml[y - 1] as usize;
+            let leaf_case = p > 0 && q > 0 && lx == li && ly == lj;
+            let mut diag_ok = false;
+            if p > 0 && q > 0 {
+                if leaf_case {
+                    let rc = relabel_cost(a, b, x, y);
+                    diag_ok = rc < 2 && eq32(get_cell(&fd, w, t, inf, p - 1, q - 1) + rc, v);
                 } else {
-                    inf
-                };
-                get(a.lml[x - 1] as usize - li, b.lml[y - 1] as usize - lj) + tdv == v
-            };
+                    let tdv = get_cell(&td, w, t, inf, x, y);
+                    diag_ok = eq32(get_cell(&fd, w, t, inf, lx - li, ly - lj) + tdv, v);
+                }
+            }
+            let del_ok = p > 0 && eq32(get_cell(&fd, w, t, inf, p - 1, q) + 1, v);
+            let ins_ok = q > 0 && eq32(get_cell(&fd, w, t, inf, p, q - 1) + 1, v);
             if prefer_match && diag_ok {
                 if leaf_case {
-                    pairs.push((x as u32, y as u32));
+                    to_b[x] = y;
                     p -= 1;
                     q -= 1;
                 } else {
-                    stack.push((x, y));
-                    p = a.lml[x - 1] as usize - li;
-                    q = b.lml[y - 1] as usize - lj;
+                    if top == stack_i.len() {
+                        stack_i.push(x);
+                        stack_j.push(y);
+                    } else {
+                        stack_i[top] = x;
+                        stack_j[top] = y;
+                    }
+                    top += 1;
+                    p = lx - li;
+                    q = ly - lj;
                 }
-            } else if p > 0 && get(p - 1, q) + 1 == v {
+            } else if del_ok {
                 p -= 1;
-            } else if q > 0 && get(p, q - 1) + 1 == v {
+            } else if ins_ok {
                 q -= 1;
             } else if leaf_case {
-                pairs.push((x as u32, y as u32));
+                to_b[x] = y;
                 p -= 1;
                 q -= 1;
             } else {
-                stack.push((x, y));
-                p = a.lml[x - 1] as usize - li;
-                q = b.lml[y - 1] as usize - lj;
+                if top == stack_i.len() {
+                    stack_i.push(x);
+                    stack_j.push(y);
+                } else {
+                    stack_i[top] = x;
+                    stack_j[top] = y;
+                }
+                top += 1;
+                p = lx - li;
+                q = ly - lj;
             }
         }
     }
-    pairs.sort_unstable();
-    Mapping { cost, pairs }
+    to_b
 }
 
 /// The verdict of [`check_core`].
@@ -751,163 +793,119 @@ pub fn check_mapping(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
     }
 }
 
-struct RNode {
-    label: u32,
-    kids: Vec<usize>,
-    parent: usize,
-    /// The 1-based node of `b` this node corresponds to, 0 if none.
-    bid: usize,
-    alive: bool,
+/// The verdict of [`replay_core`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Replay {
+    /// The script turns `a` into `b`; the payload is its number of unit operations.
+    Ops(u32),
+    /// The pair `(x, y)` names a node outside the trees.
+    Range(usize, usize),
+    /// The pair `(x, y)` reuses a node already mapped.
+    Dup(usize, usize),
+    /// The nodes of `a` do not keep their order: the image `y` of `x` is not above the earlier images.
+    Order(usize, usize),
+    /// After the deletions the subtree of `x` holds a different number of surviving nodes than the subtree
+    /// of its image `y` will hold before the insertions.
+    Shape(usize, usize),
+}
+
+/// The checker behind [`replay_script`].
+///
+/// An ordered tree in postorder is determined by its node sequence and, for each node, the number of nodes in
+/// its subtree (equivalently its leftmost leaf). Deleting a node with promotion of its children removes it
+/// from the sequence and shrinks the subtrees that contained it, so after the deletions of all unmapped nodes
+/// of `a` the surviving nodes are the mapped ones and the subtree of a survivor `x` holds the mapped nodes of
+/// its old subtree. The insertions of the unmapped nodes of `b` then produce `b` exactly when the survivors,
+/// taken in order, are the images in order, each with the subtree size it will have in `b` among the images.
+/// Relabels cost their relabel cost, deletions and insertions one each.
+pub fn replay_core(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Replay {
+    let n = a.label.len();
+    let m = b.label.len();
+    let mut to_b = vec![0usize; n + 1];
+    let mut to_a = vec![0usize; m + 1];
+    let mut verdict = Replay::Ops(0);
+    let mut ok = true;
+    let mut i = 0;
+    while ok && i < pairs.len() {
+        let x = pairs[i].0 as usize;
+        let y = pairs[i].1 as usize;
+        if x == 0 || x > n || y == 0 || y > m {
+            verdict = Replay::Range(x, y);
+            ok = false;
+        } else if to_b[x] != 0 || to_a[y] != 0 {
+            verdict = Replay::Dup(x, y);
+            ok = false;
+        } else {
+            to_b[x] = y;
+            to_a[y] = x;
+            i += 1;
+        }
+    }
+    if !ok {
+        return verdict;
+    }
+    let mut cnt_a = vec![0usize; n + 1];
+    let mut x = 1;
+    while x <= n {
+        let c = cnt_a[x - 1];
+        cnt_a[x] = if to_b[x] != 0 { c + 1 } else { c };
+        x += 1;
+    }
+    let mut cnt_b = vec![0usize; m + 1];
+    let mut y = 1;
+    while y <= m {
+        let c = cnt_b[y - 1];
+        cnt_b[y] = if to_a[y] != 0 { c + 1 } else { c };
+        y += 1;
+    }
+    let mut ops = 0u32;
+    let mut prev = 0;
+    x = 1;
+    while ok && x <= n {
+        let y = to_b[x];
+        if y == 0 {
+            ops += 1;
+            x += 1;
+        } else if y <= prev {
+            verdict = Replay::Order(x, y);
+            ok = false;
+        } else {
+            prev = y;
+            let sa = cnt_a[x] - cnt_a[a.lml[x - 1] as usize - 1];
+            let sb = cnt_b[y] - cnt_b[b.lml[y - 1] as usize - 1];
+            if sa != sb {
+                verdict = Replay::Shape(x, y);
+                ok = false;
+            } else {
+                ops += relabel_cost(a, b, x, y);
+                x += 1;
+            }
+        }
+    }
+    if !ok {
+        return verdict;
+    }
+    let k = pairs.len() as u32;
+    Replay::Ops(ops + (m as u32 - k))
 }
 
 /// Execute the edit script implied by a mapping and check that it turns `a` into `b`.
 ///
 /// The script is: relabel the mapped pairs whose labels differ; delete every unmapped node of `a`, its
-/// children taking its place among its parent's children; insert every unmapped node of `b`, deepest
-/// first, as the parent of the run of current siblings that lie below it in `b` (or, for a leaf, at the
-/// position `b` dictates). After the last operation the working tree must equal `b` exactly: labels, shape
-/// and sibling order. Returns the number of operations, which must equal the mapping's cost.
-///
-/// Insert placement consults the structure of `b`, so this checks that the mapping is executable and
-/// that deletion with promotion, relabelling and insertion compose to `b`; it does not derive the
-/// script independently of `b`.
+/// children taking its place among its parent's children; insert every unmapped node of `b`. After the last
+/// operation the working tree must equal `b` exactly: labels, shape and sibling order. Returns the number of
+/// operations, which equals the mapping's cost (a relabel across node kinds counts as the deletion and
+/// insertion it stands for). See [`replay_core`] for the representation of the working tree.
 pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result<u32, String> {
-    let (n, m) = (a.len(), b.len());
-    if n == 0 || m == 0 {
-        return Ok(n.max(m) as u32);
+    match replay_core(a, b, pairs) {
+        Replay::Ops(c) => Ok(c),
+        Replay::Range(x, y) => Err(format!("bad pair ({x}, {y})")),
+        Replay::Dup(x, y) => Err(format!("bad pair ({x}, {y})")),
+        Replay::Order(x, y) => Err(format!(
+            "children of a node differ: node {x} of a is not mapped above the earlier nodes (image {y})"
+        )),
+        Replay::Shape(x, y) => Err(format!(
+            "the subtree of node {x} of a does not become the subtree of node {y} of b"
+        )),
     }
-    let root_slot = n;
-    let mut nodes: Vec<RNode> = (0..n)
-        .map(|i| RNode {
-            label: a.label[i],
-            kids: a.kids[i].iter().map(|&k| k as usize).collect(),
-            parent: root_slot,
-            bid: 0,
-            alive: true,
-        })
-        .collect();
-    for i in 0..n {
-        for &k in &a.kids[i] {
-            nodes[k as usize].parent = i;
-        }
-    }
-    nodes.push(RNode {
-        label: 0,
-        kids: vec![n - 1],
-        parent: usize::MAX,
-        bid: 0,
-        alive: true,
-    });
-    let (mut to_b, mut arena_of_b) = (vec![0usize; n + 1], vec![usize::MAX; m + 1]);
-    let mut ops = 0u32;
-    for &(x, y) in pairs {
-        let (x, y) = (x as usize, y as usize);
-        if x == 0 || x > n || y == 0 || y > m || to_b[x] != 0 || arena_of_b[y] != usize::MAX {
-            return Err(format!("bad pair ({x}, {y})"));
-        }
-        to_b[x] = y;
-        arena_of_b[y] = x - 1;
-        nodes[x - 1].bid = y;
-        if a.label[x - 1] != b.label[y - 1] {
-            nodes[x - 1].label = b.label[y - 1];
-            ops += 1;
-        }
-    }
-    // Delete every unmapped node of a, promoting its children.
-    for x in 0..n {
-        if to_b[x + 1] != 0 {
-            continue;
-        }
-        let p = nodes[x].parent;
-        let at = nodes[p]
-            .kids
-            .iter()
-            .position(|&c| c == x)
-            .ok_or("deleted node missing from its parent")?;
-        let moved = std::mem::take(&mut nodes[x].kids);
-        for &c in &moved {
-            nodes[c].parent = p;
-        }
-        nodes[p].kids.splice(at..=at, moved);
-        nodes[x].alive = false;
-        ops += 1;
-    }
-    // Insert the unmapped nodes of b, deepest first.
-    let mut parent_b = vec![0usize; m + 1];
-    for (i, ks) in b.kids.iter().enumerate() {
-        for &k in ks {
-            parent_b[k as usize + 1] = i + 1;
-        }
-    }
-    let depth = |mut v: usize| {
-        let mut d = 0;
-        while parent_b[v] != 0 {
-            v = parent_b[v];
-            d += 1;
-        }
-        d
-    };
-    let mut todo: Vec<usize> = (1..=m).filter(|&v| arena_of_b[v] == usize::MAX).collect();
-    todo.sort_by_key(|&v| std::cmp::Reverse(depth(v)));
-    for v in todo {
-        let mut u = parent_b[v];
-        while u != 0 && arena_of_b[u] == usize::MAX {
-            u = parent_b[u];
-        }
-        let p = if u == 0 { root_slot } else { arena_of_b[u] };
-        let lv = b.lml[v - 1] as usize;
-        let below = |c: usize, nodes: &Vec<RNode>| lv <= nodes[c].bid && nodes[c].bid < v;
-        let kids = nodes[p].kids.clone();
-        let first = kids.iter().position(|&c| below(c, &nodes));
-        let (start, end) = match first {
-            Some(s) => {
-                let e = s + kids[s..].iter().take_while(|&&c| below(c, &nodes)).count();
-                if kids[e..].iter().any(|&c| below(c, &nodes)) {
-                    return Err(format!("children of inserted node {v} are not contiguous"));
-                }
-                (s, e)
-            }
-            None => {
-                let s = kids
-                    .iter()
-                    .position(|&c| b.lml[nodes[c].bid - 1] as usize > v)
-                    .unwrap_or(kids.len());
-                (s, s)
-            }
-        };
-        let run: Vec<usize> = kids[start..end].to_vec();
-        let id = nodes.len();
-        for &c in &run {
-            nodes[c].parent = id;
-        }
-        nodes.push(RNode {
-            label: b.label[v - 1],
-            kids: run,
-            parent: p,
-            bid: v,
-            alive: true,
-        });
-        nodes[p].kids.splice(start..end, [id]);
-        arena_of_b[v] = id;
-        ops += 1;
-    }
-    // The working tree must now be exactly b.
-    if nodes[root_slot].kids != [arena_of_b[m]] {
-        return Err("the result is not a single tree rooted at the root of b".into());
-    }
-    let mut stack = vec![(arena_of_b[m], m)];
-    while let Some((x, v)) = stack.pop() {
-        if nodes[x].label != b.label[v - 1] {
-            return Err(format!("label differs at node {v}"));
-        }
-        let want: Vec<usize> = b.kids[v - 1].iter().map(|&k| k as usize + 1).collect();
-        let got: Vec<usize> = nodes[x].kids.iter().map(|&c| nodes[c].bid).collect();
-        if want != got {
-            return Err(format!(
-                "children of node {v} differ: expected {want:?}, got {got:?}"
-            ));
-        }
-        stack.extend(nodes[x].kids.iter().map(|&c| (c, nodes[c].bid)));
-    }
-    Ok(ops)
 }

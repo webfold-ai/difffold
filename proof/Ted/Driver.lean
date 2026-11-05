@@ -265,12 +265,12 @@ theorem within_inner_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
           have := h6 x y hx1 hxn hy1 hym
           refine ⟨this.1, fun hd hb => this.2 ?_ hb⟩
           exact Ctx.done_wb C hKe.hA hKe.hB hKe.sA hKe.sB hKe.mA hKe.mB hia hibl hi0 hj0eq hkI hkJ' hJm hx1 hxn hy1 hym hd
-        step with fill_window_spec (C.win i0.val j0.val) hGood a b (hK.win _ _) hw hli1 hlj1 td1.slice fd1.slice
+        step with fill_window_spec (C.win i0.val j0.val) hGood a b (hK.win _ _) hw hli1 hlj1 td1.slice fd1.slice true
           { cells := st1.cells, windows := core.num.U64.wrapping_add st1.windows 1#u64, skipped := st1.skipped,
             attempts := st1.attempts, mirrored := st1.mirrored } i0 j0 tau rfl rfl htau
-          (by have := Nat.le_trans hmw hfdlen; rw [← h3] at this; exact this) (by have := htdlen; rw [← h2] at this; exact this) h5 h4 hTin as ⟨r, hr1, hr2, hr3, hr4, hr5, hr6⟩
+          (by have := Nat.le_trans hmw hfdlen; rw [← h3] at this; exact this) (by have := htdlen; rw [← h2] at this; exact this) h5 h4 hTin as ⟨r, hr1, hr2, hr3, hr4, hr5, hr6, hr7⟩
         obtain ⟨s2, s3, st2⟩ := r
-        dsimp only at hr1 hr2 hr3 hr4 hr5 hr6
+        dsimp only at hr1 hr2 hr3 hr4 hr5 hr6 hr7
         have hnew := Ctx.inv_step C hKe.hA hKe.hB (KA := vals a.keyroots.val) (KB := vals b.keyroots.val)
           hKe.sA hKe.sB hia hibl hi0 hj0eq hkI hkJ' (td := td1.val) (td' := s2.val) hr4 hr3 h6
         step as ⟨ib2, hib2⟩

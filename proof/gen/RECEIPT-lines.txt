@@ -3,8 +3,8 @@ aeneas:   aeneas nightly-2026.09.09
 rust:     nightly-2026-08-18
 lines.rs sha256:        73096c41795358ae1c914083954b6f8bd1144cb451591a749ced8163a942c943
 lines_core.rs sha256:   4c733a0072a0d236baef919b127be09f0150d826c1ccb8c415d3d57407eb49c8
-ted.rs sha256:          fc7b31f51bf7c7be64a973d821abaee8c05ad4c1f0200b0f2ca2050a0fabea27
+ted.rs sha256:          947f8a4daf18cbadc44f9e3a5a30d465ca6f21d8ce9ba4a86611af95dfcba20f
 lines llbc sha256:      b19c3e8483957881a0caa11ae4eec2985624b405e638a3a4e0ab04644171a033
 DifffoldLines.lean:     b9da6e2d6f7b066335d0c8389400cebae98367c4d6b728a530f93510f69774c9
-ted llbc sha256:        7a03872ed7df9c9fb12ddd7ac442b13136e350518853e1b997ebcd45cb978585
-DifffoldTed.lean:       5a78dc50bd4be20a486ca23735af8275653df536bf263d7cfc871983614cfac9
+ted llbc sha256:        7acb861dc8a21f30dcba645f9fea46adfff684f6a50a319a6a99d5d13e0911cf
+DifffoldTed.lean:       a52526839e8ceb5255ef46da7f150bae9a04232becc5c5cae12bc5a652bad7b5
