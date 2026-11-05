@@ -198,6 +198,105 @@ theorem solve_spec :
         rw [hao1v, hpl]
       · rw [splice_trim_all rb.val [] bo.val p.length sf.length (by simp; omega) (by
           intro j hj; exact hfb j (by omega)), Myers.splice_nil]
-    · sorry
+    · rename_i hb3f
+      have hB1ne : B1 ≠ [] := by
+        intro h
+        have h0 : b1.length = 0 := by
+          have : b1.val.length = 0 := by rw [← hB1l, h]; rfl
+          simpa [Slice.length] using this
+        apply hb3f; rw [hb3]; simpa using h0
+      have hAl' : A.length = p.length + A1.length + sf.length := by
+        have := congrArg List.length hT.1; simp at this; omega
+      have hBl' : B.length = p.length + B1.length + sf.length := by
+        have := congrArg List.length hT.2.1; simp at this; omega
+      have hN1 : A1.length + B1.length ≤ NMAX := by omega
+      step with (middle_spec a1 b1 A1 B1 vf vb hA1 hB1 hN1 (by omega) (by omega))
+        as ⟨xy, vf1, vb1, hm1, hm2, hm3, hm4⟩
+      obtain ⟨x, y⟩ := xy
+      simp only [] at hm1 hm2 hm3 hm4 ⊢
+      obtain ⟨x0, y0, hmp, hx0, hy0, hsp, hnt0, hntn⟩ :=
+        Myers.midPt_spec A1 B1 hA1ne hB1ne hT.2.2.1 hT.2.2.2
+      have hxy := hm1 _ hmp (by omega) (by omega)
+      have hxv : x.val = x0 := by simp at hxy; omega
+      have hyv : y.val = y0 := by simp at hxy; omega
+      have hmid : Myers.mid A1 B1 = (x.val, y.val) := by
+        unfold Myers.mid; rw [hmp]; simp [hxv, hyv]
+      have hxle : x.val ≤ A1.length := by omega
+      have hyle : y.val ≤ B1.length := by omega
+      have hxlt : x.val + y.val < A1.length + B1.length := by omega
+      have hxpos : 0 < x.val + y.val := by omega
+      have hmid' : Myers.mid A1 B1 = (x0, y0) := by rw [hmid, hxv, hyv]
+      have hsp' := hsp
+      have hnt : ¬((x0 = 0 ∧ y0 = 0) ∨ (x0 = A1.length ∧ y0 = B1.length)) := by omega
+      have hrec : (do
+          let s3 ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeToUsizeSlice Std.U32) a1 { «end» := x }
+          let s4 ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeToUsizeSlice Std.U32) b1 { «end» := y }
+          let (ra1, rb1, vf2, vb2) ← lines.solve s3 s4 ao1 bo1 ra rb vf1 vb1
+          let s5 ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) a1 { start := x }
+          let s6 ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) b1 { start := y }
+          let i5 ← ao1 + x
+          let i6 ← bo1 + y
+          lines.solve s5 s6 i5 i6 ra1 rb1 vf2 vb2 : Result _) ⦃ r => SolvePost A B ao bo ra rb vf vb r ⦄ := by
+        step as ⟨s3, hs3v, hs3l⟩
+        step as ⟨s4, hs4v, hs4l⟩
+        have hs3A : vals s3.val = A1.take x.val := by
+          rw [hs3v, ← hA1]; simp [List.slice, vals, List.map_take]
+        have hs4B : vals s4.val = B1.take y.val := by
+          rw [hs4v, ← hB1]; simp [List.slice, vals, List.map_take]
+        have hao1v' : ao1.val = ao.val + p.length := by rw [hao1v, hpl]
+        have hbo1v' : bo1.val = bo.val + p.length := by rw [hbo1v, hpl]
+        have hfaA : ∀ j, j < (A1.take x.val).length → ra.val[ao1.val + j]? = some false := by
+          intro j hj
+          have := hfa (p.length + j) (by simp at hj; omega)
+          rw [show ao.val + (p.length + j) = ao1.val + j by omega] at this; exact this
+        have hfbB : ∀ j, j < (B1.take y.val).length → rb.val[bo1.val + j]? = some false := by
+          intro j hj
+          have := hfb (p.length + j) (by simp at hj; omega)
+          rw [show bo.val + (p.length + j) = bo1.val + j by omega] at this; exact this
+        step with (ih (x.val + y.val) (by omega) s3 s4 (A1.take x.val) (B1.take y.val) ao1 bo1 ra rb vf1 vb1
+          (by simp; omega) hs3A hs4B (by simp; omega) (by simp; omega) (by simp; omega) hfaA hfbB
+          (by simp; omega) (by simp; omega)) as ⟨ra1, rb1, vf2, vb2, hr1⟩
+        obtain ⟨d1, e1, hS1, hra1, hrb1, hl1, hl2⟩ := hr1
+        have hd1 := (Myers.Solve.lens hS1)
+        have he1' := hd1.2
+        have hd1' := hd1.1
+        simp only [List.length_take, Nat.min_eq_left hxle, Nat.min_eq_left hyle] at hd1' he1'
+        step as ⟨s5, hs5v, hs5l⟩
+        step as ⟨s6, hs6v, hs6l⟩
+        step as ⟨i5, hi5⟩
+        step as ⟨i6, hi6⟩
+        have hs5A : vals s5.val = A1.drop x.val := by
+          rw [hs5v, ← hA1]; simp [vals, List.map_drop]
+        have hs6B : vals s6.val = B1.drop y.val := by
+          rw [hs6v, ← hB1]; simp [vals, List.map_drop]
+        have hrl : ra1.val.length = ra.val.length := by
+          rw [hra1]; exact Myers.splice_length _ _ _ (by omega)
+        have hrbl : rb1.val.length = rb.val.length := by
+          rw [hrb1]; exact Myers.splice_length _ _ _ (by omega)
+        have hfa2 : ∀ j, j < (A1.drop x.val).length → ra1.val[i5.val + j]? = some false := by
+          intro j hj
+          rw [hra1, Myers.splice_getElem? _ _ _ (by omega), if_neg (by simp at hj; omega), if_neg (by omega)]
+          have := hfa (p.length + x.val + j) (by simp at hj; omega)
+          rw [show ao.val + (p.length + x.val + j) = i5.val + j by omega] at this; exact this
+        have hfb2 : ∀ j, j < (B1.drop y.val).length → rb1.val[i6.val + j]? = some false := by
+          intro j hj
+          rw [hrb1, Myers.splice_getElem? _ _ _ (by omega), if_neg (by simp at hj; omega), if_neg (by omega)]
+          have := hfb (p.length + y.val + j) (by simp at hj; omega)
+          rw [show bo.val + (p.length + y.val + j) = i6.val + j by omega] at this; exact this
+        step with (ih (A1.length - x.val + (B1.length - y.val)) (by omega) s5 s6 (A1.drop x.val) (B1.drop y.val)
+          i5 i6 ra1 rb1 vf2 vb2 (by simp) hs5A hs6B (by simp; omega) (by simp; omega) (by simp; omega) hfa2 hfb2
+          (by simp; omega) (by simp; omega)) as ⟨ra2, rb2, vf3, vb3, hr2⟩
+        obtain ⟨d2, e2, hS2, hra2, hrb2, hl3, hl4⟩ := hr2
+        have hd2 := (Myers.Solve.lens hS2)
+        simp only [List.length_drop] at hd2
+        unfold SolvePost
+        refine ⟨_, _, Myers.Solve.split hT hA1ne hB1ne hmid' hnt hS1 hS2, ?_, ?_, ?_, ?_⟩
+        · show ra2.val = _
+          rw [hra2, hra1, ← hd1', hi5, hao1v'] 
+          sorry
+        · sorry
+        · sorry
+        · sorry
+      sorry
 
 end difffold_myers_extract
