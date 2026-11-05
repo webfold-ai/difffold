@@ -440,7 +440,7 @@ fn within_td(a: &PostTree, b: &PostTree, tau: u32, st: &mut Stats) -> (Option<u3
                 st.skipped = st.skipped.wrapping_add(1);
             } else {
                 st.windows = st.windows.wrapping_add(1);
-                fill_window(a, b, &mut td, &mut fd, (i0, j0), tau, st);
+                fill_window(a, b, &mut td, &mut fd, (i0, j0), tau, true, st);
             }
             ib += 1;
         }
@@ -467,6 +467,7 @@ fn fill_window(
     fd: &mut [u32],
     (i0, j0): (usize, usize),
     tau: u32,
+    stop: bool,
     st: &mut Stats,
 ) {
     let t = tau as usize;
@@ -524,7 +525,7 @@ fn fill_window(
             row_min = min32(row_min, v);
             q += 1;
         }
-        if qlo > qhi || row_min > tau {
+        if qlo > qhi || (stop && row_min > tau) {
             break;
         }
         p += 1;
@@ -572,7 +573,7 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
         let (si, sj) = (i - li + 1, j - lj + 1);
         let fdi = |p: usize, q: usize| p * w + (q + t - p);
         let mut fd = vec![inf; (si + 1) * w];
-        fill_window(a, b, &mut td, &mut fd, (i, j), cost, &mut st);
+        fill_window(a, b, &mut td, &mut fd, (i, j), cost, false, &mut st);
         let get = |p: usize, q: usize| {
             if p.abs_diff(q) <= t {
                 fd[fdi(p, q)]

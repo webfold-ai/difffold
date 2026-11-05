@@ -613,20 +613,16 @@ theorem vec_setSlice_val (v : alloc.vec.Vec Bool) (lo : Nat) (d : List Bool) (h 
     exact Slice.setSlice!_val _ _ _
   rw [this]; exact setSlice_splice _ _ _ h
 
-/-- Setting a range of a flag vector to `true`, as `hist` does with `fill`. -/
-theorem fill_true (v : alloc.vec.Vec Bool) (lo hi : Usize) (h1 : lo.val ≤ hi.val) (h2 : hi.val ≤ v.val.length) :
-    (do
-      let (s4, back) ← alloc.vec.Vec.index_mut (core.slice.index.SliceIndexRangeUsizeSlice Bool) v
-        { start := lo, «end» := hi }
-      let s5 ← core.slice.Slice.fill core.clone.CloneBool s4 true
-      ok (back s5)) ⦃ v' => v'.val = Myers.splice v.val lo.val (List.replicate (hi.val - lo.val) true) ⦄ := by
-  have hcl : core.clone.CloneBool.clone true ⦃ fun v' => v' = true ⦄ := by
-    simp [core.clone.CloneBool]
-  step as ⟨s4, back, hs4v, hs4l, hback⟩
-  step as ⟨s5, hs5l, hs5v⟩
+/-- The vector produced by `fill` through the write-back of `index_mut`. -/
+theorem fill_back_val (v : alloc.vec.Vec Bool) (lo hi : Nat) (back : Slice Bool → alloc.vec.Vec Bool)
+    (s4 s5 : Slice Bool) (hback : ∀ s2, back s2 = alloc.vec.Vec.setSlice! v lo s2.val)
+    (hs4l : s4.length = hi - lo) (hs5l : s5.length = s4.length) (hs5v : s5.val = List.replicate s4.length true)
+    (h1 : lo ≤ hi) (h2 : hi ≤ v.val.length) :
+    (back s5).val = Myers.splice v.val lo (List.replicate (hi - lo) true) := by
+  have e : s4.val.length = hi - lo := hs4l
   rw [hback, vec_setSlice_val]
-  · simp [hs5v, hs5l, hs4l]
-  · simp [hs5v, hs5l, hs4l]; omega
+  · rw [hs5v, hs4l]
+  · rw [hs5v, List.length_replicate, hs4l]; omega
 
 /-- The postcondition of `hist` on a trimmed range, and what the recursion hands back. -/
 def HOut (a b : Slice U32) (n : Nat) (h : lines.Hist) (alo ahi blo bhi : Nat) (h' : lines.Hist) : Prop :=
