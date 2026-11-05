@@ -808,4 +808,149 @@ theorem replay_loop3_spec (a b : ted.PostTree) (hA : PT.Wf a) (hB : PT.Wf b) (n 
         · rw [hops1, hx]; simp
   · exact ⟨hx1, hx2, fun _ => ⟨hU, hSz, hops⟩, fun h => by simp at h⟩
 
+theorem rng_swap {nn mm : Nat} {M : List (Nat × Nat)} (h : Rng nn mm M) : Rng mm nn (M.map Prod.swap) := by
+  intro p hp
+  obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hp
+  have := h q hq
+  simp only [Prod.fst_swap, Prod.snd_swap]
+  omega
+
+theorem iinj_swap {M : List (Nat × Nat)} (h : IInj M) : IInj (M.map Prod.swap) := by
+  intro i j hi hj hij
+  simp only [List.length_map] at hi hj
+  rw [getN_swap _ _ hi, getN_swap _ _ hj]
+  have := h i j hi hj hij
+  simp only [Prod.fst_swap, Prod.snd_swap]
+  exact ⟨this.2, this.1⟩
+
+def RPost (a b : ted.PostTree) (M : List (Nat × Nat)) (r : ted.Replay) : Prop :=
+  (∀ c, r = ted.Replay.Ops c → Rng a.label.length b.label.length M ∧ Valid (laOf a) (laOf b) M ∧
+    c.val = Cost (rcost a b) 1 a.label.length 1 b.label.length M) ∧
+  ((Rng a.label.length b.label.length M ∧ Valid (laOf a) (laOf b) M) → ∃ c, r = ted.Replay.Ops c)
+
+theorem rpost_fail (a b : ted.PostTree) (M : List (Nat × Nat)) (r : ted.Replay) (hNC : NotOps r)
+    (hnot : ¬ (Rng a.label.length b.label.length M ∧ Valid (laOf a) (laOf b) M)) : RPost a b M r :=
+  ⟨fun c h => absurd h (hNC c), fun h => absurd h hnot⟩
+
+theorem replay_core_spec (a b : ted.PostTree) (hA : PT.Wf a) (hB : PT.Wf b) (hna : a.label.length < 2 ^ 14)
+    (hnb : b.label.length < 2 ^ 14) (pairs : Slice (Std.U32 × Std.U32)) :
+    ted.replay_core a b pairs ⦃ r => RPost a b (Mp pairs.val) r ⦄ := by
+  unfold ted.replay_core
+  have hlenA := alloc.vec.Vec.len_val a.label
+  have hlenB := alloc.vec.Vec.len_val b.label
+  simp only []
+  step as ⟨i, hi⟩
+  step as ⟨to_b, hto_b, hto_bl⟩
+  step as ⟨i1, hi1⟩
+  step as ⟨to_a, hto_a, hto_al⟩
+  have hto_b' : to_b.val = List.replicate (a.label.length + 1) 0#usize := by rw [hto_b, hi, hlenA]
+  have hto_a' : to_a.val = List.replicate (b.label.length + 1) 0#usize := by rw [hto_a, hi1, hlenB]
+  refine WP.spec_bind (replay_loop0_spec pairs a.label.len b.label.len a.label.length b.label.length hlenA hlenB
+    to_b to_a (ted.Replay.Ops 0#u32) 0#usize (by simp)
+    (fun p hp => by simp at hp) (fun i j hi => by simp at hi) (tbo_nil _ _ hto_b')
+    (by simpa using tbo_nil _ _ hto_a')) ?_
+  rintro ⟨to_b1, to_a1, verdict, ok1⟩ ⟨hP1, hP2⟩
+  dsimp only at hP1 hP2
+  show (if ok1 = true then _ else _) ⦃ _ ⦄
+  by_cases hok1 : ok1 = true
+  · rw [if_pos hok1]
+    obtain ⟨hR, hI, hT, hTa⟩ := hP1 hok1
+    step as ⟨i2, hi2⟩
+    step as ⟨cnt_a, hcnt_a, hcnt_al⟩
+    have hcnt_al' : cnt_a.length = a.label.length + 1 := by rw [hcnt_al, hi2, hlenA]
+    refine WP.spec_bind (replay_loop1_spec a.label.len a.label.length b.label.length hlenA to_b1 (Mp pairs.val)
+      hR hI hT cnt_a 1#usize (by simp) (by simp) hcnt_al' ?_) ?_
+    · intro x' hx'
+      have h1v : (1#usize).val = 1 := rfl
+      have : x' = 0 := by omega
+      subst this
+      rw [hcnt_a, getG_eq _ _ (by simp; omega)]
+      simp [ca_zero hR]
+    intro cnt_a1 ⟨hcal, hcav⟩
+    step as ⟨i3, hi3⟩
+    step as ⟨cnt_b, hcnt_b, hcnt_bl⟩
+    have hcnt_bl' : cnt_b.length = b.label.length + 1 := by rw [hcnt_bl, hi3, hlenB]
+    refine WP.spec_bind (replay_loop2_spec b.label.len b.label.length a.label.length hlenB to_a1
+      ((Mp pairs.val).map Prod.swap) (rng_swap hR) (iinj_swap hI) hTa cnt_b 1#usize (by simp) (by simp) hcnt_bl' ?_) ?_
+    · intro y' hy'
+      have h1v : (1#usize).val = 1 := rfl
+      have : y' = 0 := by omega
+      subst this
+      rw [hcnt_b, getG_eq _ _ (by simp; omega)]
+      simp [ca_zero (rng_swap hR)]
+    intro cnt_b1 ⟨hcbl, hcbv⟩
+    have hcbv' : ∀ y', y' ≤ b.label.length → (cnt_b1.val[y']!).val = CB (Mp pairs.val) y' := by
+      intro y' hy'
+      rw [hcbv y' hy', ca_swap]
+    have h1v : (1#usize).val = 1 := rfl
+    have h0v : (0#u32).val = 0 := rfl
+    have h0u : (0#usize).val = 0 := rfl
+    refine WP.spec_bind (replay_loop3_spec a b hA hB a.label.len a.label.length b.label.length hlenA rfl rfl hna
+      to_b1 cnt_a1 cnt_b1 (Mp pairs.val) hR hI hT hcal hcbl hcav hcbv' verdict 1#usize 0#u32 0#usize
+      (by simp) (by simp) ?_ (fun p hp h => by have := (hR p hp).1; omega) ?_) ?_
+    · refine ⟨fun p hp q hq h1 h2 => ?_, fun p hp h1 => ?_, fun h => absurd rfl h⟩
+      · have := (hR q hq).1; omega
+      · have := (hR p hp).1; omega
+    · rw [h0v, h1v]
+      have : RSum a b (Mp pairs.val) 1 = 0 := by
+        unfold RSum
+        have : (Mp pairs.val).map (fun p => if p.1 < 1 then rcost a b p.1 p.2 else 0) =
+            (Mp pairs.val).map (fun _ => 0) :=
+          List.map_congr_left (fun p hp => by
+            have := (hR p hp).1; simp [show ¬ p.1 < 1 by omega])
+        rw [this]; simp
+      rw [this, ca_zero hR]
+    rintro ⟨verdict1, ok2, ops⟩ ⟨hQ1, hQ2⟩
+    dsimp only at hQ1 hQ2
+    show (if ok2 = true then _ else _) ⦃ _ ⦄
+    by_cases hok2 : ok2 = true
+    · rw [if_pos hok2]
+      obtain ⟨hPo, hSz, hopsv⟩ := hQ1 hok2
+      have hVal := size_to_valid hA.wfl hB.wfl hR hI hPo hSz
+      have hMl : (Mp pairs.val).length ≤ a.label.length := mlen_le hR hI
+      have hmM : (Mp pairs.val).length ≤ b.label.length := by
+        have := len_le_of_inj Prod.snd (Mp pairs.val) 1 b.label.length (iinj_nodup hI)
+          (fun p hp => ⟨(hR p hp).2.2.1, (hR p hp).2.2.2⟩) (fun p hp q hq e => iinj_snd hI hp hq e)
+        omega
+      have hlp : (Slice.len pairs).val = (Mp pairs.val).length := by simp [Mp]
+      have hcnt : (UScalar.cast UScalarTy.U32 (Slice.len pairs)).val = (Mp pairs.val).length := by
+        rw [UScalar.cast_val_eq]; simp only [UScalarTy.numBits]
+        rw [hlp]; exact Nat.mod_eq_of_lt (by omega)
+      have hc5 : (UScalar.cast UScalarTy.U32 b.label.len).val = b.label.length := by
+        rw [UScalar.cast_val_eq]; simp only [UScalarTy.numBits]
+        rw [hlenB]; exact Nat.mod_eq_of_lt (by omega)
+      simp only [lift, bind_tc_ok]
+      generalize UScalar.cast UScalarTy.U32 (Slice.len pairs) = k at hcnt ⊢
+      generalize UScalar.cast UScalarTy.U32 b.label.len = i5 at hc5 ⊢
+      have hca : CA (Mp pairs.val) a.label.length = (Mp pairs.val).length := by
+        unfold CA; rw [List.countP_eq_length]
+        intro p hp; have := (hR p hp).2.1; simp; omega
+      have hrs : RSum a b (Mp pairs.val) (a.label.length + 1) = ((Mp pairs.val).map (fun p => rcost a b p.1 p.2)).sum := by
+        unfold RSum
+        congr 1
+        apply List.map_congr_left
+        intro p hp
+        have := (hR p hp).2.1
+        simp [show p.1 < a.label.length + 1 by omega]
+      have hrsb := rsum_le a b (Mp pairs.val) (a.label.length + 1)
+      step as ⟨i6, hi6⟩
+      step as ⟨i7, hi7⟩
+      refine ⟨fun c h => ?_, fun _ => ⟨i7, rfl⟩⟩
+      injection h with h'
+      subst h'
+      refine ⟨hR, hVal, ?_⟩
+      unfold Cost
+      rw [hca, hrs] at hopsv
+      omega
+    · rw [if_neg hok2]
+      have hok2' : ok2 = false := by simpa using hok2
+      obtain ⟨hNC, hnot⟩ := hQ2 hok2'
+      simp only [WP.spec_ok]
+      exact rpost_fail a b _ _ hNC (fun ⟨hr, hv⟩ => hnot ⟨valid_to_postord hv, valid_to_size hA.wfl hB.wfl hr hv⟩)
+  · rw [if_neg hok1]
+    have hok1' : ok1 = false := by simpa using hok1
+    obtain ⟨hNC, hnot⟩ := hP2 hok1'
+    simp only [WP.spec_ok]
+    exact rpost_fail a b _ _ hNC (fun ⟨hr, hv⟩ => hnot ⟨hr, valid_to_iinj hv⟩)
+
 end difffold_lines_extract
