@@ -59,7 +59,40 @@ theorem Dw_le_nonleaf (hA : WfL la) (hB : WfL lb) (hli : 1 ≤ li) (hlj : 1 ≤ 
   have e2 : lj + (lb (lj + q - 1) - lj) - 1 = lb (lj + q - 1) - 1 := by omega
   rw [e1, e2]; exact this
 
+theorem Dw_eq_leaf (hli : 1 ≤ li) (hlj : 1 ≤ lj) {p q : Nat} (hp : 1 ≤ p) (hq : 1 ≤ q)
+    (hlx : la (li + p - 1) = li) (hly : lb (lj + q - 1) = lj) :
+    Dw la lb ren li lj p q = min (min (Dw la lb ren li lj (p - 1) q + 1) (Dw la lb ren li lj p (q - 1) + 1))
+      (Dw la lb ren li lj (p - 1) (q - 1) + ren (li + p - 1) (lj + q - 1)) := by
+  unfold Dw
+  have hc : clampL li (li + p - 1) (la (li + p - 1)) = li ∧ clampL lj (lj + q - 1) (lb (lj + q - 1)) = lj := by
+    unfold clampL; omega
+  rw [D_leaf la lb ren li (li + p - 1) lj (lj + q - 1) (by omega) (by omega) hc]
+  have e1 : li + (p - 1) - 1 = li + p - 1 - 1 := by omega
+  have e2 : lj + (q - 1) - 1 = lj + q - 1 - 1 := by omega
+  rw [e1, e2]
+
+theorem Dw_eq_nonleaf (hA : WfL la) (hB : WfL lb) (hli : 1 ≤ li) (hlj : 1 ≤ lj) {p q : Nat} (hp : 1 ≤ p) (hq : 1 ≤ q)
+    (hcA : Closed la li (li + p - 1)) (hcB : Closed lb lj (lj + q - 1))
+    (hn : ¬ (la (li + p - 1) = li ∧ lb (lj + q - 1) = lj)) :
+    Dw la lb ren li lj p q = min (min (Dw la lb ren li lj (p - 1) q + 1) (Dw la lb ren li lj p (q - 1) + 1))
+      (Dw la lb ren li lj (la (li + p - 1) - li) (lb (lj + q - 1) - lj) +
+        D la lb ren (la (li + p - 1)) (li + p - 1) (lb (lj + q - 1)) (lj + q - 1)) := by
+  unfold Dw
+  have hcl := clamp_eq hA hcA hli (by omega : li ≤ li + p - 1)
+  have hcl' := clamp_eq hB hcB hlj (by omega : lj ≤ lj + q - 1)
+  have hc : ¬ (clampL li (li + p - 1) (la (li + p - 1)) = li ∧ clampL lj (lj + q - 1) (lb (lj + q - 1)) = lj) := by
+    rw [hcl, hcl']; exact hn
+  rw [D_nonleaf la lb ren li (li + p - 1) lj (lj + q - 1) (by omega) (by omega) hc, hcl, hcl']
+  have hlx1 := hcA (li + p - 1) (by omega) (Nat.le_refl _)
+  have hly1 := hcB (lj + q - 1) (by omega) (Nat.le_refl _)
+  have e0 : li + (p - 1) - 1 = li + p - 1 - 1 := by omega
+  have e0' : lj + (q - 1) - 1 = lj + q - 1 - 1 := by omega
+  have e1 : li + (la (li + p - 1) - li) - 1 = la (li + p - 1) - 1 := by omega
+  have e2 : lj + (lb (lj + q - 1) - lj) - 1 = lb (lj + q - 1) - 1 := by omega
+  rw [e0, e0', e1, e2]
+
 end
+
 theorem step_sound {t δ D D' v g c : Nat} (hv : FOK t δ D v) (hg : FOK t δ D' g) (hb : D + δ ≤ t)
     (hle : D ≤ D' + c) (heq : g + c = v) : D = D' + c := by
   unfold FOK at hv hg
@@ -148,6 +181,82 @@ theorem nonleaf_sound (hG : C.Good) {p q : Nat} (hli : 1 ≤ C.li) (hlj : 1 ≤ 
   have hlx2 := (hG.wa.1 (C.li + p - 1) (by omega)).2
   have hly2 := (hG.wb.1 (C.lj + q - 1) (by omega)).2
   exact split_sound (hF p q hps hqs) (hF _ _ (by omega) (by omega)) hT hb hle heq
+
+theorem fallback (hG : C.Good) {p q : Nat} (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (hpq : 1 ≤ p + q) (hps : p ≤ C.si)
+    (hqs : q ≤ C.sj) (hF : ∀ p q, p ≤ C.si → q ≤ C.sj → C.OkF fd p q)
+    (hb : Dw C.la C.lb C.ren C.li C.lj p q + C.δ ≤ C.t)
+    (hnd : ¬ (1 ≤ p ∧ rd fd C.w C.t C.inf (p - 1) q + 1 = rd fd C.w C.t C.inf p q))
+    (hni : ¬ (1 ≤ q ∧ rd fd C.w C.t C.inf p (q - 1) + 1 = rd fd C.w C.t C.inf p q)) :
+    1 ≤ p ∧ 1 ≤ q ∧
+    ((C.la (C.li + p - 1) = C.li ∧ C.lb (C.lj + q - 1) = C.lj) →
+      Dw C.la C.lb C.ren C.li C.lj p q = Dw C.la C.lb C.ren C.li C.lj (p - 1) (q - 1) +
+        C.ren (C.li + p - 1) (C.lj + q - 1)) ∧
+    (¬ (C.la (C.li + p - 1) = C.li ∧ C.lb (C.lj + q - 1) = C.lj) →
+      Dw C.la C.lb C.ren C.li C.lj p q = Dw C.la C.lb C.ren C.li C.lj (C.la (C.li + p - 1) - C.li)
+        (C.lb (C.lj + q - 1) - C.lj) + TD C.la C.lb C.ren (C.li + p - 1) (C.lj + q - 1)) := by
+  have hp1 : 1 ≤ p := by
+    refine Classical.byContradiction fun h0 => ?_
+    have hp0 : p = 0 := by omega
+    subst hp0
+    have hq1 : 1 ≤ q := by omega
+    apply hni
+    refine ⟨hq1, C.ins_complete hq1 hps hqs hF hb ?_⟩
+    rw [Dw_row0 hli hlj, Dw_row0 hli hlj]; omega
+  have hq1 : 1 ≤ q := by
+    refine Classical.byContradiction fun h0 => ?_
+    have hq0 : q = 0 := by omega
+    subst hq0
+    apply hnd
+    refine ⟨hp1, C.del_complete hp1 hps hqs hF hb ?_⟩
+    rw [Dw_col0 hli hlj, Dw_col0 hli hlj]; omega
+  refine ⟨hp1, hq1, fun hl => ?_, fun hl => ?_⟩
+  · have hd := Dw_eq_leaf (ren := C.ren) hli hlj hp1 hq1 hl.1 hl.2
+    have h1 : Dw C.la C.lb C.ren C.li C.lj p q ≠ Dw C.la C.lb C.ren C.li C.lj (p - 1) q + 1 := fun h =>
+      hnd ⟨hp1, C.del_complete hp1 hps hqs hF hb h⟩
+    have h2 : Dw C.la C.lb C.ren C.li C.lj p q ≠ Dw C.la C.lb C.ren C.li C.lj p (q - 1) + 1 := fun h =>
+      hni ⟨hq1, C.ins_complete hq1 hps hqs hF hb h⟩
+    omega
+  · have hxi : C.li + p - 1 ≤ C.i0 := by
+      have hlile : C.li ≤ C.i0 := by have := (hG.wa.1 C.i0 hG.i0a).2; rw [← hG.li_eq] at this; exact this
+      have hps2 : p ≤ C.i0 - C.li + 1 := hps
+      omega
+    have hyj : C.lj + q - 1 ≤ C.j0 := by
+      have hljle : C.lj ≤ C.j0 := by have := (hG.wb.1 C.j0 hG.j0a).2; rw [← hG.lj_eq] at this; exact this
+      have hqs2 : q ≤ C.j0 - C.lj + 1 := hqs
+      omega
+    have hd := Dw_eq_nonleaf (ren := C.ren) hG.wa hG.wb hli hlj hp1 hq1 (closed_win C hG hxi) (closed_winB C hG hyj) hl
+    have h1 : Dw C.la C.lb C.ren C.li C.lj p q ≠ Dw C.la C.lb C.ren C.li C.lj (p - 1) q + 1 := fun h =>
+      hnd ⟨hp1, C.del_complete hp1 hps hqs hF hb h⟩
+    have h2 : Dw C.la C.lb C.ren C.li C.lj p q ≠ Dw C.la C.lb C.ren C.li C.lj p (q - 1) + 1 := fun h =>
+      hni ⟨hq1, C.ins_complete hq1 hps hqs hF hb h⟩
+    unfold TD
+    omega
+
+/-- A window pushed by the traceback fits the budget of the table. -/
+theorem budget_child (hG : C.Good) {p q : Nat} (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (hp : 1 ≤ p) (hq : 1 ≤ q)
+    (hps : p ≤ C.si) (hqs : q ≤ C.sj)
+    (hb : Dw C.la C.lb C.ren C.li C.lj p q + C.δ ≤ C.t)
+    (hd : Dw C.la C.lb C.ren C.li C.lj p q = Dw C.la C.lb C.ren C.li C.lj (C.la (C.li + p - 1) - C.li)
+        (C.lb (C.lj + q - 1) - C.lj) + TD C.la C.lb C.ren (C.li + p - 1) (C.lj + q - 1)) :
+    TD C.la C.lb C.ren (C.li + p - 1) (C.lj + q - 1) +
+      adf (C.la (C.li + p - 1)) (C.lb (C.lj + q - 1)) ≤ C.t := by
+  have hxi : C.li + p - 1 ≤ C.i0 := by
+    have hlile : C.li ≤ C.i0 := by have := (hG.wa.1 C.i0 hG.i0a).2; rw [← hG.li_eq] at this; exact this
+    have hps2 : p ≤ C.i0 - C.li + 1 := hps
+    omega
+  have hyj : C.lj + q - 1 ≤ C.j0 := by
+    have hljle : C.lj ≤ C.j0 := by have := (hG.wb.1 C.j0 hG.j0a).2; rw [← hG.lj_eq] at this; exact this
+    have hqs2 : q ≤ C.j0 - C.lj + 1 := hqs
+    omega
+  have hcA := closed_win C hG hxi
+  have hcB := closed_winB C hG hyj
+  have hlx1 := hcA (C.li + p - 1) (by omega) (Nat.le_refl _)
+  have hly1 := hcB (C.lj + q - 1) (by omega) (Nat.le_refl _)
+  have hsz := Dw_size (la := C.la) (lb := C.lb) (ren := C.ren) hli hlj (C.la (C.li + p - 1) - C.li)
+    (C.lb (C.lj + q - 1) - C.lj)
+  unfold Ctx.δ at hb
+  unfold adf at hb ⊢
+  split at hb <;> split <;> omega
 
 end Ctx
 end difffold_lines_extract
