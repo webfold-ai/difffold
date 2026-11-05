@@ -1,0 +1,12 @@
+[package]
+name = "xdiff-baseline"
+version = "0.0.1"
+edition = "2021"
+publish = false
+description = "Git's xdiff, in process via libgit2, as a baseline row for linebench. Not a workspace member: it has its own lock file so git2 stays out of the root workspace."
+
+[dependencies]
+git2 = { version = "0.20", default-features = false }
+
+# Standalone: not a member of the root difffold workspace.
+[workspace]

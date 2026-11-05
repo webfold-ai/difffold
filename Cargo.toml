@@ -3,7 +3,7 @@ name = "difffold"
 version = "0.0.1"
 edition = "2021"
 rust-version = "1.89"
-description = "Ordered-tree diff on an exact hash-consed arena, with a certified-optimal banded aligner."
+description = "Line and ordered-tree differencing in Rust, with optimal tree mappings and Git-compatible unified patches."
 license = "Apache-2.0"
 publish = false
 
@@ -49,8 +49,8 @@ resolver = "2"
 members = ["gitcompat", "harness/rust", "linebench"]
 # Excluded, not built: corpus/ (src/lib.rs and both bins are missing from the tree); proof/* are
 # Lean extraction tools with their own [workspace]; tools/omni_dump depends on an absolute local
-# OmniDiff checkout.
-exclude = ["corpus", "proof/extract", "proof/extract-lines", "tools/omni_dump"]
+# OmniDiff checkout; tools/xdiff-baseline (git2) has its own lock file so git2 stays out of the root lock.
+exclude = ["corpus", "proof/extract", "proof/extract-lines", "tools/omni_dump", "tools/xdiff-baseline"]
 
 [profile.release]
 debug = 1

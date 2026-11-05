@@ -141,17 +141,7 @@ fn main() {
             mismatches += 1;
             eprintln!("cost mismatch vs similar-myers on {name}: ours {ours} similar {c}");
         }
-        // Git's own xdiff, in process (libgit2 vendors it): raw bytes to a patch object with line stats.
-        for (name, minimal) in [("xdiff-default", false), ("xdiff-minimal", true)] {
-            let (us, c) = time(reps, || {
-                let mut o = git2::DiffOptions::new();
-                o.minimal(minimal).context_lines(0);
-                let p = git2::Patch::from_buffers(&bs, None, &as_, None, Some(&mut o)).unwrap();
-                let (_, a, d) = p.line_stats().unwrap();
-                a + d
-            });
-            row(name, us, c, &mut out);
-        }
+        // Git's xdiff baseline (git2) lives in tools/xdiff-baseline, so this crate has no libgit2 dependency.
         // Patch stage: raw bytes to a serialized unified diff.
         let (us, p) = time(reps, || {
             difffold::unified::unified(&bs, &as_, "f", 3, Algo::Minimal)
