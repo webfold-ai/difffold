@@ -687,7 +687,7 @@ theorem hist_spec (a b : Slice U32) (n : Nat) (hida : ∀ x ∈ a.val, x.val < n
   have hpp : blo1.val = blo.val + (alo1.val - alo.val) := by omega
   have hvl : (vals a.val).length = a.val.length := vals_len _
   have hvlb : (vals b.val).length = b.val.length := vals_len _
-  refine Aeneas.Std.WP.spec_mono (P₁ := fun h' => HOut a b n h alo1.val ahi1.val blo1.val bhi1.val h') ?_ ?_
+  refine Aeneas.Std.WP.spec_mono (P₀ := fun h' => HOut a b n h alo1.val ahi1.val blo1.val bhi1.val h') ?_ ?_
   swap
   · intro h' hh
     obtain ⟨hs', hc', hp⟩ := hh
