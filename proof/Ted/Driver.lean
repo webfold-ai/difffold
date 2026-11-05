@@ -292,14 +292,14 @@ theorem within_inner_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
 
 theorem Ctx.wb_next (C : Ctx) {KA KB : List Nat} {ia : Nat} (hia : ia < KA.length)
     (hmB : ∀ y, 1 ≤ y → y ≤ C.m → krf C.lb C.m y ∈ KB) {x y : Nat} (hy1 : 1 ≤ y) (hym : y ≤ C.m)
-    (h : C.WB KA KB ia KB.length x y) : C.WB KA KB (ia + 1) 0 x y ∨ False := by
-  left
+    (h : C.WB KA KB (ia + 1) 0 x y) : C.WB KA KB ia KB.length x y := by
   unfold Ctx.WB at h ⊢
-  rcases h with h | ⟨hk, _⟩
-  · exact Or.inl ((take_succ_mem hia).mpr (Or.inl h))
-  · refine Or.inl ((take_succ_mem hia).mpr (Or.inr ?_))
-    have := Option.some.inj (hk.symm.trans (by rw [List.getElem?_eq_getElem hia]))
-    omega
+  rcases h with h | ⟨_, h⟩
+  · rcases (take_succ_mem hia).mp h with h | h
+    · exact Or.inl h
+    · refine Or.inr ⟨by rw [List.getElem?_eq_getElem hia, h], ?_⟩
+      rw [List.take_length]; exact hmB y hy1 hym
+  · simp at h
 
 /-- The loop over the keyroots of the first tree. -/
 theorem within_outer_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C.Keys a b)
@@ -309,7 +309,7 @@ theorem within_outer_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
     (htdlen : (C.n + 1) * C.w ≤ td.val.length) (hfdlen : (C.n + 1) * C.w ≤ fd.val.length)
     (hTB : Ctx.FdB td.val C.inf) (hFB : Ctx.FdB fd.val C.inf)
     (hG : C.GInv td.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia.val 0)) :
-    ted.within_td_loop0 a tau t b st td fd ia ⦃ r =>
+    ted.within_td_loop0 a b tau st t td fd ia ⦃ r =>
       r.2.val.length = td.val.length ∧ Ctx.FdB r.2.val C.inf ∧
       C.GInv r.2.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) (vals a.keyroots.val).length 0) ⦄ := by
   unfold ted.within_td_loop0
@@ -350,6 +350,14 @@ theorem within_outer_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
         rw [e] at h
         rw [U32.cast_Usize_val_eq, hi3, ← getU_eq _ _ hi2b, ← h]
       generalize hlig : UScalar.cast .Usize i3 = li at hliv
+      obtain ⟨r, he, e1, e2, e3, e4, e5, k1, k2, k3, k4, k5⟩ := WP.spec_imp_exists
+        (within_inner_spec C a b1 hK hKe hw tau t ia1.val hial i0 li st1 td1 fd1 0#usize htau ht hI.symm hliv
+        (by simp) (by rw [h2]; exact htdlen) (by rw [h3]; exact hfdlen) h4 h5 (by simpa using h6))
+      rw [he]
+      simp only [bind_tc_ok]
+      obtain ⟨v, v1, v2, v3, v4, st2, td2, fd2⟩ := r
+      dsimp only at e1 e2 e3 e4 e5 k1 k2 k3 k4 k5
+      step as ⟨ia2, hia2⟩
       sorry
     · simp only [if_neg hq]
       have hia1 : ia1.val = (vals a.keyroots.val).length := by

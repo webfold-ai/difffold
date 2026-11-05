@@ -383,36 +383,66 @@ pub fn diff_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
     let (am, bm) = (&a[pre..a.len() - suf], &b[pre..b.len() - suf]);
     let mut in_a = vec![false; n_ids];
     let mut in_b = vec![false; n_ids];
-    each(am, 0, &mut |_, &x| in_a[x as usize] = true);
-    each(bm, 0, &mut |_, &x| in_b[x as usize] = true);
+    mark_ids(am, &mut in_a);
+    mark_ids(bm, &mut in_b);
     // Compact: keep only lines whose id occurs on the other side; the rest are certain edits.
     let (mut ca, mut pa) = (Vec::new(), Vec::new());
-    each(am, pre, &mut |i, &x| {
-        if in_b[x as usize] {
-            ca.push(x);
-            pa.push(i);
-        } else {
-            deleted[i] = true;
-        }
-    });
+    compact_ids(am, pre, &in_b, &mut ca, &mut pa, &mut deleted);
     let (mut cb, mut pb) = (Vec::new(), Vec::new());
-    each(bm, pre, &mut |j, &x| {
-        if in_a[x as usize] {
-            cb.push(x);
-            pb.push(j);
-        } else {
-            inserted[j] = true;
-        }
-    });
+    compact_ids(bm, pre, &in_a, &mut cb, &mut pb, &mut inserted);
     let mut ra = vec![false; ca.len()];
     let mut rb = vec![false; cb.len()];
     let size = 2 * (ca.len() + cb.len()) + 3;
     let mut vf = vec![0i32; size];
     let mut vb = vec![0i32; size];
     solve(&ca, &cb, 0, 0, &mut ra, &mut rb, &mut vf, &mut vb);
-    each(&ra, 0, &mut |k, &d| deleted[pa[k]] = d);
-    each(&rb, 0, &mut |k, &d| inserted[pb[k]] = d);
+    scatter_flags(&ra, &pa, &mut deleted);
+    scatter_flags(&rb, &pb, &mut inserted);
     LineDiff { deleted, inserted }
+}
+
+/// Set `flags[x]` for every id `x` of `xs`, by halving.
+fn mark_ids(xs: &[u32], flags: &mut [bool]) {
+    match xs.len() {
+        0 => {}
+        1 => flags[xs[0] as usize] = true,
+        n => {
+            mark_ids(&xs[..n / 2], flags);
+            mark_ids(&xs[n / 2..], flags);
+        }
+    }
+}
+
+/// Split `xs` (whose first element sits at position `base`) into the ids that occur on the other side,
+/// pushed with their positions, and the certain edits, flagged in `edit`.
+fn compact_ids(xs: &[u32], base: usize, other: &[bool], keep: &mut Vec<u32>, pos: &mut Vec<usize>, edit: &mut [bool]) {
+    match xs.len() {
+        0 => {}
+        1 => {
+            if other[xs[0] as usize] {
+                keep.push(xs[0]);
+                pos.push(base);
+            } else {
+                edit[base] = true;
+            }
+        }
+        n => {
+            compact_ids(&xs[..n / 2], base, other, keep, pos, edit);
+            compact_ids(&xs[n / 2..], base + n / 2, other, keep, pos, edit);
+        }
+    }
+}
+
+/// Copy the solved flags `r[k]` back to position `pos[k]`, by halving.
+fn scatter_flags(r: &[bool], pos: &[usize], out: &mut [bool]) {
+    match r.len() {
+        0 => {}
+        1 => out[pos[0]] = r[0],
+        n => {
+            scatter_flags(&r[..n / 2], &pos[..n / 2], out);
+            scatter_flags(&r[n / 2..], &pos[n / 2..], out);
+        }
+    }
 }
 
 /// Mark the minimal edits between `a` and `b`; `ao`/`bo` are the offsets of the slices in `ra`/`rb`.
