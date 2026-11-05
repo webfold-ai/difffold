@@ -289,4 +289,75 @@ theorem within_inner_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
       exact ⟨trivial, trivial, trivial, trivial, trivial, h2, h3, h4, h5, h6⟩
   · exact ⟨hib, rfl, rfl, hTB, hFB, hG⟩
 
+
+theorem Ctx.wb_next (C : Ctx) {KA KB : List Nat} {ia : Nat} (hia : ia < KA.length)
+    (hmB : ∀ y, 1 ≤ y → y ≤ C.m → krf C.lb C.m y ∈ KB) {x y : Nat} (hy1 : 1 ≤ y) (hym : y ≤ C.m)
+    (h : C.WB KA KB ia KB.length x y) : C.WB KA KB (ia + 1) 0 x y ∨ False := by
+  left
+  unfold Ctx.WB at h ⊢
+  rcases h with h | ⟨hk, _⟩
+  · exact Or.inl ((take_succ_mem hia).mpr (Or.inl h))
+  · refine Or.inl ((take_succ_mem hia).mpr (Or.inr ?_))
+    have := Option.some.inj (hk.symm.trans (by rw [List.getElem?_eq_getElem hia]))
+    omega
+
+/-- The loop over the keyroots of the first tree. -/
+theorem within_outer_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C.Keys a b)
+    (hw : C.w = 2 * C.t + 1) (tau : Std.U32) (t : Std.Usize) (st : ted.Stats)
+    (td fd : alloc.vec.Vec Std.U32) (ia : Std.Usize)
+    (htau : tau.val = C.t) (ht : t.val = C.t) (hia : ia.val ≤ (vals a.keyroots.val).length)
+    (htdlen : (C.n + 1) * C.w ≤ td.val.length) (hfdlen : (C.n + 1) * C.w ≤ fd.val.length)
+    (hTB : Ctx.FdB td.val C.inf) (hFB : Ctx.FdB fd.val C.inf)
+    (hG : C.GInv td.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia.val 0)) :
+    ted.within_td_loop0 a tau t b st td fd ia ⦃ r =>
+      r.2.val.length = td.val.length ∧ Ctx.FdB r.2.val C.inf ∧
+      C.GInv r.2.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) (vals a.keyroots.val).length 0) ⦄ := by
+  unfold ted.within_td_loop0
+  apply loop.spec_decr_nat
+    (measure := fun s => (vals a.keyroots.val).length - s.2.2.2.2.val)
+    (inv := fun s => s.1 = b ∧ s.2.2.2.2.val ≤ (vals a.keyroots.val).length ∧ s.2.2.1.val.length = td.val.length ∧
+      s.2.2.2.1.val.length = fd.val.length ∧ Ctx.FdB s.2.2.1.val C.inf ∧ Ctx.FdB s.2.2.2.1.val C.inf ∧
+      C.GInv s.2.2.1.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) s.2.2.2.2.val 0))
+  · intro s hs
+    obtain ⟨b1, st1, td1, fd1, ia1⟩ := s
+    obtain ⟨h0, h1, h2, h3, h4, h5, h6⟩ := hs
+    dsimp only at h0 h1 h2 h3 h4 h5 h6 ⊢
+    subst h0
+    unfold ted.within_td_loop0.body
+    have hlenv : (alloc.vec.Vec.len a.keyroots).val = (vals a.keyroots.val).length := by
+      rw [alloc.vec.Vec.len_val, vals_length]
+    by_cases hq : ia1 < alloc.vec.Vec.len a.keyroots
+    · simp only [if_pos hq]
+      have hial : ia1.val < (vals a.keyroots.val).length := by
+        have : ia1.val < (alloc.vec.Vec.len a.keyroots).val := hq
+        omega
+      have hka : ia1.val < a.keyroots.val.length := by rw [vals_length] at hial; exact hial
+      step as ⟨i1, hi1⟩
+      have hI : (UScalar.cast .Usize i1).val = (vals a.keyroots.val)[ia1.val]'hial := by
+        rw [U32.cast_Usize_val_eq, hi1, vals_getElem _ _ hka]
+      generalize hi0g : UScalar.cast .Usize i1 = i0 at hI
+      simp only [lift, bind_tc_ok]
+      have hImem : (vals a.keyroots.val)[ia1.val]'hial ∈ vals a.keyroots.val := List.getElem_mem hial
+      have hkI := hKe.kA _ hImem
+      have hI1 : 1 ≤ i0.val := by rw [hI]; exact hkI.1
+      have hIn : i0.val ≤ C.n := by rw [hI]; exact hkI.2.1
+      step as ⟨i2, hi2⟩
+      have hi2b : i2.val < a.lml.val.length := by have : a.lml.val.length = C.n := hK.n2; omega
+      step as ⟨i3, hi3⟩
+      have hliv : (UScalar.cast .Usize i3).val = C.la i0.val := by
+        have e : i0.val - 1 = i2.val := by omega
+        have h := hK.la_eq i0.val hI1 hIn
+        rw [e] at h
+        rw [U32.cast_Usize_val_eq, hi3, ← getU_eq _ _ hi2b, ← h]
+      generalize hlig : UScalar.cast .Usize i3 = li at hliv
+      sorry
+    · simp only [if_neg hq]
+      have hia1 : ia1.val = (vals a.keyroots.val).length := by
+        have : ¬ ia1.val < (alloc.vec.Vec.len a.keyroots).val := hq
+        omega
+      simp only [WP.spec_ok]
+      rw [hia1] at h6
+      exact ⟨h2, h4, h6⟩
+  · exact ⟨rfl, hia, rfl, rfl, hTB, hFB, hG⟩
+
 end difffold_lines_extract
