@@ -62,6 +62,7 @@ non-minimal results. Whether the smaller scripts also give more useful hunks is 
 Unit insert, delete and relabel costs, deletion promotes children. Baselines: the Rust port `apted`
 0.1.1 and the authors' Java APTED (unreleased snapshot after its 0.1.1 tag, JVM, 5 reps after warm-up, so small-tree Java
 numbers include JIT warm-up). Real tree-sitter ASTs; every distance is asserted equal.
+A wider timing matrix with unrelated and low-distance synthetic pairs, shape variants, threshold mode, and X-TED CPU (1 and 4 threads) is in [FASTER-TED.md](FASTER-TED.md).
 
 | cohort | pairs | vs Rust APTED port (total / median) | vs Java APTED (total / median) |
 |---|---|---|---|

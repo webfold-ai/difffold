@@ -1,0 +1,441 @@
+pair,regime,shape,nodes_a,nodes_b,reference_distance,tool,mode,status,n_timed,prep_min_us,prep_med_us,prep_max_us,dist_min_us,dist_med_us,dist_max_us,total_med_us,charged_total_med_us,note
+syn-mut-balanced-100,mutation,balanced,100,100,1,difffold ted,unknown,ok,7,11,12,13,26,28,60,39,,
+syn-mut-balanced-100,mutation,balanced,100,100,1,difffold ted_within,threshold,ok,7,8,10,11,10,11,16,21,60,tau = difffold distance; bound cost charged
+syn-mut-balanced-100,mutation,balanced,100,100,1,APTED (C++),unknown,ok,7,87,92,118,1728,1789,1815,1899,,
+syn-mut-balanced-100,mutation,balanced,100,100,1,Touzet baseline ted() (TopDiff path),unknown,ok,7,61,61,72,28,28,45,96,,
+syn-mut-balanced-100,mutation,balanced,100,100,1,Touzet baseline ted_k,threshold,ok,7,57,60,84,27,29,42,90,129,tau = difffold distance; bound cost charged
+syn-mut-balanced-100,mutation,balanced,100,100,1,Touzet KR-set ted(),unknown,ok,7,59,68,94,21,22,24,91,,
+syn-mut-balanced-100,mutation,balanced,100,100,1,Touzet KR-set ted_k,threshold,ok,7,59,62,86,22,22,25,84,123,tau = difffold distance; bound cost charged
+syn-mut-balanced-100,mutation,balanced,100,100,1,Touzet depth-pruning ted(),unknown,ok,7,60,68,79,19,20,50,87,,
+syn-mut-balanced-100,mutation,balanced,100,100,1,Touzet depth-pruning ted_k,threshold,ok,7,59,68,84,18,18,32,86,125,tau = difffold distance; bound cost charged
+syn-mut-balanced-100,mutation,balanced,100,100,1,X-TED CPU (1 thread),unknown,ok,7,11,14,26,768,858,1144,874,,
+syn-mut-balanced-100,mutation,balanced,100,100,1,X-TED CPU (4 threads),unknown,ok,7,19,21,21,1819,1988,2502,2009,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,difffold ted,unknown,ok,7,83,88,95,4901,5011,5182,5099,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,difffold ted_within,threshold,ok,7,82,85,96,1936,2164,2277,2246,7345,tau = difffold distance; bound cost charged
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,APTED (C++),unknown,ok,7,1222,1275,1325,394979,429213,517625,430442,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,Touzet baseline ted() (TopDiff path),unknown,ok,7,1037,1140,1614,4858,6174,8217,7313,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,Touzet baseline ted_k,threshold,ok,7,1145,1264,1622,2687,4102,4341,5441,10540,tau = difffold distance; bound cost charged
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,Touzet KR-set ted(),unknown,ok,7,1136,1156,1240,3787,3959,4090,5176,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,Touzet KR-set ted_k,threshold,ok,7,1076,1175,1576,1694,1870,2150,3072,8171,tau = difffold distance; bound cost charged
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,Touzet depth-pruning ted(),unknown,ok,7,1144,1174,1234,5212,5306,5485,6527,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,Touzet depth-pruning ted_k,threshold,ok,7,1037,1173,1205,2802,3223,3399,4363,9462,tau = difffold distance; bound cost charged
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,X-TED CPU (1 thread),unknown,ok,7,134,140,149,119786,128361,151985,128500,,
+syn-mut-balanced-1000,mutation,balanced,1000,1002,10,X-TED CPU (4 threads),unknown,ok,7,133,200,3200,103378,115342,138660,115498,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,difffold ted,unknown,ok,7,359,410,556,164601,183392,197437,183773,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,difffold ted_within,threshold,ok,7,384,406,440,75514,80408,118536,80811,264584,tau = difffold distance; bound cost charged
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,APTED (C++),unknown,ok,7,6413,7403,11260,20061094,20874932,22465749,20882419,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,Touzet baseline ted() (TopDiff path),unknown,ok,7,6228,6770,9926,312352,340406,404191,347121,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,Touzet baseline ted_k,threshold,ok,7,6261,6894,8164,94387,97861,108580,105278,289051,tau = difffold distance; bound cost charged
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,Touzet KR-set ted(),unknown,ok,7,6065,6625,9285,181830,193258,289094,201284,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,Touzet KR-set ted_k,threshold,ok,7,6010,8364,18068,59206,67760,79094,82585,266358,tau = difffold distance; bound cost charged
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,Touzet depth-pruning ted(),unknown,ok,7,6207,6747,7776,350116,358111,380598,364588,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,Touzet depth-pruning ted_k,threshold,ok,7,6183,6843,7297,107857,116467,118129,123125,306898,tau = difffold distance; bound cost charged
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,X-TED CPU (1 thread),unknown,ok,7,575,680,749,6644030,7152500,7305880,7153184,,
+syn-mut-balanced-5000,mutation,balanced,5000,4996,50,X-TED CPU (4 threads),unknown,ok,7,700,944,1120,4441854,4778218,5064599,4779226,,
+syn-mut-chain-100,mutation,chain,100,100,1,difffold ted,unknown,ok,7,16,16,28,21,22,25,39,,
+syn-mut-chain-100,mutation,chain,100,100,1,difffold ted_within,threshold,ok,7,13,14,15,3,3,3,17,56,tau = difffold distance; bound cost charged
+syn-mut-chain-100,mutation,chain,100,100,1,APTED (C++),unknown,ok,7,437,551,864,333,363,686,910,,
+syn-mut-chain-100,mutation,chain,100,100,1,Touzet baseline ted() (TopDiff path),unknown,ok,7,450,454,483,222,246,313,705,,
+syn-mut-chain-100,mutation,chain,100,100,1,Touzet baseline ted_k,threshold,ok,7,406,421,447,222,226,245,647,686,tau = difffold distance; bound cost charged
+syn-mut-chain-100,mutation,chain,100,100,1,Touzet KR-set ted(),unknown,ok,7,408,446,477,10,10,21,457,,
+syn-mut-chain-100,mutation,chain,100,100,1,Touzet KR-set ted_k,threshold,ok,7,402,426,460,10,10,13,436,475,tau = difffold distance; bound cost charged
+syn-mut-chain-100,mutation,chain,100,100,1,Touzet depth-pruning ted(),unknown,ok,7,447,475,530,22,22,23,498,,
+syn-mut-chain-100,mutation,chain,100,100,1,Touzet depth-pruning ted_k,threshold,ok,7,414,467,587,20,22,24,489,528,tau = difffold distance; bound cost charged
+syn-mut-chain-100,mutation,chain,100,100,1,X-TED CPU (1 thread),unknown,ok,7,11,11,11,147,152,235,163,,
+syn-mut-chain-100,mutation,chain,100,100,1,X-TED CPU (4 threads),unknown,ok,7,14,14,14,283,318,368,332,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,difffold ted,unknown,ok,7,185,192,209,488,513,601,703,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,difffold ted_within,threshold,ok,7,172,186,199,318,335,420,520,1223,tau = difffold distance; bound cost charged
+syn-mut-chain-1000,mutation,chain,1000,1000,8,APTED (C++),unknown,ok,7,68903,71513,90891,71476,75238,79543,146297,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,Touzet baseline ted() (TopDiff path),unknown,ok,7,62899,67427,93158,1029013,1088727,1215209,1158649,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,Touzet baseline ted_k,threshold,ok,7,66010,69239,101319,733926,804607,891880,875566,876269,tau = difffold distance; bound cost charged
+syn-mut-chain-1000,mutation,chain,1000,1000,8,Touzet KR-set ted(),unknown,ok,7,62914,65017,66927,2045,2151,2286,67135,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,Touzet KR-set ted_k,threshold,above_tau,,,,,,,,,,tool reported distance above tau
+syn-mut-chain-1000,mutation,chain,1000,1000,8,Touzet depth-pruning ted(),unknown,ok,7,69126,73880,84534,11295,12101,16243,85981,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,Touzet depth-pruning ted_k,threshold,ok,7,62184,67688,90095,9130,9263,17053,76818,77521,tau = difffold distance; bound cost charged
+syn-mut-chain-1000,mutation,chain,1000,1000,8,X-TED CPU (1 thread),unknown,ok,7,111,119,135,17195,17987,20156,18122,,
+syn-mut-chain-1000,mutation,chain,1000,1000,8,X-TED CPU (4 threads),unknown,ok,7,120,129,223,27525,29603,33634,29730,,
+syn-mut-chain-5000,mutation,chain,5000,5003,34,difffold ted,unknown,ok,7,482,541,4513,13156,19860,37461,20572,,
+syn-mut-chain-5000,mutation,chain,5000,5003,34,difffold ted_within,threshold,ok,7,487,533,568,14963,19299,20096,19786,40358,tau = difffold distance; bound cost charged
+syn-mut-chain-5000,mutation,chain,5000,5003,34,APTED (C++),unknown,ok,7,4365101,4641816,4956908,2180005,2440276,2693421,7009133,,
+syn-mut-chain-5000,mutation,chain,5000,5003,34,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-chain-5000,mutation,chain,5000,5003,34,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-chain-5000,mutation,chain,5000,5003,34,Touzet KR-set ted(),unknown,ok,7,4072599,4711796,4862067,112886,128088,151945,4836945,,
+syn-mut-chain-5000,mutation,chain,5000,5003,34,Touzet KR-set ted_k,threshold,above_tau,,,,,,,,,,tool reported distance above tau
+syn-mut-chain-5000,mutation,chain,5000,5003,34,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-chain-5000,mutation,chain,5000,5003,34,Touzet depth-pruning ted_k,threshold,ok,7,4080139,4524305,5400595,4146383,4437537,5394413,9308968,9329540,tau = difffold distance; bound cost charged
+syn-mut-chain-5000,mutation,chain,5000,5003,34,X-TED CPU (1 thread),unknown,ok,7,532,589,4698,1300509,1423465,1514786,1425655,,
+syn-mut-chain-5000,mutation,chain,5000,5003,34,X-TED CPU (4 threads),unknown,ok,7,568,611,857,883622,955760,1111657,956617,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,difffold ted,unknown,ok,7,11,11,11,22,25,41,36,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,difffold ted_within,threshold,ok,7,8,9,10,9,9,9,18,54,tau = difffold distance; bound cost charged
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,APTED (C++),unknown,ok,7,188,208,12233,382,400,572,602,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,Touzet baseline ted() (TopDiff path),unknown,ok,7,156,169,196,98,98,167,267,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,Touzet baseline ted_k,threshold,ok,7,174,196,16336,111,114,206,325,361,tau = difffold distance; bound cost charged
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,Touzet KR-set ted(),unknown,ok,7,193,204,243,14,14,18,222,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,Touzet KR-set ted_k,threshold,ok,7,167,175,180,12,12,16,188,224,tau = difffold distance; bound cost charged
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,Touzet depth-pruning ted(),unknown,ok,7,178,183,201,19,19,21,202,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,Touzet depth-pruning ted_k,threshold,ok,7,176,193,252,20,21,36,226,262,tau = difffold distance; bound cost charged
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,X-TED CPU (1 thread),unknown,ok,7,18,18,20,22743,25247,46122,25266,,
+syn-mut-lcomb-100,mutation,lcomb,100,100,1,X-TED CPU (4 threads),unknown,ok,7,19,22,30,18896,23105,29014,23135,,
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,difffold ted,unknown,ok,7,74,81,214,1379,1716,13874,1818,,
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,difffold ted_within,threshold,ok,7,68,96,115,723,1048,9126,1139,2957,tau = difffold distance; bound cost charged
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,APTED (C++),unknown,ok,7,40851,47749,64625,120223,151176,186053,193835,,
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,Touzet baseline ted() (TopDiff path),unknown,ok,7,41819,52604,72138,1105851,1321444,1729949,1370273,,
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,Touzet baseline ted_k,threshold,ok,7,40897,45700,57753,527204,577469,695518,623169,624987,tau = difffold distance; bound cost charged
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,Touzet KR-set ted(),unknown,ok,7,40187,44551,49205,1605,1666,5719,46415,,
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,Touzet KR-set ted_k,threshold,ok,7,40688,49090,57256,876,979,5300,52613,54431,tau = difffold distance; bound cost charged
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,Touzet depth-pruning ted(),unknown,ok,7,47818,55600,58853,40951,55318,62930,111284,,
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,Touzet depth-pruning ted_k,threshold,ok,7,44028,51897,56573,17977,23051,32724,74948,76766,tau = difffold distance; bound cost charged
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,X-TED CPU (1 thread),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-1000,mutation,lcomb,1000,998,10,X-TED CPU (4 threads),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,difffold ted,unknown,ok,7,421,493,548,145698,199386,208488,199884,,
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,difffold ted_within,threshold,ok,7,460,526,558,47514,73044,81128,73569,273453,tau = difffold distance; bound cost charged
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,APTED (C++),unknown,ok,7,635310,833672,1715009,2843487,3374754,6482427,4061323,,
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,Touzet KR-set ted(),unknown,ok,7,1240564,1515917,1797426,170385,179176,295085,1695093,,
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,Touzet KR-set ted_k,threshold,above_tau,,,,,,,,,,tool reported distance above tau
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,X-TED CPU (1 thread),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-lcomb-5000,mutation,lcomb,5000,5011,50,X-TED CPU (4 threads),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,difffold ted,unknown,ok,7,10,11,19,21,23,26,34,,
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,difffold ted_within,threshold,ok,7,9,11,13,107,110,136,121,155,tau = difffold distance; bound cost charged
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,APTED (C++),unknown,ok,7,225,244,406,441,453,670,748,,
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,Touzet baseline ted() (TopDiff path),unknown,ok,7,202,212,270,127,131,135,342,,
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,Touzet baseline ted_k,threshold,ok,7,196,216,261,128,131,144,360,394,tau = difffold distance; bound cost charged
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,Touzet KR-set ted(),unknown,ok,7,207,229,267,132,138,181,380,,
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,Touzet KR-set ted_k,threshold,ok,7,212,224,258,135,144,177,386,420,tau = difffold distance; bound cost charged
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,Touzet depth-pruning ted(),unknown,ok,7,208,271,500,22,35,633,317,,
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,Touzet depth-pruning ted_k,threshold,ok,7,321,330,447,36,37,4460,404,438,tau = difffold distance; bound cost charged
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,X-TED CPU (1 thread),unknown,ok,7,16,18,22,377,394,454,414,,
+syn-mut-rcomb-100,mutation,rcomb,100,100,1,X-TED CPU (4 threads),unknown,ok,7,12,14,20,446,3394,7835,3406,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,difffold ted,unknown,ok,7,110,113,168,2065,2108,2174,2240,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,difffold ted_within,threshold,ok,7,79,86,129,351124,361757,435868,361881,364121,tau = difffold distance; bound cost charged
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,APTED (C++),unknown,ok,7,21084,22005,24293,52480,55218,60534,76773,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,Touzet baseline ted() (TopDiff path),unknown,ok,7,22324,24950,27891,897181,1070859,1557213,1095809,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,Touzet baseline ted_k,threshold,ok,7,22148,23440,32201,258574,350465,420751,372863,375103,tau = difffold distance; bound cost charged
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,Touzet KR-set ted(),unknown,ok,7,21957,24313,25597,916599,975069,1177519,999382,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,Touzet KR-set ted_k,threshold,above_tau,,,,,,,,,,tool reported distance above tau
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,Touzet depth-pruning ted(),unknown,ok,7,22128,25974,35424,41358,49833,75015,80668,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,Touzet depth-pruning ted_k,threshold,ok,7,22779,25604,31712,8833,9896,16656,38723,40963,tau = difffold distance; bound cost charged
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,X-TED CPU (1 thread),unknown,ok,7,119,128,162,27209,28316,37268,28447,,
+syn-mut-rcomb-1000,mutation,rcomb,1000,999,10,X-TED CPU (4 threads),unknown,ok,7,115,124,182,42758,54326,56094,54508,,
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,difffold ted,unknown,ok,7,300,382,611,87797,100166,129893,100490,,
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,difffold ted_within,threshold,skipped,,,,,,,,,,no completed timed run (killed or error)
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,APTED (C++),unknown,ok,7,675429,729124,841020,3400771,3565144,3730798,4299986,,
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,Touzet KR-set ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,Touzet depth-pruning ted_k,threshold,ok,7,663795,753764,848249,3857950,4522959,5229006,5276723,5377213,tau = difffold distance; bound cost charged
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,X-TED CPU (1 thread),unknown,ok,7,502,554,1400,1792600,1924493,2201948,1925047,,
+syn-mut-rcomb-5000,mutation,rcomb,5000,4996,50,X-TED CPU (4 threads),unknown,ok,7,518,575,1329,2081688,2120891,2217132,2121443,,
+syn-mut-star-100,mutation,star,100,99,1,difffold ted,unknown,ok,7,6,7,8,42,57,86,64,,
+syn-mut-star-100,mutation,star,100,99,1,difffold ted_within,threshold,ok,7,5,8,15,39,42,71,50,114,tau = difffold distance; bound cost charged
+syn-mut-star-100,mutation,star,100,99,1,APTED (C++),unknown,ok,7,37,59,475,451,535,786,646,,
+syn-mut-star-100,mutation,star,100,99,1,Touzet baseline ted() (TopDiff path),unknown,ok,7,26,28,74,16,16,26,44,,
+syn-mut-star-100,mutation,star,100,99,1,Touzet baseline ted_k,threshold,ok,7,25,27,55,11,11,12,38,102,tau = difffold distance; bound cost charged
+syn-mut-star-100,mutation,star,100,99,1,Touzet KR-set ted(),unknown,ok,7,27,30,40,25,26,51,57,,
+syn-mut-star-100,mutation,star,100,99,1,Touzet KR-set ted_k,threshold,ok,7,28,31,46,21,22,25,53,117,tau = difffold distance; bound cost charged
+syn-mut-star-100,mutation,star,100,99,1,Touzet depth-pruning ted(),unknown,ok,7,26,28,33,18,18,19,46,,
+syn-mut-star-100,mutation,star,100,99,1,Touzet depth-pruning ted_k,threshold,ok,7,27,28,33,14,14,15,42,106,tau = difffold distance; bound cost charged
+syn-mut-star-100,mutation,star,100,99,1,X-TED CPU (1 thread),unknown,ok,7,5,5,7,448,481,626,488,,
+syn-mut-star-100,mutation,star,100,99,1,X-TED CPU (4 threads),unknown,ok,7,12,13,19,3816,4031,8203,4050,,
+syn-mut-star-1000,mutation,star,1000,1000,10,difffold ted,unknown,ok,7,33,37,63,7500,7973,8544,8010,,
+syn-mut-star-1000,mutation,star,1000,1000,10,difffold ted_within,threshold,ok,7,34,37,38,3487,3653,4002,3690,11700,tau = difffold distance; bound cost charged
+syn-mut-star-1000,mutation,star,1000,1000,10,APTED (C++),unknown,ok,7,345,359,610,63453,65735,117719,66080,,
+syn-mut-star-1000,mutation,star,1000,1000,10,Touzet baseline ted() (TopDiff path),unknown,ok,7,252,261,271,2454,2527,2595,2791,,
+syn-mut-star-1000,mutation,star,1000,1000,10,Touzet baseline ted_k,threshold,ok,7,257,269,298,744,788,904,1050,9060,tau = difffold distance; bound cost charged
+syn-mut-star-1000,mutation,star,1000,1000,10,Touzet KR-set ted(),unknown,ok,7,253,326,357,4444,5147,5615,5455,,
+syn-mut-star-1000,mutation,star,1000,1000,10,Touzet KR-set ted_k,threshold,ok,7,238,268,330,1256,1401,2122,1684,9694,tau = difffold distance; bound cost charged
+syn-mut-star-1000,mutation,star,1000,1000,10,Touzet depth-pruning ted(),unknown,ok,7,239,259,296,2854,3031,4944,3327,,
+syn-mut-star-1000,mutation,star,1000,1000,10,Touzet depth-pruning ted_k,threshold,ok,7,254,299,618,955,982,1708,1412,9422,tau = difffold distance; bound cost charged
+syn-mut-star-1000,mutation,star,1000,1000,10,X-TED CPU (1 thread),unknown,ok,7,63,70,84,58137,63492,74715,63569,,
+syn-mut-star-1000,mutation,star,1000,1000,10,X-TED CPU (4 threads),unknown,ok,7,63,86,141,74747,78040,88182,78127,,
+syn-mut-star-5000,mutation,star,5000,4997,49,difffold ted,unknown,ok,7,130,164,191,218453,226415,235695,226583,,
+syn-mut-star-5000,mutation,star,5000,4997,49,difffold ted_within,threshold,ok,7,136,146,199,57712,77124,102706,77270,303853,tau = difffold distance; bound cost charged
+syn-mut-star-5000,mutation,star,5000,4997,49,APTED (C++),unknown,ok,7,1877,1930,2804,3690096,4295980,5195932,4297891,,
+syn-mut-star-5000,mutation,star,5000,4997,49,Touzet baseline ted() (TopDiff path),unknown,ok,7,1526,1587,1763,49652,51204,57782,52762,,
+syn-mut-star-5000,mutation,star,5000,4997,49,Touzet baseline ted_k,threshold,ok,7,1507,1725,2434,19901,24443,35844,26737,253320,tau = difffold distance; bound cost charged
+syn-mut-star-5000,mutation,star,5000,4997,49,Touzet KR-set ted(),unknown,ok,7,1430,1533,2300,93562,95700,130436,97181,,
+syn-mut-star-5000,mutation,star,5000,4997,49,Touzet KR-set ted_k,threshold,ok,7,1468,1534,2229,34872,40658,53691,42223,268806,tau = difffold distance; bound cost charged
+syn-mut-star-5000,mutation,star,5000,4997,49,Touzet depth-pruning ted(),unknown,ok,7,1569,1932,2359,59485,66210,79113,68264,,
+syn-mut-star-5000,mutation,star,5000,4997,49,Touzet depth-pruning ted_k,threshold,ok,7,1478,1520,1780,23447,23804,25848,25576,252159,tau = difffold distance; bound cost charged
+syn-mut-star-5000,mutation,star,5000,4997,49,X-TED CPU (1 thread),unknown,ok,7,459,581,614,2080295,2171278,2676026,2171862,,
+syn-mut-star-5000,mutation,star,5000,4997,49,X-TED CPU (4 threads),unknown,ok,7,523,685,783,2102932,2226262,2482602,2226947,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,difffold ted,unknown,ok,7,7,8,12,23,26,36,34,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,difffold ted_within,threshold,ok,7,7,9,11,18,19,40,28,62,tau = difffold distance; bound cost charged
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,APTED (C++),unknown,ok,7,84,94,253,1226,1315,1567,1409,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,Touzet baseline ted() (TopDiff path),unknown,ok,7,42,46,56,20,21,23,67,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,Touzet baseline ted_k,threshold,ok,7,45,46,58,20,21,23,67,101,tau = difffold distance; bound cost charged
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,Touzet KR-set ted(),unknown,ok,7,46,49,59,22,23,24,71,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,Touzet KR-set ted_k,threshold,ok,7,47,50,60,22,23,24,73,107,tau = difffold distance; bound cost charged
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,Touzet depth-pruning ted(),unknown,ok,7,48,62,71,12,16,48,78,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,Touzet depth-pruning ted_k,threshold,ok,7,48,53,65,12,12,15,65,99,tau = difffold distance; bound cost charged
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,X-TED CPU (1 thread),unknown,ok,7,8,10,16,593,659,792,675,,
+java-protocolbuffers-protobuf-update-comment-2,real AST,java-ast,77,77,1,X-TED CPU (4 threads),unknown,ok,7,12,13,18,1551,1662,1855,1675,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,difffold ted,unknown,ok,7,10,12,96,126,139,222,152,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,difffold ted_within,threshold,ok,7,9,10,13,130,154,186,165,317,tau = difffold distance; bound cost charged
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,APTED (C++),unknown,ok,7,99,106,173,1401,1457,1943,1565,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,Touzet baseline ted() (TopDiff path),unknown,ok,7,57,59,78,93,96,105,154,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,Touzet baseline ted_k,threshold,ok,7,57,62,97,80,81,92,144,296,tau = difffold distance; bound cost charged
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,Touzet KR-set ted(),unknown,ok,7,68,73,103,119,125,196,210,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,Touzet KR-set ted_k,threshold,ok,7,63,70,93,98,107,170,192,344,tau = difffold distance; bound cost charged
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,Touzet depth-pruning ted(),unknown,ok,7,55,59,145,100,106,121,165,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,Touzet depth-pruning ted_k,threshold,ok,7,58,63,97,91,95,105,157,309,tau = difffold distance; bound cost charged
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,X-TED CPU (1 thread),unknown,ok,7,9,10,23,616,631,699,645,,
+java-defects4j-chart-10-standardtooltiptagfragmentgenerator,real AST,java-ast,80,87,7,X-TED CPU (4 threads),unknown,ok,7,15,20,22,1807,3157,10254,3178,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,difffold ted,unknown,ok,7,70,85,130,9484,11769,17407,11899,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,difffold ted_within,threshold,ok,7,68,69,76,13115,13997,15809,14073,25972,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,APTED (C++),unknown,ok,7,763,924,1276,115982,124597,129336,125597,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,Touzet baseline ted() (TopDiff path),unknown,ok,7,706,784,819,4811,5034,5380,5852,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,Touzet baseline ted_k,threshold,ok,7,779,841,993,4812,4946,7139,5787,17686,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,Touzet KR-set ted(),unknown,ok,7,748,790,843,4972,5628,5686,6440,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,Touzet KR-set ted_k,threshold,ok,7,778,808,1023,5070,5196,8241,5997,17896,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,Touzet depth-pruning ted(),unknown,ok,7,722,766,812,5131,5673,5741,6439,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,Touzet depth-pruning ted_k,threshold,ok,7,781,793,838,4932,5435,5706,6249,18148,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,X-TED CPU (1 thread),unknown,ok,7,81,92,116,42783,52830,58865,52923,,
+java-defects4j-jacksondatabind-84-resolvedrecursivetype,real AST,java-ast,655,701,46,X-TED CPU (4 threads),unknown,ok,7,90,105,279,38585,47506,50884,47596,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,difffold ted,unknown,ok,7,96,103,135,89537,91643,104057,91746,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,difffold ted_within,threshold,ok,7,92,102,106,51291,54023,63356,54120,145866,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,APTED (C++),unknown,ok,7,1204,1241,1674,256215,291390,406980,292610,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,Touzet baseline ted() (TopDiff path),unknown,ok,7,1093,1138,1452,16868,17452,18275,18554,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,Touzet baseline ted_k,threshold,ok,7,989,1097,1167,16416,17061,17929,18143,109889,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,Touzet KR-set ted(),unknown,ok,7,996,1043,1111,17451,18273,20058,19316,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,Touzet KR-set ted_k,threshold,ok,7,1010,1097,1161,17372,18355,23228,19368,111114,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,Touzet depth-pruning ted(),unknown,ok,7,1077,1194,1285,19139,20396,21352,21600,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,Touzet depth-pruning ted_k,threshold,ok,7,974,1041,1572,18289,18527,20143,19611,111357,tau = difffold distance; bound cost charged
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,X-TED CPU (1 thread),unknown,ok,7,113,117,175,108701,124683,133653,124797,,
+java-defects4j-jacksondatabind-38-maptype,real AST,java-ast,952,1053,102,X-TED CPU (4 threads),unknown,ok,7,120,137,167,92550,104634,122728,104754,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,difffold ted,unknown,ok,7,109,120,241,9961,11615,13127,11760,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,difffold ted_within,threshold,ok,7,101,113,181,6044,6548,10714,6661,18421,tau = difffold distance; bound cost charged
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,APTED (C++),unknown,ok,7,1698,1823,2071,579968,625570,647805,627393,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,Touzet baseline ted() (TopDiff path),unknown,ok,7,1489,1612,1694,8940,9304,10097,10793,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,Touzet baseline ted_k,threshold,ok,7,1546,1670,1766,3122,3466,3925,5154,16914,tau = difffold distance; bound cost charged
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,Touzet KR-set ted(),unknown,ok,7,1640,1714,2271,10109,10808,14964,12472,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,Touzet KR-set ted_k,threshold,ok,7,1676,1740,1858,3568,3785,5708,5554,17314,tau = difffold distance; bound cost charged
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,Touzet depth-pruning ted(),unknown,ok,7,1573,1718,3840,8930,9963,11177,11816,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,Touzet depth-pruning ted_k,threshold,ok,7,1535,1677,1705,3259,3578,3787,5240,17000,tau = difffold distance; bound cost charged
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,X-TED CPU (1 thread),unknown,ok,7,131,159,185,191562,200661,212646,200846,,
+java-defects4j-cli-2-posixparser,real AST,java-ast,1070,1067,10,X-TED CPU (4 threads),unknown,ok,7,135,147,201,167374,179097,185911,179244,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,difffold ted,unknown,ok,7,122,140,153,20291,22411,24518,22564,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,difffold ted_within,threshold,ok,7,115,124,139,13523,14300,15458,14416,36980,tau = difffold distance; bound cost charged
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,APTED (C++),unknown,ok,7,1686,1846,2901,559458,632007,713905,634020,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,Touzet baseline ted() (TopDiff path),unknown,ok,7,1538,1705,1908,12098,12726,13815,14264,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,Touzet baseline ted_k,threshold,ok,7,1624,1766,2193,8862,9408,10003,11067,33631,tau = difffold distance; bound cost charged
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,Touzet KR-set ted(),unknown,ok,7,1631,1831,2449,12476,14615,16701,16789,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,Touzet KR-set ted_k,threshold,ok,7,1568,1625,1876,8732,9631,12528,11507,34071,tau = difffold distance; bound cost charged
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,Touzet depth-pruning ted(),unknown,ok,7,1760,1865,1955,14836,16714,20103,18540,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,Touzet depth-pruning ted_k,threshold,ok,7,1624,1699,1828,9997,10562,14611,12347,34911,tau = difffold distance; bound cost charged
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,X-TED CPU (1 thread),unknown,ok,7,152,161,226,230979,251300,303145,251458,,
+java-defects4j-compress-7-tarutils,real AST,java-ast,1236,1248,25,X-TED CPU (4 threads),unknown,ok,7,160,177,338,188617,193697,199732,193926,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,difffold ted,unknown,ok,7,229,261,436,944468,1037723,1198619,1037970,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,difffold ted_within,threshold,ok,7,231,248,349,632550,720655,905179,720904,1758874,tau = difffold distance; bound cost charged
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,APTED (C++),unknown,ok,7,3221,4926,6218,3516612,3748830,3936268,3754038,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,Touzet baseline ted() (TopDiff path),unknown,ok,7,3072,3442,4632,1581314,1862999,2448742,1866662,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,Touzet baseline ted_k,threshold,ok,7,3231,3442,4069,274475,283770,321915,287001,1324971,tau = difffold distance; bound cost charged
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,Touzet KR-set ted(),unknown,ok,7,3298,4147,5195,1553088,1662091,1821603,1665537,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,Touzet KR-set ted_k,threshold,ok,7,3291,4338,4475,308903,360722,488011,365182,1403152,tau = difffold distance; bound cost charged
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,Touzet depth-pruning ted(),unknown,ok,7,3050,3374,4905,1718767,1858056,2123580,1862961,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,Touzet depth-pruning ted_k,threshold,ok,7,3326,3598,5380,315215,350183,401111,353868,1391838,tau = difffold distance; bound cost charged
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,X-TED CPU (1 thread),unknown,ok,7,314,327,430,1311690,1368562,1480498,1368878,,
+java-defects4j-chart-21-defaultboxandwhiskercategorydataset,real AST,java-ast,2763,3131,370,X-TED CPU (4 threads),unknown,ok,7,336,467,581,960481,1042290,1132944,1042788,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,difffold ted,unknown,ok,7,396,425,620,148830,155086,231960,155561,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,difffold ted_within,threshold,ok,7,399,451,789,97670,105915,122598,106340,261901,tau = difffold distance; bound cost charged
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,APTED (C++),unknown,ok,7,6035,6660,9742,10309606,10582696,11211648,10588731,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,Touzet baseline ted() (TopDiff path),unknown,ok,7,5918,6767,9460,69881,86356,119019,93123,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,Touzet baseline ted_k,threshold,ok,7,5883,6706,11808,48114,57460,83431,63734,219295,tau = difffold distance; bound cost charged
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,Touzet KR-set ted(),unknown,ok,7,5935,6671,8324,78737,89420,96616,96091,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,Touzet KR-set ted_k,threshold,ok,7,6238,6563,9289,50445,57601,83008,63839,219400,tau = difffold distance; bound cost charged
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,Touzet depth-pruning ted(),unknown,ok,7,5739,7430,10788,80880,101454,131328,112242,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,Touzet depth-pruning ted_k,threshold,ok,7,5494,6185,6721,56374,57975,75047,64011,219572,tau = difffold distance; bound cost charged
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,X-TED CPU (1 thread),unknown,ok,7,502,538,1878,3695590,3869818,3952005,3870342,,
+java-defects4j-chart-17-timeseries,real AST,java-ast,4590,4609,36,X-TED CPU (4 threads),unknown,ok,7,570,855,985,3013299,3190219,3566460,3190789,,
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,difffold ted,unknown,ok,7,325,369,455,27065,28042,29718,28385,,
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,difffold ted_within,threshold,ok,7,354,381,447,32372,35564,44095,36011,64396,tau = difffold distance; bound cost charged
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,APTED (C++),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,Touzet baseline ted() (TopDiff path),unknown,ok,7,9807,14048,21887,11242,15563,20088,29740,,
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,Touzet baseline ted_k,threshold,ok,7,9933,14010,21833,13859,14566,18241,28576,56961,tau = difffold distance; bound cost charged
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,Touzet KR-set ted(),unknown,ok,7,9837,13738,17737,16182,20960,25641,31613,,
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,Touzet KR-set ted_k,threshold,ok,7,10197,11452,14138,11449,19277,24415,30249,58634,tau = difffold distance; bound cost charged
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,Touzet depth-pruning ted(),unknown,ok,7,10027,13898,17781,11114,15249,19850,29375,,
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,Touzet depth-pruning ted_k,threshold,ok,7,9587,13543,14895,13834,16993,18673,29140,57525,tau = difffold distance; bound cost charged
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,X-TED CPU (1 thread),unknown,ok,7,493,562,4637,9043882,9313048,9398859,9317601,,
+java-defects4j-chart-13-borderarrangement,real AST,java-ast,4613,4622,9,X-TED CPU (4 threads),unknown,ok,7,552,623,742,3172041,3439458,3769837,3440096,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,difffold ted,unknown,ok,7,551,574,617,67526,70412,71882,70981,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,difffold ted_within,threshold,ok,7,511,574,733,88372,93896,101446,94479,165460,tau = difffold distance; bound cost charged
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,APTED (C++),unknown,ok,7,7825,8809,13162,16626183,17976193,18365075,17984862,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,Touzet baseline ted() (TopDiff path),unknown,ok,7,7740,7961,8148,22928,23347,26075,31307,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,Touzet baseline ted_k,threshold,ok,7,7730,8000,8695,20010,21592,22205,29427,100408,tau = difffold distance; bound cost charged
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,Touzet KR-set ted(),unknown,ok,7,8483,9299,12137,26735,32409,35900,40916,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,Touzet KR-set ted_k,threshold,ok,7,8517,8786,11684,26768,27961,30581,37191,108172,tau = difffold distance; bound cost charged
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,Touzet depth-pruning ted(),unknown,ok,7,8465,11499,12455,32486,44102,46639,55601,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,Touzet depth-pruning ted_k,threshold,ok,7,7705,8729,9379,24927,26306,34761,35259,106240,tau = difffold distance; bound cost charged
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,X-TED CPU (1 thread),unknown,ok,7,717,791,1140,7118850,7497464,8407961,7498255,,
+java-defects4j-chart-3-timeseries,real AST,java-ast,5958,5982,24,X-TED CPU (4 threads),unknown,ok,7,696,1112,1302,5006000,5313412,5585476,5314606,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,difffold ted,unknown,ok,7,19,21,21,1018,1046,1092,1067,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,difffold ted_within,threshold,ok,7,12,14,15,544,555,612,567,1634,tau = difffold distance; bound cost charged
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,APTED (C++),unknown,ok,7,112,116,195,1402,1516,2313,1632,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,Touzet baseline ted() (TopDiff path),unknown,ok,7,99,105,127,6105,6133,6345,6232,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,Touzet baseline ted_k,threshold,ok,7,81,95,106,2887,3136,3254,3231,4298,tau = difffold distance; bound cost charged
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,Touzet KR-set ted(),unknown,ok,7,101,110,127,2737,2905,3102,3016,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,Touzet KR-set ted_k,threshold,ok,7,94,101,114,1270,1318,1379,1414,2481,tau = difffold distance; bound cost charged
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,Touzet depth-pruning ted(),unknown,ok,7,89,93,106,6312,6934,7010,7037,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,Touzet depth-pruning ted_k,threshold,ok,7,87,94,118,3534,3633,3718,3720,4787,tau = difffold distance; bound cost charged
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,X-TED CPU (1 thread),unknown,ok,7,12,14,15,957,979,1000,992,,
+syn-unrel-balanced-100,unrelated,balanced,100,100,123,X-TED CPU (4 threads),unknown,ok,7,17,20,33,2601,48130,55989,48150,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,difffold ted,unknown,ok,7,128,183,207,278213,446296,453966,446489,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,difffold ted_within,threshold,ok,7,119,128,184,141785,150881,268801,151011,597500,tau = difffold distance; bound cost charged
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,APTED (C++),unknown,ok,7,1432,2072,2327,440690,495822,671391,497925,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,Touzet baseline ted() (TopDiff path),unknown,ok,7,1224,1940,2063,2365835,2630252,3158451,2632303,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,Touzet baseline ted_k,threshold,ok,7,1334,1544,1997,658212,774201,1039511,775745,1222234,tau = difffold distance; bound cost charged
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,Touzet KR-set ted(),unknown,ok,7,1249,1370,2101,916718,1008989,1112296,1011090,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,Touzet KR-set ted_k,threshold,ok,7,1242,1433,1976,282553,324070,429079,325495,771984,tau = difffold distance; bound cost charged
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,Touzet depth-pruning ted(),unknown,ok,7,1196,1471,1950,2607228,3212497,3551652,3213731,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,Touzet depth-pruning ted_k,threshold,ok,7,1365,1433,2047,800962,969531,1225205,971578,1418067,tau = difffold distance; bound cost charged
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,X-TED CPU (1 thread),unknown,ok,7,158,239,311,157321,223868,246661,224107,,
+syn-unrel-balanced-1000,unrelated,balanced,1000,1000,1202,X-TED CPU (4 threads),unknown,ok,7,153,167,230,147489,169101,230258,169331,,
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,difffold ted,unknown,ok,1,562,562,562,33118806,33118806,33118806,33119368,,only 1 timed reps
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,difffold ted_within,threshold,ok,2,742,4691.5,8641,18700115,19064433.5,19428752,19069125.0,52188493.0,tau = difffold distance; bound cost charged; only 2 timed reps
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,APTED (C++),unknown,skipped,,,,,,,,,,a run exceeded 60 s
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,Touzet KR-set ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,X-TED CPU (1 thread),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-balanced-5000,unrelated,balanced,5000,5000,6002,X-TED CPU (4 threads),unknown,ok,7,697,882,1094,6914362,8042264,8531788,8043045,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,difffold ted,unknown,ok,7,13,15,16,270,288,413,301,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,difffold ted_within,threshold,ok,7,12,13,18,257,262,307,276,577,tau = difffold distance; bound cost charged
+syn-unrel-chain-100,unrelated,chain,100,100,186,APTED (C++),unknown,ok,7,298,353,460,585,1122,24766,1475,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,Touzet baseline ted() (TopDiff path),unknown,ok,7,289,316,345,144186,153869,158867,154168,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,Touzet baseline ted_k,threshold,ok,7,359,493,606,102785,170581,180182,171124,171425,tau = difffold distance; bound cost charged
+syn-unrel-chain-100,unrelated,chain,100,100,186,Touzet KR-set ted(),unknown,ok,7,449,509,567,2786,10783,26990,11232,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,Touzet KR-set ted_k,threshold,ok,7,393,457,24534,977,1059,17173,1564,1865,tau = difffold distance; bound cost charged
+syn-unrel-chain-100,unrelated,chain,100,100,186,Touzet depth-pruning ted(),unknown,ok,7,293,331,373,158671,162953,178185,163270,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,Touzet depth-pruning ted_k,threshold,ok,7,295,345,379,97249,102078,111571,102457,102758,tau = difffold distance; bound cost charged
+syn-unrel-chain-100,unrelated,chain,100,100,186,X-TED CPU (1 thread),unknown,ok,7,10,12,16,290,299,6236,311,,
+syn-unrel-chain-100,unrelated,chain,100,100,186,X-TED CPU (4 threads),unknown,ok,7,16,17,18,736,815,2859,833,,
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,difffold ted,unknown,ok,7,150,167,268,144238,189880,246929,190036,,
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,difffold ted_within,threshold,ok,7,138,150,8169,131327,195012,227589,195162,385198,tau = difffold distance; bound cost charged
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,APTED (C++),unknown,ok,7,97517,106705,144528,371726,442053,529721,558831,,
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,Touzet KR-set ted(),unknown,ok,7,101292,111973,118632,710548,733375,1055640,844690,,
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,Touzet KR-set ted_k,threshold,ok,7,106631,120363,155865,301783,312461,433929,427469,617505,tau = difffold distance; bound cost charged
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,X-TED CPU (1 thread),unknown,ok,7,155,190,225,168025,197266,261505,197491,,
+syn-unrel-chain-1000,unrelated,chain,1000,1000,1970,X-TED CPU (4 threads),unknown,ok,7,150,157,334,58501,61570,66996,61904,,
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,difffold ted,unknown,ok,7,650,674,929,7045034,7537458,7672570,7538132,,
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,difffold ted_within,threshold,ok,7,637,1011,8978,6418760,6767750,7245966,6776728,14314860,tau = difffold distance; bound cost charged
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,APTED (C++),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,Touzet KR-set ted_k,threshold,ok,7,1059452,1149941,1504225,2893562,3029865,3285824,4293845,11831977,tau = difffold distance; bound cost charged
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,X-TED CPU (1 thread),unknown,ok,7,678,812,5180,5289333,5716162,6554003,5716868,,
+syn-unrel-chain-5000,unrelated,chain,5000,5000,9962,X-TED CPU (4 threads),unknown,ok,7,701,842,973,1513273,1781050,2123973,1781800,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,difffold ted,unknown,ok,7,15,21,43,420,551,12606,569,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,difffold ted_within,threshold,ok,7,11,13,18,334,348,12414,359,928,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,APTED (C++),unknown,ok,7,173,215,261,628,714,9066,929,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,Touzet baseline ted() (TopDiff path),unknown,ok,7,181,208,295,95318,104187,175776,104375,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,Touzet baseline ted_k,threshold,ok,7,192,266,4296,33859,54087,64047,54313,54882,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,Touzet KR-set ted(),unknown,ok,7,269,275,4311,8661,12652,16654,12921,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,Touzet KR-set ted_k,threshold,ok,7,232,267,8282,1144,1165,9220,1457,2026,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,Touzet depth-pruning ted(),unknown,ok,7,180,184,281,103945,104721,161332,104901,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,Touzet depth-pruning ted_k,threshold,ok,7,165,181,221,33192,37241,49345,37413,37982,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,X-TED CPU (1 thread),unknown,ok,7,14,15,19,5673,11352,15075,11367,,
+syn-unrel-lcomb-100,unrelated,lcomb,100,100,130,X-TED CPU (4 threads),unknown,ok,7,23,26,29,7970,9756,14480,9785,,
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,difffold ted,unknown,ok,7,113,126,141,179265,192718,216333,192844,,
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,difffold ted_within,threshold,ok,7,108,117,152,116404,149126,237961,149273,342117,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,APTED (C++),unknown,ok,7,19092,23874,38564,202961,217413,371435,241287,,
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,Touzet KR-set ted(),unknown,ok,7,10994,11638,12794,362669,410712,500542,422350,,
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,Touzet KR-set ted_k,threshold,ok,7,11292,16077,18387,115005,141825,193935,157902,350746,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,X-TED CPU (1 thread),unknown,ok,7,133,143,198,6423969,6687742,7277230,6687878,,
+syn-unrel-lcomb-1000,unrelated,lcomb,1000,1000,1377,X-TED CPU (4 threads),unknown,ok,7,148,162,242,3956690,4152934,4313431,4153096,,
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,difffold ted,unknown,ok,7,476,536,774,3353189,3580760,3796271,3581534,,
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,difffold ted_within,threshold,ok,7,500,549,559,2314972,2485352,2908422,2485911,6067445,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,APTED (C++),unknown,ok,7,323244,362336,435292,4372281,4652643,4946896,5028706,,
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,Touzet KR-set ted_k,threshold,ok,7,312899,393408,449865,4012258,4639014,4877614,5057575,8639109,tau = difffold distance; bound cost charged
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,X-TED CPU (1 thread),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-lcomb-5000,unrelated,lcomb,5000,5000,6900,X-TED CPU (4 threads),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,difffold ted,unknown,ok,7,14,16,33,568,578,703,595,,
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,difffold ted_within,threshold,ok,7,14,16,17,4702,4719,4925,4734,5329,tau = difffold distance; bound cost charged
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,APTED (C++),unknown,ok,7,172,188,206,812,832,877,1029,,
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,Touzet baseline ted() (TopDiff path),unknown,ok,7,169,180,218,24774,26541,27012,26721,,
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,Touzet baseline ted_k,threshold,ok,7,158,168,190,7350,7896,8218,8070,8665,tau = difffold distance; bound cost charged
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,Touzet KR-set ted(),unknown,ok,7,166,176,193,19543,20671,21167,20844,,
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,Touzet KR-set ted_k,threshold,ok,7,164,174,222,6521,6765,7128,6955,7550,tau = difffold distance; bound cost charged
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,Touzet depth-pruning ted(),unknown,ok,7,174,187,198,28078,29628,30269,29812,,
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,Touzet depth-pruning ted_k,threshold,ok,7,158,170,219,9057,9235,9428,9393,9988,tau = difffold distance; bound cost charged
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,X-TED CPU (1 thread),unknown,ok,7,12,14,15,418,454,516,466,,
+syn-unrel-rcomb-100,unrelated,rcomb,100,100,138,X-TED CPU (4 threads),unknown,ok,7,15,20,21,1270,1445,1542,1465,,
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,difffold ted,unknown,ok,7,121,131,184,106184,109579,183945,109733,,
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,difffold ted_within,threshold,ok,7,103,133,153,7290347,7571121,8477850,7571263,7680996,tau = difffold distance; bound cost charged
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,APTED (C++),unknown,ok,7,11444,12205,13008,119550,123840,152357,136257,,
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,Touzet KR-set ted_k,threshold,ok,7,12646,13530,17599,7093017,8014076,8064546,8030150,8139883,tau = difffold distance; bound cost charged
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,X-TED CPU (1 thread),unknown,ok,7,128,139,153,58590,60326,62338,60470,,
+syn-unrel-rcomb-1000,unrelated,rcomb,1000,1000,1391,X-TED CPU (4 threads),unknown,ok,7,130,158,242,57165,61231,71058,61361,,
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,difffold ted,unknown,ok,7,526,573,599,4817546,5309256,6257920,5309854,,
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,difffold ted_within,threshold,skipped,,,,,,,,,,no completed timed run (killed or error)
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,APTED (C++),unknown,ok,7,321880,355880,489427,5994501,6678658,7007592,7019370,,
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,Touzet KR-set ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,X-TED CPU (1 thread),unknown,ok,7,619,666,4687,7025735,7147227,7902771,7147875,,
+syn-unrel-rcomb-5000,unrelated,rcomb,5000,5000,6908,X-TED CPU (4 threads),unknown,ok,7,654,685,979,2138736,2249541,2299805,2250226,,
+syn-unrel-star-100,unrelated,star,100,100,128,difffold ted,unknown,ok,7,11,12,19,584,617,13179,628,,
+syn-unrel-star-100,unrelated,star,100,100,128,difffold ted_within,threshold,ok,7,7,10,20,404,416,12772,425,1053,tau = difffold distance; bound cost charged
+syn-unrel-star-100,unrelated,star,100,100,128,APTED (C++),unknown,ok,7,99,117,12162,844,899,12982,1025,,
+syn-unrel-star-100,unrelated,star,100,100,128,Touzet baseline ted() (TopDiff path),unknown,ok,7,90,104,113,2989,7306,15609,7414,,
+syn-unrel-star-100,unrelated,star,100,100,128,Touzet baseline ted_k,threshold,ok,7,97,113,137,1644,1769,9905,1881,2509,tau = difffold distance; bound cost charged
+syn-unrel-star-100,unrelated,star,100,100,128,Touzet KR-set ted(),unknown,ok,7,85,106,146,2397,11389,11882,11495,,
+syn-unrel-star-100,unrelated,star,100,100,128,Touzet KR-set ted_k,threshold,ok,7,65,75,136,815,943,8899,1039,1667,tau = difffold distance; bound cost charged
+syn-unrel-star-100,unrelated,star,100,100,128,Touzet depth-pruning ted(),unknown,ok,7,70,72,118,2366,10406,14563,10478,,
+syn-unrel-star-100,unrelated,star,100,100,128,Touzet depth-pruning ted_k,threshold,ok,7,59,66,113,1195,1290,13347,1369,1997,tau = difffold distance; bound cost charged
+syn-unrel-star-100,unrelated,star,100,100,128,X-TED CPU (1 thread),unknown,ok,7,10,10,16,589,651,6816,667,,
+syn-unrel-star-100,unrelated,star,100,100,128,X-TED CPU (4 threads),unknown,ok,7,14,15,16,1153,1185,1295,1201,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,difffold ted,unknown,ok,7,78,94,130,230347,264193,358474,264287,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,difffold ted_within,threshold,ok,7,83,86,4927,130616,142977,153788,143060,407347,tau = difffold distance; bound cost charged
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,APTED (C++),unknown,ok,7,1044,4952,5478,189764,218146,279246,221673,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,Touzet baseline ted() (TopDiff path),unknown,ok,7,1215,4866,5000,1346245,1434617,1705198,1439527,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,Touzet baseline ted_k,threshold,ok,7,793,936,5550,315545,331987,483924,332780,597067,tau = difffold distance; bound cost charged
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,Touzet KR-set ted(),unknown,ok,7,829,919,4942,1196054,1255659,1392278,1256529,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,Touzet KR-set ted_k,threshold,ok,7,845,960,5006,329302,370274,519263,371119,635406,tau = difffold distance; bound cost charged
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,Touzet depth-pruning ted(),unknown,ok,7,904,1123,5383,1557100,1838738,2328444,1843965,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,Touzet depth-pruning ted_k,threshold,ok,7,943,1209,6419,386923,444784,617493,445770,710057,tau = difffold distance; bound cost charged
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,X-TED CPU (1 thread),unknown,ok,7,111,123,132,140091,157325,169403,157448,,
+syn-unrel-star-1000,unrelated,star,1000,1000,1237,X-TED CPU (4 threads),unknown,ok,7,116,121,156,60921,66332,78672,66449,,
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,difffold ted,unknown,ok,6,421,470.5,4465,9592286,10019971.5,11161420,10022430.5,,only 6 timed reps
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,difffold ted_within,threshold,ok,7,378,436,561,6439377,6659224,6834525,6659602,16682032.5,tau = difffold distance; bound cost charged
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,APTED (C++),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,Touzet baseline ted() (TopDiff path),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,Touzet baseline ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,Touzet KR-set ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,Touzet KR-set ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,Touzet depth-pruning ted(),unknown,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,Touzet depth-pruning ted_k,threshold,not run,,,,,,,,,,"no output row: the first run did not finish within the 75 s cap, or the cell was interrupted by a runner restart"
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,X-TED CPU (1 thread),unknown,ok,7,506,583,5390,8472557,8705618,9204303,8707281,,
+syn-unrel-star-5000,unrelated,star,5000,5000,6146,X-TED CPU (4 threads),unknown,ok,7,544,762,815,2722851,3329466,3578341,3330010,,

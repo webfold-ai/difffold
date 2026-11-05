@@ -19,6 +19,7 @@ The library has three engines that solve different problems (see [Choose an engi
 - **`ted`**: general ordered-tree edit distance (the Zhang-Shasha objective, where deleting a node
   promotes its children), with an optimal node mapping, an independent mapping validator and an
   executable replay of the implied edit script.
+  Timing against APTED, the Touzet family and X-TED CPU on real and synthetic pairs: [notes/lanes/FASTER-TED.md](notes/lanes/FASTER-TED.md).
 
 Read [SPEC.md](SPEC.md) for the contracts of `diff`, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the
 modules fit together, and [paper/paper.md](paper/paper.md) for the design, measurements and limits (the paper

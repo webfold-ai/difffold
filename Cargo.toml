@@ -56,6 +56,15 @@ exclude = ["corpus", "proof/extract", "proof/extract-lines", "tools/omni_dump", 
 debug = 1
 
 [[bin]]
+name = "fastted_export"
+path = "src/bin/fastted_export.rs"
+required-features = ["ts"]
+
+[[bin]]
+name = "fastted_bench"
+path = "src/bin/fastted_bench.rs"
+
+[[bin]]
 name = "abi_cutoff"
 path = "src/bin/abi_cutoff.rs"
 required-features = ["ts"]
