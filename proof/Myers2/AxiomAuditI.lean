@@ -1,6 +1,8 @@
 import RealIntern
 import InternExact
-set_option pp.oneline false
-#print axioms difffold_myers_extract.intern_seeded_spec
-#print axioms difffold_myers_extract.intern_line_spec
-#print axioms difffold_myers_extract.hash_line_total
+open difffold_myers_extract
+#print axioms intern_seeded_spec
+#print axioms intern_all_spec
+#print axioms intern_line_spec
+#print axioms find_in_chain_spec
+#print axioms hash_line_total

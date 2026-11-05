@@ -34,16 +34,16 @@ def HClean (h : lines.Hist) : Prop :=
 theorem NIL_ne_of_lt (x : U32) (h : x.val < 4294967295) : x ≠ lines.NIL := by
   intro e; rw [e, NIL_val] at h; omega
 
-theorem index_a_loop_spec (a : Slice U32) (n alo : Nat) (ahi : Usize)
+theorem index_a_loop_spec (a : Slice U32) (B n alo : Nat) (ahi : Usize)
     (hid : ∀ x ∈ a.val, x.val < n) (hahi : ahi.val ≤ a.val.length) (hN : a.val.length ≤ 2 ^ 28) :
-    ∀ (h : lines.Hist) (i : Usize), alo ≤ i.val → i.val ≤ ahi.val → HSz a.val.length 0 n h →
+    ∀ (h : lines.Hist) (i : Usize), alo ≤ i.val → i.val ≤ ahi.val → HSz a.val.length B n h →
     IdxOK a alo i.val h →
-    lines.index_a_loop a h ahi i ⦃ h' => HSz a.val.length 0 n h' ∧ IdxOK a alo ahi.val h' ∧
+    lines.index_a_loop a h ahi i ⦃ h' => HSz a.val.length B n h' ∧ IdxOK a alo ahi.val h' ∧
       h'.del = h.del ∧ h'.ins = h.ins ∧ h'.vf = h.vf ∧ h'.vb = h.vb ⦄ := by
   intro h i hi1 hi2 hs hI
   unfold lines.index_a_loop
   apply loop.spec_decr_nat (fun (x : lines.Hist × Usize) => ahi.val - x.2.val)
-    (fun (x : lines.Hist × Usize) => alo ≤ x.2.val ∧ x.2.val ≤ ahi.val ∧ HSz a.val.length 0 n x.1 ∧
+    (fun (x : lines.Hist × Usize) => alo ≤ x.2.val ∧ x.2.val ≤ ahi.val ∧ HSz a.val.length B n x.1 ∧
       IdxOK a alo x.2.val x.1 ∧ x.1.del = h.del ∧ x.1.ins = h.ins ∧ x.1.vf = h.vf ∧ x.1.vb = h.vb) _ _ (h, i)
   · rintro ⟨h1, i1⟩ ⟨hi1, hi2, hs1, hI1, hd, hin, hvf, hvb⟩
     simp only at hi1 hi2 hs1 hI1 hd hin hvf hvb
@@ -147,15 +147,15 @@ def Pending (a : Slice U32) (q ahi : Nat) (h : lines.Hist) : Prop :=
   (∀ (k : Nat) c, h.cnt.val[k]? = some c → c.val = 0 ∨
     ∃ j, q ≤ j ∧ j < ahi ∧ ∃ u, a.val[j]? = some u ∧ u.val = k)
 
-theorem unindex_a_loop_spec (a : Slice U32) (n : Nat) (ahi : Usize)
+theorem unindex_a_loop_spec (a : Slice U32) (B n : Nat) (ahi : Usize)
     (hid : ∀ x ∈ a.val, x.val < n) (hahi : ahi.val ≤ a.val.length) :
-    ∀ (h : lines.Hist) (i : Usize), i.val ≤ ahi.val → HSz a.val.length 0 n h → Pending a i.val ahi.val h →
-    lines.unindex_a_loop a h ahi i ⦃ h' => HSz a.val.length 0 n h' ∧ HClean h' ∧
+    ∀ (h : lines.Hist) (i : Usize), i.val ≤ ahi.val → HSz a.val.length B n h → Pending a i.val ahi.val h →
+    lines.unindex_a_loop a h ahi i ⦃ h' => HSz a.val.length B n h' ∧ HClean h' ∧
       h'.del = h.del ∧ h'.ins = h.ins ∧ h'.vf = h.vf ∧ h'.vb = h.vb ∧ h'.nxt = h.nxt ⦄ := by
   intro h i hi2 hs hP
   unfold lines.unindex_a_loop
   apply loop.spec_decr_nat (fun (x : lines.Hist × Usize) => ahi.val - x.2.val)
-    (fun (x : lines.Hist × Usize) => x.2.val ≤ ahi.val ∧ HSz a.val.length 0 n x.1 ∧
+    (fun (x : lines.Hist × Usize) => x.2.val ≤ ahi.val ∧ HSz a.val.length B n x.1 ∧
       Pending a x.2.val ahi.val x.1 ∧ x.1.del = h.del ∧ x.1.ins = h.ins ∧ x.1.vf = h.vf ∧ x.1.vb = h.vb ∧
       x.1.nxt = h.nxt) _ _ (h, i)
   · rintro ⟨h1, i1⟩ ⟨hi2, hs1, hP1, hd, hin, hvf, hvb, hnx⟩
@@ -234,25 +234,25 @@ theorem unindex_a_loop_spec (a : Slice U32) (n : Nat) (ahi : Usize)
   · exact ⟨hi2, hs, hP, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- `index_a` followed by `unindex_a` is the identity on the clean state. -/
-theorem index_a_spec (a : Slice U32) (n : Nat) (alo ahi : Usize)
+theorem index_a_spec (a : Slice U32) (B n : Nat) (alo ahi : Usize)
     (hid : ∀ x ∈ a.val, x.val < n) (hahi : ahi.val ≤ a.val.length) (hN : a.val.length ≤ 2 ^ 28)
-    (hlo : alo.val ≤ ahi.val) (h : lines.Hist) (hs : HSz a.val.length 0 n h) (hc : HClean h) :
-    lines.index_a a h alo ahi ⦃ h' => HSz a.val.length 0 n h' ∧ IdxOK a alo.val ahi.val h' ∧
+    (hlo : alo.val ≤ ahi.val) (h : lines.Hist) (hs : HSz a.val.length B n h) (hc : HClean h) :
+    lines.index_a a h alo ahi ⦃ h' => HSz a.val.length B n h' ∧ IdxOK a alo.val ahi.val h' ∧
       h'.del = h.del ∧ h'.ins = h.ins ∧ h'.vf = h.vf ∧ h'.vb = h.vb ⦄ := by
   unfold lines.index_a
-  apply index_a_loop_spec a n alo.val ahi hid hahi hN h alo le_rfl hlo hs
+  apply index_a_loop_spec a B n alo.val ahi hid hahi hN h alo le_rfl hlo hs
   refine ⟨?_, ?_, ?_⟩
   · intro k x hk; left; exact hc.1 k x hk
   · intro j y h1 h2; omega
   · intro k c hk; rw [hc.2 k c hk]; simp
 
-theorem unindex_a_spec (a : Slice U32) (n : Nat) (alo ahi : Usize)
+theorem unindex_a_spec (a : Slice U32) (B n : Nat) (alo ahi : Usize)
     (hid : ∀ x ∈ a.val, x.val < n) (hahi : ahi.val ≤ a.val.length) (h : lines.Hist)
-    (hlo : alo.val ≤ ahi.val) (hs : HSz a.val.length 0 n h) (hI : IdxOK a alo.val ahi.val h) :
-    lines.unindex_a a h alo ahi ⦃ h' => HSz a.val.length 0 n h' ∧ HClean h' ∧
+    (hlo : alo.val ≤ ahi.val) (hs : HSz a.val.length B n h) (hI : IdxOK a alo.val ahi.val h) :
+    lines.unindex_a a h alo ahi ⦃ h' => HSz a.val.length B n h' ∧ HClean h' ∧
       h'.del = h.del ∧ h'.ins = h.ins ∧ h'.vf = h.vf ∧ h'.vb = h.vb ∧ h'.nxt = h.nxt ⦄ := by
   unfold lines.unindex_a
-  apply unindex_a_loop_spec a n ahi hid hahi h alo hlo hs
+  apply unindex_a_loop_spec a B n ahi hid hahi h alo hlo hs
   refine ⟨?_, ?_⟩
   · intro k x hk
     rcases hI.i1 k x hk with h | ⟨h1, h2, w⟩
@@ -696,16 +696,266 @@ theorem hist_spec (a b : Slice U32) (n : Nat) (hida : ∀ x ∈ a.val, x.val < n
   have hI1 : ∀ j, blo1.val ≤ j → j < bhi1.val → h.ins.val[j]? = some false := fun j h1 h2 => hI j (by omega) (by omega)
   by_cases hc1 : alo1 = ahi1
   · rw [if_pos hc1]
-    sorry
+    have hae : alo1.val = ahi1.val := by rw [hc1]
+    step as ⟨s4, back, hs4v, hs4l, hback⟩
+    step as ⟨s5, hs5l, hs5v⟩
+    have hv := fill_back_val h.ins blo1.val bhi1.val back s4 s5 hback hs4l hs5l hs5v (by omega) hIl
+    have hlenB : (Myers.sg (vals b.val) blo1.val bhi1.val).length = bhi1.val - blo1.val :=
+      Myers.sg_length _ _ _ (by rw [hvlb]; omega)
+    have hlenI : (back s5).val.length = h.ins.val.length := by
+      rw [hv, Myers.splice_length _ _ _ (by simp; omega)]
+    refine ⟨⟨hs.cnt, hs.head, hs.nxt, hs.del, ?_, hs.vf, hs.vb⟩, hcl, ?_⟩
+    · show (back s5).val.length = _
+      rw [hlenI]; exact hs.ins
+    · show Myers.HPost _ _ _ _ _ _ _ (back s5).val
+      rw [hv, hae, show Myers.sg (vals a.val) ahi1.val ahi1.val = [] by simp [Myers.sg]]
+      have := Myers.hp_ins_only (B := Myers.sg (vals b.val) blo1.val bhi1.val) (alo := ahi1.val)
+        (blo := blo1.val) h.del.val h.ins.val
+      rwa [hlenB] at this
   · rw [if_neg hc1]
     by_cases hc2 : blo1 = bhi1
     · rw [if_pos hc2]
-      sorry
+      have hbe : blo1.val = bhi1.val := by rw [hc2]
+      step as ⟨s4, back, hs4v, hs4l, hback⟩
+      step as ⟨s5, hs5l, hs5v⟩
+      have hv := fill_back_val h.del alo1.val ahi1.val back s4 s5 hback hs4l hs5l hs5v (by omega) hDl
+      have hlenA : (Myers.sg (vals a.val) alo1.val ahi1.val).length = ahi1.val - alo1.val :=
+        Myers.sg_length _ _ _ (by rw [hvl]; omega)
+      have hlenD : (back s5).val.length = h.del.val.length := by
+        rw [hv, Myers.splice_length _ _ _ (by simp; omega)]
+      refine ⟨⟨hs.cnt, hs.head, hs.nxt, ?_, hs.ins, hs.vf, hs.vb⟩, hcl, ?_⟩
+      · show (back s5).val.length = _
+        rw [hlenD]; exact hs.del
+      · show Myers.HPost _ _ _ _ _ _ (back s5).val _
+        rw [hv, hbe, show Myers.sg (vals b.val) bhi1.val bhi1.val = [] by simp [Myers.sg]]
+        have := Myers.hp_del_only (A := Myers.sg (vals a.val) alo1.val ahi1.val) (alo := alo1.val)
+          (blo := bhi1.val) h.del.val h.ins.val
+        rwa [hlenA] at this
     · rw [if_neg hc2]
       by_cases hc3 : depth ≥ lines.HIST_DEPTH
       · rw [if_pos hc3]
-        sorry
+        refine Aeneas.Std.WP.spec_mono (hist_fallback_spec a b n h alo1 ahi1 blo1 bhi1 hs hN
+          (by omega) (by omega) (by omega) (by omega) hD1 hI1) ?_
+        intro h' hh
+        obtain ⟨hs', hcn, hhd, hnx, hp⟩ := hh
+        refine ⟨hs', ⟨?_, ?_⟩, hp⟩
+        · rw [hhd]; exact hcl.1
+        · rw [hcn]; exact hcl.2
       · rw [if_neg hc3]
-        sorry
+        have hlt1 : alo1.val < ahi1.val := by
+          have : alo1.val ≠ ahi1.val := fun e => hc1 (UScalar.eq_of_val_eq e)
+          omega
+        have hlt2 : blo1.val < bhi1.val := by
+          have : blo1.val ≠ bhi1.val := fun e => hc2 (UScalar.eq_of_val_eq e)
+          omega
+        have hN28 : a.val.length ≤ 2 ^ 28 := by unfold NMAX at hN; omega
+        have hahi' : ahi1.val ≤ a.val.length := by omega
+        have hbhi' : bhi1.val ≤ b.val.length := by omega
+        step with (index_a_spec a b.val.length n alo1 ahi1 hida hahi' hN28 (by omega) h hs hcl) as
+          ⟨h1, hs1, hI1', hd1, hin1, hvf1, hvb1⟩
+        step with (find_anchor_spec a b n alo1 ahi1 blo1 bhi1 hidb hahi' hbhi' (by omega) (by omega) h1
+          hs1.cnt hs1.head hs1.nxt hI1') as ⟨best, hbest⟩
+        step with (any_common_spec b n blo1 bhi1 hidb hbhi' h1 hs1.cnt (by omega)) as ⟨common, _⟩
+        step with (unindex_a_spec a b.val.length n alo1 ahi1 hida hahi' h1 (by omega) hs1 hI1') as
+          ⟨h2, hs2, hc2', hd2, hin2, hvf2, hvb2, hnx2⟩
+        have hdel2 : h2.del = h.del := by rw [hd2, hd1]
+        have hins2 : h2.ins = h.ins := by rw [hin2, hin1]
+        have hdepth : depth.val < 1500 := by
+          have : ¬ depth.val ≥ 1500 := by
+            intro hh; apply hc3
+            show lines.HIST_DEPTH ≤ depth
+            rw [UScalar.le_equiv]; simpa [lines.HIST_DEPTH] using hh
+          omega
+        cases best with
+        | none =>
+          have hDl2 : ahi1.val ≤ h2.del.val.length := by rw [hs2.del]; omega
+          have hIl2 : bhi1.val ≤ h2.ins.val.length := by rw [hs2.ins]; omega
+          by_cases hcom : common = true
+          · simp only [hcom, if_true]
+            refine Aeneas.Std.WP.spec_mono (hist_fallback_spec a b n h2 alo1 ahi1 blo1 bhi1 hs2 hN
+              (by omega) (by omega) (by omega) (by omega)
+              (fun i h1' h2' => by rw [hdel2]; exact hD1 i h1' h2')
+              (fun j h1' h2' => by rw [hins2]; exact hI1 j h1' h2')) ?_
+            intro h' hh
+            obtain ⟨hs', hcn, hhd, hnx, hp⟩ := hh
+            refine ⟨hs', ⟨?_, ?_⟩, ?_⟩
+            · rw [hhd]; exact hc2'.1
+            · rw [hcn]; exact hc2'.2
+            · rw [hdel2, hins2] at hp; exact hp
+          · simp only [hcom, Bool.false_eq_true, if_false]
+            step as ⟨s4, back, hs4v, hs4l, hback⟩
+            step as ⟨s5, hs5l, hs5v⟩
+            step as ⟨s6, back1, hs6v, hs6l, hback1⟩
+            step as ⟨s7, hs7l, hs7v⟩
+            have hv1 := fill_back_val h2.del alo1.val ahi1.val back s4 s5 hback hs4l hs5l hs5v (by omega) hDl2
+            have hv2 := fill_back_val h2.ins blo1.val bhi1.val back1 s6 s7 hback1 hs6l hs7l hs7v (by omega) hIl2
+            have hlenA : (Myers.sg (vals a.val) alo1.val ahi1.val).length = ahi1.val - alo1.val :=
+              Myers.sg_length _ _ _ (by rw [hvl]; omega)
+            have hlenB : (Myers.sg (vals b.val) blo1.val bhi1.val).length = bhi1.val - blo1.val :=
+              Myers.sg_length _ _ _ (by rw [hvlb]; omega)
+            have hlenD : (back s5).val.length = h2.del.val.length := by
+              rw [hv1, Myers.splice_length _ _ _ (by simp; omega)]
+            have hlenI : (back1 s7).val.length = h2.ins.val.length := by
+              rw [hv2, Myers.splice_length _ _ _ (by simp; omega)]
+            refine ⟨⟨hs2.cnt, hs2.head, hs2.nxt, ?_, ?_, hs2.vf, hs2.vb⟩, hc2', ?_⟩
+            · show (back s5).val.length = _
+              rw [hlenD]; exact hs2.del
+            · show (back1 s7).val.length = _
+              rw [hlenI]; exact hs2.ins
+            · show Myers.HPost _ _ _ _ _ _ (back s5).val (back1 s7).val
+              rw [hv1, hv2, hdel2, hins2]
+              have := Myers.hp_all_true (A := Myers.sg (vals a.val) alo1.val ahi1.val)
+                (B := Myers.sg (vals b.val) blo1.val bhi1.val) (alo := alo1.val) (blo := blo1.val)
+                h.del.val h.ins.val
+              rwa [hlenA, hlenB] at this
+        | some an =>
+          obtain ⟨q1, q2, q3, q4, q5, q6⟩ := hbest an rfl
+          step as ⟨i0, hi0⟩
+          step as ⟨j0, hj0⟩
+          step as ⟨i1, hi1⟩
+          step as ⟨j1, hj1⟩
+          step as ⟨dp, hdp⟩
+          have hlen1 : 1 ≤ an.len.val := by omega
+          have hi0v : i0.val = an.i.val - an.bl.val := hi0
+          have hj0v : j0.val = an.j.val - an.bl.val := hj0
+          have hi1v : i1.val = i0.val + an.len.val := hi1
+          have hj1v : j1.val = j0.val + an.len.val := hj1
+          have hm1 : (i0.val - alo1.val) + (j0.val - blo1.val) < N := by omega
+          have hD' : ∀ i, alo1.val ≤ i → i < i0.val → h2.del.val[i]? = some false := fun i h1' h2' => by
+            rw [hdel2]; exact hD1 i h1' (by omega)
+          have hI' : ∀ j, blo1.val ≤ j → j < j0.val → h2.ins.val[j]? = some false := fun j h1' h2' => by
+            rw [hins2]; exact hI1 j h1' (by omega)
+          step with (ih _ hm1 h2 alo1 i0 blo1 j0 dp le_rfl (by omega) (by omega) (by omega) (by omega) hs2 hc2'
+            hD' hI') as ⟨h3, hh3⟩
+          obtain ⟨hs3, hc3', hp3⟩ := hh3
+          have hp3' := hp3
+          obtain ⟨da1, di1, hv1, hD3, hI3⟩ := hp3'
+          have hl1 : (Myers.sg (vals a.val) alo1.val i0.val).length = i0.val - alo1.val :=
+            Myers.sg_length _ _ _ (by rw [hvl]; omega)
+          have hl1b : (Myers.sg (vals b.val) blo1.val j0.val).length = j0.val - blo1.val :=
+            Myers.sg_length _ _ _ (by rw [hvlb]; omega)
+          have hda1 : da1.length = i0.val - alo1.val := by rw [hv1.1, hl1]
+          have hdi1 : di1.length = j0.val - blo1.val := by rw [hv1.2.1, hl1b]
+          have hsp1 : alo1.val + da1.length ≤ h2.del.val.length := by rw [hs2.del]; omega
+          have hsp2 : blo1.val + di1.length ≤ h2.ins.val.length := by rw [hs2.ins]; omega
+          have hD'' : ∀ i, i1.val ≤ i → i < ahi1.val → h3.del.val[i]? = some false := fun i h1' h2' => by
+            rw [hD3, Myers.splice_getElem? _ _ _ hsp1, if_neg (by omega), if_neg (by omega), hdel2]
+            exact hD1 i (by omega) h2'
+          have hI'' : ∀ j, j1.val ≤ j → j < bhi1.val → h3.ins.val[j]? = some false := fun j h1' h2' => by
+            rw [hI3, Myers.splice_getElem? _ _ _ hsp2, if_neg (by omega), if_neg (by omega), hins2]
+            exact hI1 j (by omega) h2'
+          have hm2 : (ahi1.val - i1.val) + (bhi1.val - j1.val) < N := by omega
+          step with (ih _ hm2 h3 i1 ahi1 j1 bhi1 dp le_rfl (by omega) (by omega) (by omega) (by omega) hs3 hc3'
+            hD'' hI'') as ⟨h4, hh4⟩
+          obtain ⟨hs4, hc4', hp4⟩ := hh4
+          refine ⟨hs4, hc4', ?_⟩
+          have hdel3 : h2.del.val = h.del.val := by rw [hdel2]
+          have hins3 : h2.ins.val = h.ins.val := by rw [hins2]
+          rw [hdel3, hins3] at hp3
+          have hp3'' : Myers.HPost (Myers.sg (vals a.val) alo1.val i0.val) (Myers.sg (vals b.val) blo1.val j0.val)
+              alo1.val blo1.val h.del.val h.ins.val h3.del.val h3.ins.val := by
+            have := hp3; exact this
+          have hMeq : Myers.sg (vals a.val) i0.val i1.val = Myers.sg (vals b.val) j0.val j1.val := by
+            rw [← vals_sg, ← vals_sg]
+            have := q6
+            rw [show an.i.val - an.bl.val = i0.val by omega, show an.j.val - an.bl.val = j0.val by omega,
+              show i0.val + an.len.val = i1.val by omega, show j0.val + an.len.val = j1.val by omega] at this
+            rw [this]
+          refine Myers.hp_anchor_sg (by omega) (by omega) (by omega) (by rw [hvl]; omega) (by omega) (by omega)
+            (by omega) (by rw [hvlb]; omega) hMeq (by rw [hs.del]; omega) (by rw [hs.ins]; omega) ?_ ?_ hp3'' hp4
+          · intro j hj; exact hD1 _ (by omega) (by omega)
+          · intro j hj; exact hI1 _ (by omega) (by omega)
+
+theorem sg_full (l : List Nat) : Myers.sg l 0 l.length = l := by simp [Myers.sg]
+
+/-- Soundness of the histogram differ: for ids below `n_ids` (and `|A| + |B| <= 2^28`) the flags it returns form a
+valid edit script, so deleting the flagged old lines and inserting the flagged new lines turns `A` into `B`
+(the kept lines agree). Nothing is claimed about optimality. -/
+theorem diff_histogram_ids_spec (a b : Slice U32) (n_ids : Usize) (A B : List Nat)
+    (ha : vals a.val = A) (hb : vals b.val = B) (hN : A.length + B.length ≤ NMAX)
+    (hid : ∀ x ∈ A ++ B, x < n_ids.val) :
+    lines.diff_histogram_ids a b n_ids ⦃ r => ∃ da di, Myers.Valid A B da di ∧
+      r.deleted.val = da ∧ r.inserted.val = di ⦄ := by
+  have hal : a.val.length = A.length := by rw [← ha]; exact (vals_len _).symm
+  have hbl : b.val.length = B.length := by rw [← hb]; exact (vals_len _).symm
+  have hida : ∀ x ∈ a.val, x.val < n_ids.val := by
+    intro x hx; apply hid; rw [← ha]; simp only [List.mem_append]; left
+    exact List.mem_map.mpr ⟨x, hx, rfl⟩
+  have hidb : ∀ x ∈ b.val, x.val < n_ids.val := by
+    intro x hx; apply hid; rw [← hb]; simp only [List.mem_append]; right
+    exact List.mem_map.mpr ⟨x, hx, rfl⟩
+  unfold lines.diff_histogram_ids
+  have hcu : ∀ x : U32, core.clone.CloneU32.clone x = ok x := fun x => rfl
+  have hcb : ∀ x : Bool, core.clone.CloneBool.clone x = ok x := fun x => rfl
+  have hci : ∀ x : I32, core.clone.CloneI32.clone x = ok x := fun x => rfl
+  have hl1 : (Slice.len a).val = A.length := by simp [Slice.len, hal]
+  have hl2 : (Slice.len b).val = B.length := by simp [Slice.len, hbl]
+  have hN28 : A.length + B.length ≤ 2 ^ 28 := hN
+  have hsum : (Slice.len a).val + (Slice.len b).val ≤ 2 ^ 28 := by omega
+  step as ⟨i2, hi2⟩
+  have hi2' : i2.val ≤ 2 ^ 28 := by omega
+  step as ⟨i3, hi3⟩
+  have hi3' : i3.val ≤ 2 ^ 29 := by omega
+  step as ⟨size, hsize⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneU32 0#u32 n_ids (hcu _) as ⟨v, hv1, hv2⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneU32 lines.NIL n_ids (hcu _) as ⟨v1, hv1', hv2'⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneU32 lines.NIL (Slice.len a) (hcu _) as ⟨v2, hv1'', hv2''⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneBool false (Slice.len a) (hcb _) as ⟨v3, hv31, hv32⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneBool false (Slice.len b) (hcb _) as ⟨v4, hv41, hv42⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneI32 0#i32 size (hci _) as ⟨v5, hv51, hv52⟩
+  have hsz : HSz a.val.length b.val.length n_ids.val
+      { cnt := v, head := v1, nxt := v2, del := v3, ins := v4, vf := v5, vb := v5 } := by
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · exact hv2
+    · exact hv2'
+    · show v2.length = _; rw [hv2'']; omega
+    · show v3.length = _; rw [hv32]; omega
+    · show v4.length = _; rw [hv42]; omega
+    · show _ ≤ v5.length; rw [hv52]; omega
+    · show _ ≤ v5.length; rw [hv52]; omega
+  have hcl : HClean { cnt := v, head := v1, nxt := v2, del := v3, ins := v4, vf := v5, vb := v5 } := by
+    refine ⟨?_, ?_⟩
+    · intro k x hk
+      change v1.val[k]? = some x at hk
+      rw [hv1', List.getElem?_replicate] at hk
+      split at hk
+      · exact (Option.some.inj hk).symm
+      · simp at hk
+    · intro k c hk
+      change v.val[k]? = some c at hk
+      rw [hv1, List.getElem?_replicate] at hk
+      split at hk
+      · have := (Option.some.inj hk).symm; subst this; rfl
+      · simp at hk
+  have hDf : ∀ i, (0#usize).val ≤ i → i < (Slice.len a).val →
+      ({ cnt := v, head := v1, nxt := v2, del := v3, ins := v4, vf := v5, vb := v5 } : lines.Hist).del.val[i]?
+        = some false := by
+    intro i _ hi
+    change v3.val[i]? = some false
+    rw [hv31, List.getElem?_replicate]; simp; omega
+  have hIf : ∀ j, (0#usize).val ≤ j → j < (Slice.len b).val →
+      ({ cnt := v, head := v1, nxt := v2, del := v3, ins := v4, vf := v5, vb := v5 } : lines.Hist).ins.val[j]?
+        = some false := by
+    intro j _ hj
+    change v4.val[j]? = some false
+    rw [hv41, List.getElem?_replicate]; simp; omega
+  step with (hist_spec a b n_ids.val hida hidb (by unfold NMAX; omega) _ _ (0#usize) (Slice.len a) (0#usize)
+    (Slice.len b) (0#u32) le_rfl (by simp) (by simp [Slice.len]) (by simp) (by simp [Slice.len]) hsz hcl hDf hIf)
+    as ⟨h', hh⟩
+  obtain ⟨hs', hc', da, di, hv, hD, hI⟩ := hh
+  have hsa : Myers.sg (vals a.val) 0 (Slice.len a).val = A := by rw [hl1, ← ha]; exact sg_full _
+  have hsb : Myers.sg (vals b.val) 0 (Slice.len b).val = B := by rw [hl2, ← hb]; exact sg_full _
+  rw [hsa, hsb] at hv
+  have hdl : da.length = A.length := hv.1
+  have hil : di.length = B.length := hv.2.1
+  have hv3 : v3.val.length = A.length := by have := hv32; rw [← hl1]; exact this
+  have hv4 : v4.val.length = B.length := by have := hv42; rw [← hl2]; exact this
+  refine ⟨da, di, hv, ?_, ?_⟩
+  · show h'.del.val = da
+    rw [hD]; show Myers.splice v3.val 0 da = da
+    simp [Myers.splice, List.drop_eq_nil_of_le, hdl, hv3]
+  · show h'.ins.val = di
+    rw [hI]; show Myers.splice v4.val 0 di = di
+    simp [Myers.splice, List.drop_eq_nil_of_le, hil, hv4]
 
 end difffold_myers_extract
