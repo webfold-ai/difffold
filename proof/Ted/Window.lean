@@ -129,8 +129,8 @@ theorem cellNew_fok (C : Ctx) (hG : C.Good) (fd td : List Std.U32) {p q : Nat} (
   have hqs2 : q ≤ C.j0 - C.lj + 1 := hqs
   have hxi : C.li + p - 1 ≤ C.i0 := by have := hG.i0a; omega
   have hyj : C.lj + q - 1 ≤ C.j0 := by have := hG.j0a; omega
-  have hcA := closed_win C hG hxi
-  have hcB := closed_winB C hG hyj
+  have hcA := Ctx.closed_win C hG hxi
+  have hcB := Ctx.closed_winB C hG hyj
   have hlx2 : C.la (C.li + p - 1) ≤ C.li + p - 1 := (hG.wa.1 _ (by omega)).2
   have hly2 : C.lb (C.lj + q - 1) ≤ C.lj + q - 1 := (hG.wb.1 _ (by omega)).2
   have hlx1 : C.li ≤ C.la (C.li + p - 1) := hcA _ (by omega) (Nat.le_refl _)
@@ -296,5 +296,161 @@ theorem inner_step (C : Ctx) (hG : C.Good) (hw : C.w = 2 * C.t + 1) (fd td fd' t
 
 end Ctx
 
+
+
+/-- Connection of a context to two concrete trees. -/
+structure Ctx.Link (C : Ctx) (a b : ted.PostTree) : Prop where
+  n1 : a.label.length = C.n
+  n2 : a.lml.length = C.n
+  n3 : a.kind.length = C.n
+  m1 : b.label.length = C.m
+  m2 : b.lml.length = C.m
+  m3 : b.kind.length = C.m
+  la_eq : ∀ u, 1 ≤ u → u ≤ C.n → C.la u = (a.lml.val[u - 1]!).val
+  lb_eq : ∀ u, 1 ≤ u → u ≤ C.m → C.lb u = (b.lml.val[u - 1]!).val
+  ren_eq : ∀ x y, C.ren x y = rcost a b x y
+  nbig : C.n < 2 ^ 31
+  mbig : C.m < 2 ^ 31
+  wbig : (C.n + 1) * C.w < 2 ^ 32
+  tbig : 2 * C.t + 3 < 2 ^ 31
+
+/-- One run of the column loop of a row. -/
+theorem fill_inner_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C.Link a b) (hw : C.w = 2 * C.t + 1) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj)
+    (t : Std.Usize) (inf : Std.U32) (w li lj p qhi x lx : Std.Usize) (td fd : Slice Std.U32)
+    (st : ted.Stats) (q : Std.Usize) (row_min : Std.U32) (qlo : Nat)
+    (ht : t.val = C.t) (hinf : inf.val = C.inf) (hww : w.val = C.w) (hlii : li.val = C.li)
+    (hljj : lj.val = C.lj) (hp1 : 1 ≤ p.val) (hp2 : p.val ≤ C.si)
+    (hqhi : qhi.val = min C.sj (p.val + C.t)) (hx : x.val = C.li + p.val - 1)
+    (hlx : lx.val = C.la x.val)
+    (hq1 : 1 ≤ q.val) (hqlo : p.val ≤ qlo + C.t) (hqq : qlo ≤ q.val) (hqle : q.val ≤ qhi.val + 1)
+    (hfdlen : (C.si + 1) * C.w ≤ fd.val.length) (htdlen : (C.n + 1) * C.w ≤ td.val.length)
+    (hR : C.RowsInv fd.val p.val q.val) (hT : C.TdInv td.val p.val q.val)
+    (hFB : Ctx.FdB fd.val C.inf) (hTB : Ctx.FdB td.val C.inf) (hM : C.RowMin fd.val p.val q.val qlo row_min.val) :
+    ted.fill_window_loop2_loop0 a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind
+      td fd st t inf w li lj q p qhi x lx row_min ⦃ r =>
+      r.2.2.2.1.val = qhi.val + 1 ∧ r.1.val.length = td.val.length ∧ r.2.1.val.length = fd.val.length ∧
+      C.RowsInv r.2.1.val p.val (qhi.val + 1) ∧ C.TdInv r.1.val p.val (qhi.val + 1) ∧
+      Ctx.FdB r.2.1.val C.inf ∧ Ctx.FdB r.1.val C.inf ∧ C.RowMin r.2.1.val p.val (qhi.val + 1) qlo r.2.2.2.2.val ⦄ := by
+  unfold ted.fill_window_loop2_loop0
+  apply loop.spec_decr_nat
+    (measure := fun s => qhi.val + 1 - s.2.2.2.1.val)
+    (inv := fun s => 1 ≤ s.2.2.2.1.val ∧ qlo ≤ s.2.2.2.1.val ∧ s.2.2.2.1.val ≤ qhi.val + 1 ∧
+      s.1.val.length = td.val.length ∧ s.2.1.val.length = fd.val.length ∧
+      C.RowsInv s.2.1.val p.val s.2.2.2.1.val ∧ C.TdInv s.1.val p.val s.2.2.2.1.val ∧
+      Ctx.FdB s.2.1.val C.inf ∧ Ctx.FdB s.1.val C.inf ∧ C.RowMin s.2.1.val p.val s.2.2.2.1.val qlo s.2.2.2.2.val)
+  · intro s hs
+    obtain ⟨td1, fd1, st1, q1, rm1⟩ := s
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hs
+    dsimp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 ⊢
+    have hsi : C.si = C.i0 - C.li + 1 := rfl
+    have hsj : C.sj = C.j0 - C.lj + 1 := rfl
+    have hlile : C.li ≤ C.i0 := by have := (hG.wa.1 C.i0 hG.i0a).2; rw [← hG.li_eq] at this; exact this
+    have hljle : C.lj ≤ C.j0 := by have := (hG.wb.1 C.j0 hG.j0a).2; rw [← hG.lj_eq] at this; exact this
+    have hxi : C.li + p.val - 1 ≤ C.i0 := by omega
+    have hxn : C.li + p.val - 1 ≤ C.n := by have := hG.i0b; omega
+    by_cases hqq' : q1 ≤ qhi
+    · have hqle2 : q1.val ≤ qhi.val := hqq'
+      have hqs : q1.val ≤ C.sj := by omega
+      have hyj : C.lj + q1.val - 1 ≤ C.j0 := by omega
+      have hym : C.lj + q1.val - 1 ≤ C.m := by have := hG.j0b; omega
+      have hband : InBand C.t p.val q1.val := by unfold InBand; omega
+      have hcA := Ctx.closed_win C hG hxi
+      have hcB := Ctx.closed_winB C hG hyj
+      have hlx1 : C.li ≤ C.la (C.li + p.val - 1) := hcA _ (by omega) (Nat.le_refl _)
+      have hlx2 : C.la (C.li + p.val - 1) ≤ C.li + p.val - 1 := (hG.wa.1 _ (by omega)).2
+      have hly1 : C.lj ≤ C.lb (C.lj + q1.val - 1) := hcB _ (by omega) (Nat.le_refl _)
+      have hlb' : C.lb (C.lj + q1.val - 1) = (b.lml.val[C.lj + q1.val - 2]!).val := by
+        have := hK.lb_eq (C.lj + q1.val - 1) (by omega) hym
+        have e : C.lj + q1.val - 1 - 1 = C.lj + q1.val - 2 := by omega
+        rw [e] at this; exact this
+      have hlx' : lx.val = C.la (C.li + p.val - 1) := by rw [hlx, hx]
+      have hmul1 : ∀ r, r ≤ C.si → (r + 1) * C.w ≤ (C.si + 1) * C.w := fun r hr => Nat.mul_le_mul_right _ (by omega)
+      have hmul2 : ∀ r, r ≤ C.n → (r + 1) * C.w ≤ (C.n + 1) * C.w := fun r hr => Nat.mul_le_mul_right _ (by omega)
+      have hsi_n : C.si ≤ C.n := by have := hG.i0b; omega
+      have hmul3 := Nat.mul_le_mul_right C.w (show C.si + 1 ≤ C.n + 1 by omega)
+      have hc := cell_step a b t inf w li lj p qhi x lx td1 fd1 st1 q1 rm1
+        (by rw [hww, ht]; exact hw) (by rw [hinf, ht]; rfl) hqle2 h1 hp1
+        (by rw [ht]; exact hband) (by omega) (by omega) (by omega)
+        (by rw [hK.n1]; omega) (by rw [hK.m1]; omega) (by rw [hK.m2]; omega)
+        (by omega) (by omega) (by rw [hK.n3]; omega) (by rw [hK.m3]; omega)
+        (by have := hK.mbig; have := hG.j0b; omega)
+        (by rw [hljj, ← hlb']; omega)
+        (by rw [hww, h5]; have := hmul1 p.val hp2; omega)
+        (by rw [hww]; have := hmul1 p.val hp2; have := hK.wbig; omega)
+        (by rw [hww, h4, hx]; have := hmul2 (C.li + p.val - 1) hxn; omega)
+        (by rw [hww, hx]; have := hmul2 (C.li + p.val - 1) hxn; have := hK.wbig; omega)
+        (by rw [hinf]; exact h8) (by rw [hinf]; exact h9)
+        (by rw [hinf]; unfold Ctx.inf; have := hK.tbig; omega)
+      refine WP.spec_mono hc ?_
+      intro r hr
+      cases r with
+      | done y => exact absurd hr (by simp)
+      | cont s' =>
+        obtain ⟨td2, fd2, st2, q2, rm2⟩ := s'
+        dsimp only at hr ⊢
+        obtain ⟨vv, hv1, hfd1', htd1', hq', hrm'⟩ := hr
+        rw [hww, ht, hinf, hlii, hljj, hx, hlx', ← hlb'] at hv1
+        rw [← hK.ren_eq] at hv1
+        have hxy_band : InBand C.t (C.li + p.val - 1) (C.lj + q1.val - 1) →
+            bandIdx C.w C.t (C.li + p.val - 1) (C.lj + q1.val - 1) < td1.val.length := by
+          intro hb
+          have := bandIdx_lt C.w C.t _ _ hw hb
+          have := hmul2 (C.li + p.val - 1) hxn
+          omega
+        have hidx : bandIdx C.w C.t p.val q1.val < fd1.val.length := by
+          have := bandIdx_lt C.w C.t _ _ hw hband
+          have := hmul1 p.val hp2
+          omega
+        have hfd'' : fd2.val = fd1.val.set (bandIdx C.w C.t p.val q1.val) vv := by
+          rw [hfd1', hww, ht]
+        have hleaf : (lx.val = li.val ∧ (b.lml.val[lj.val + q1.val - 2]!).val = lj.val ∧
+            InBand t.val (x.val) (lj.val + q1.val - 1)) ↔
+            (C.LeafPair (C.li + p.val - 1) (C.lj + q1.val - 1) ∧
+              InBand C.t (C.li + p.val - 1) (C.lj + q1.val - 1)) := by
+          rw [hlx', hlii, hljj, hx, ht, ← hlb']
+          unfold Ctx.LeafPair
+          constructor
+          · rintro ⟨h1, h2, h3⟩; exact ⟨⟨h1, h2⟩, h3⟩
+          · rintro ⟨⟨h1, h2⟩, h3⟩; exact ⟨h1, h2, h3⟩
+        have htd1c : (lx.val = li.val ∧ (b.lml.val[lj.val + q1.val - 2]!).val = lj.val ∧
+            InBand t.val (x.val) (lj.val + q1.val - 1)) →
+            td2.val = td1.val.set (bandIdx w.val t.val x.val (lj.val + q1.val - 1)) vv := by
+          intro hc; rw [htd1', if_pos hc]
+        have htd2c : ¬ (lx.val = li.val ∧ (b.lml.val[lj.val + q1.val - 2]!).val = lj.val ∧
+            InBand t.val (x.val) (lj.val + q1.val - 1)) → td2.val = td1.val := by
+          intro hc; rw [htd1', if_neg hc]
+        have hstep := Ctx.inner_step C hG hw fd1.val td1.val fd2.val td2.val vv (qlo := qlo)
+          (rm := rm1.val) hli hlj hp1 h1 hp2 hqs hband h6 h7 h8 h9 h10 hv1 hfd'' hidx
+          (by
+            intro hc'
+            have := htd1c (hleaf.mpr hc')
+            rw [hww, ht, hx, hljj] at this
+            exact ⟨this, hxy_band hc'.2⟩)
+          (fun hc' => htd2c (fun h => hc' (hleaf.mp h)))
+        obtain ⟨k1, k2, k3, k4, k5⟩ := hstep
+        have hq'' : q2.val = q1.val + 1 := hq'
+        have hrm2 : rm2.val = min rm1.val vv.val := hrm'
+        rw [hrm2]
+        refine ⟨⟨by omega, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, by omega⟩
+        · by_cases hc3 : (lx.val = li.val ∧ (b.lml.val[lj.val + q1.val - 2]!).val = lj.val ∧
+              InBand t.val (x.val) (lj.val + q1.val - 1))
+          · rw [htd1c hc3]; simp [h4]
+          · rw [htd2c hc3]; exact h4
+        · rw [hfd'']; simp [h5]
+        · rw [hq'']; exact k1
+        · rw [hq'']; exact k2
+        · exact k3
+        · exact k4
+        · rw [hq'']; exact k5
+    · -- the loop is over
+      have hq3 : q1.val = qhi.val + 1 := by
+        have : ¬ q1.val ≤ qhi.val := hqq'
+        omega
+      unfold ted.fill_window_loop2_loop0.body
+      rw [if_neg hqq']
+      simp only [WP.spec_ok]
+      rw [hq3] at h6 h7 h10
+      exact ⟨hq3, h4, h5, h6, h7, h8, h9, h10⟩
+  · exact ⟨hq1, hqq, hqle, rfl, rfl, hR, hT, hFB, hTB, hM⟩
 
 end difffold_lines_extract

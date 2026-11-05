@@ -293,4 +293,31 @@ theorem backward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + 
         omega
 
 
+
+/-- Positions the scan did not touch keep satisfying what round `dn` reads. -/
+theorem rdy_frame (v v' : Slice I32) (off : Int) (G : Nat → Int → Nat) (dn : Nat) (lo hi : Int)
+    (hd : ∀ k, InR lo hi k → Myers.Dom dn k) (hoff : (dn : Int) + 1 ≤ off)
+    (hfr : ∀ j, (∀ k, InR lo hi k → j ≠ (off + k).toNat) → v'.val[j]? = v.val[j]?)
+    (h : RdyArr v off G dn) : RdyArr v' off G dn := by
+  cases dn with
+  | zero =>
+    obtain ⟨e, he, hev⟩ := h
+    refine ⟨e, ?_, hev⟩
+    rw [hfr _ (fun k hk heq => ?_)]
+    · exact he
+    · obtain ⟨h1, h2, h3⟩ := hd k hk
+      simp at h1 h2
+      have : k = 0 := by omega
+      omega
+  | succ d' =>
+    intro k' hk'
+    obtain ⟨e, he, hev⟩ := h k' hk'
+    refine ⟨e, ?_, hev⟩
+    rw [hfr _ (fun k hk heq => ?_)]
+    · exact he
+    · obtain ⟨g1, g2, g3⟩ := hd k hk
+      obtain ⟨g4, g5, g6⟩ := hk'
+      have : k' = k := by omega
+      subst this; push_cast at *; omega
+
 end difffold_myers_extract
