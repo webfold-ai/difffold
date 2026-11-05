@@ -27,8 +27,8 @@ theorem backward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : In
   have hdom0 := hdom
   obtain ⟨hd1, hd2, hd3⟩ := hdom
   have hdv : d.val ≤ 268435456 := by omega
-  have hlfb : s.vf.length = 2 * (A.length + B.length) + 3 := by simpa [Slice.length] using hlf
-  have hlbb : s.vb.length = 2 * (A.length + B.length) + 3 := by simpa [Slice.length] using hlb
+  have hlfb : 2 * (A.length + B.length) + 3 ≤ s.vf.length := by simpa [Slice.length] using hlf
+  have hlbb : 2 * (A.length + B.length) + 3 ≤ s.vb.length := by simpa [Slice.length] using hlb
   have hal : s.a.val.length = A.length := by have := congrArg List.length ha; simpa [vals] using this
   have hbl : s.b.val.length = B.length := by have := congrArg List.length hb'; simpa [vals] using this
   have hImax : (I32.max : Int) = 2147483647 := by scalar_tac

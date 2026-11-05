@@ -790,17 +790,21 @@ theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C
         rintro ⟨td2, fd2, st2, q2, rm2⟩ ⟨k1, k2, k3, k4, k5, k6, k7, k8, k9⟩
         dsimp only at k1 k2 k3 k4 k5 k6 k7 k8 k9
         have hnq : ¬ qlo > qhi := by have : qlo.val ≤ qhi.val := hnev; intro h; have : qhi.val < qlo.val := h; omega
+        show (if qlo > qhi then ok (done (td2, fd2, st2)) else
+          (if rm2 > tau then ok (done (td2, fd2, st2))
+          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, st2, q2, p1'))))) ⦃ _ ⦄
         simp only [if_neg hnq]
-        trace_state
+        show (if rm2 > tau then ok (done (td2, fd2, st2))
+          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, st2, q2, p1')))) ⦃ _ ⦄
         by_cases hrm : rm2 > tau
-        · rw [if_pos hrm]
+        · simp only [if_pos hrm]
           simp only [WP.spec_ok]
           have hrmv : C.t < rm2.val := by have : tau.val < rm2.val := hrm; omega
           have hall := Ctx.hall_of_rowmin C hli hlj k4 k8 hpps hqhiv hqlov hrmv
           exact ⟨by rw [k2, h3], k7, Ctx.exit_final C hG hli hlj h1 hpps hall k5, k9⟩
-        · rw [if_neg hrm]
+        · simp only [if_neg hrm]
           step as ⟨p2, hp2'⟩
-          refine ⟨⟨by omega, by omega, by rw [k2, h3], by rw [k3, h4], ?_, ?_, k6, k7, k9⟩, by omega⟩
+          refine ⟨by omega, by omega, by rw [k2, h3], by rw [k3, h4], ?_, ?_, k6, k7, k9, by omega⟩
           · have := Ctx.rows_end C hli hlj hqhiv k4
             rw [hp2']; exact this
           · have := Ctx.td_end C hG hli hlj h1 hqhiv k5
@@ -816,8 +820,11 @@ theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C
         simp only [Prod.mk.injEq] at hr2
         obtain ⟨e1, e2, e3, e4, e5⟩ := hr2
         subst e1 e2
-        dsimp only
-        rw [if_pos (by have : ¬ qlo.val ≤ qhi.val := hemp; show qhi.val < qlo.val; omega)]
+        have hqq : qlo > qhi := by have : ¬ qlo.val ≤ qhi.val := hemp; show qhi.val < qlo.val; omega
+        show (if qlo > qhi then ok (done (td2, fd2, st2)) else
+          (if rm2 > tau then ok (done (td2, fd2, st2))
+          else (do let p1' ← p1 + 1#usize; ok (cont (td2, fd2, st2, q2, p1'))))) ⦃ _ ⦄
+        simp only [if_pos hqq]
         simp only [WP.spec_ok]
         have hall := Ctx.hall_of_small C hli hlj hbig
         exact ⟨h3, h8, Ctx.exit_final C hG hli hlj h1 hpps hall (qhi := 0) h6, h9⟩

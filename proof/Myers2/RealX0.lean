@@ -14,7 +14,7 @@ theorem rd_read (v : Slice I32) (off : Int) (G : Nat → Int → Nat) (d' : Nat)
 theorem x0_block (v : Slice I32) (A B : List Nat) (dn : Nat) (k : Int) (kk d i2 : I32) (ikm ikp : Usize)
     (off : Int) (hk : kk.val = k) (hd : d.val = dn) (hi2 : i2.val = -d.val)
     (hdom : Myers.Dom dn k) (hdle : dn ≤ A.length + B.length) (hoff : off = A.length + B.length + 1)
-    (hlen : v.length = 2 * (A.length + B.length) + 3)
+    (hlen : 2 * (A.length + B.length) + 3 ≤ v.length)
     (hikm : ikm.val = (off + (k - 1)).toNat) (hikp : ikp.val = (off + (k + 1)).toNat)
     (hrdy : RdyArr v off (fun d k => Myers.F A B d k) dn)
     (hFle : ∀ d' k', Myers.F A B d' k' ≤ A.length + d') (hN : A.length + B.length ≤ 268435456) :

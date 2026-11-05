@@ -17,7 +17,7 @@ def SInv (s : lines.Search) (A B : List Nat) : Prop :=
   vals s.a.val = A ∧ vals s.b.val = B ∧ s.n.val = (A.length : Int) ∧ s.m.val = (B.length : Int) ∧
   s.delta.val = (A.length : Int) - B.length ∧ (s.odd = true ↔ ((A.length : Int) - B.length) % 2 = 1) ∧
   s.off.val = (A.length : Int) + B.length + 1 ∧
-  s.vf.val.length = 2 * (A.length + B.length) + 3 ∧ s.vb.val.length = 2 * (A.length + B.length) + 3 ∧
+  2 * (A.length + B.length) + 3 ≤ s.vf.val.length ∧ 2 * (A.length + B.length) + 3 ≤ s.vb.val.length ∧
   A.length + B.length ≤ NMAX
 
 /-- Array `v` holds the values `G d' k` on the diagonals of round `d'`, where `d = d' + 1`; for `d = 0` it

@@ -5,7 +5,7 @@ namespace difffold_myers_extract
 /-- `middle` returns the model's middle snake and gives the scratch arrays back with their sizes. -/
 theorem middle_spec (a b : Slice U32) (A B : List Nat) (vf vb : Slice I32)
     (ha : vals a.val = A) (hb : vals b.val = B) (hN : A.length + B.length ≤ NMAX)
-    (hlf : vf.val.length = 2 * (A.length + B.length) + 3) (hlb : vb.val.length = 2 * (A.length + B.length) + 3) :
+    (hlf : 2 * (A.length + B.length) + 3 ≤ vf.val.length) (hlb : 2 * (A.length + B.length) + 3 ≤ vb.val.length) :
     lines.middle a b vf vb ⦃ r =>
       (∀ pt, Myers.midPt A B = some pt → 0 ≤ pt.1 → 0 ≤ pt.2 →
         (r.1.1.val : Int) = pt.1 ∧ (r.1.2.val : Int) = pt.2) ∧
@@ -42,9 +42,9 @@ theorem middle_spec (a b : Slice U32) (A B : List Nat) (vf vb : Slice I32)
         have : i3 ≠ 0#i32 := fun e => by
           have := congrArg IScalar.val e; simp at this; omega
         simpa using this
-    have hvf1 : vf1.val.length = 2 * (A.length + B.length) + 3 := by
+    have hvf1 : 2 * (A.length + B.length) + 3 ≤ vf1.val.length := by
       rw [vf1_post, Slice.set_val_eq]; simp [hlf]
-    have hvb1 : vb1.val.length = 2 * (A.length + B.length) + 3 := by
+    have hvb1 : 2 * (A.length + B.length) + 3 ≤ vb1.val.length := by
       rw [vb1_post, Slice.set_val_eq]; simp [hlb]
     have hinv : SInv ({ a := a, b := b, n := n, m := m, delta := i2, odd := (i3 != 0#i32), off := i5, vf := vf1, vb := vb1 } : lines.Search) A B :=
       ⟨ha, hb, by simpa using hnv, by simpa using hmv, by simp; omega, hoddI,
@@ -69,7 +69,9 @@ theorem middle_spec (a b : Slice U32) (A B : List Nat) (vf vb : Slice I32)
     have hmp : Myers.midPt A B = Myers.sweep A B ((A.length + B.length + 1) / 2 + 1) 0 := rfl
     rw [hmp]
     refine ⟨hz1, hz2, ?_, ?_⟩
-    · rw [(hz0 s3).1]; exact hz4.trans (hvf1.trans hlf.symm)
-    · rw [(hz0 s3).2]; exact hz5.trans (hvb1.trans hlb.symm)
+    · rw [(hz0 s3).1]; have e1 : vf1.val.length = vf.val.length := by rw [vf1_post, Slice.set_val_eq]; simp
+      exact hz4.trans e1
+    · rw [(hz0 s3).2]; have e2 : vb1.val.length = vb.val.length := by rw [vb1_post, Slice.set_val_eq]; simp
+      exact hz5.trans e2
 
 end difffold_myers_extract
