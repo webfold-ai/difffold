@@ -510,4 +510,111 @@ theorem intern_all_spec (seed : U64) : ∀ (N : Nat) (xs : Slice (Slice U8)) (ba
       · obtain ⟨x, hx, hxk⟩ := hcv2 k (by omega) hk2
         exact ⟨x, List.mem_append_right _ hx, hxk⟩
 
+/-! ### `InternExact` -/
+
+theorem slice_val_inj {a b : Slice U8} : a.val = b.val ↔ a = b := by
+  rw [Slice.eq_iff]
+
+/-- Ids that name the representatives of distinct lines are equal exactly when the lines are. -/
+theorem ids_exact (R : List (Slice U8)) (hds : ∀ (i j : Nat) r, R[i]? = some r → R[j]? = some r → i = j)
+    (ids1 ids2 : List U32) (ls1 ls2 : List (Slice U8))
+    (hl1 : ids1.length = ls1.length) (hl2 : ids2.length = ls2.length)
+    (h1 : ∀ (j : Nat) x, ids1[j]? = some x → R[x.val]? = ls1[j]?)
+    (h2 : ∀ (j : Nat) x, ids2[j]? = some x → R[x.val]? = ls2[j]?) (i j : Nat) :
+    ids1[i]? = ids2[j]? ↔ (ls1.map (fun s => s.val))[i]? = (ls2.map (fun s => s.val))[j]? := by
+  simp only [List.getElem?_map]
+  by_cases hi : i < ids1.length <;> by_cases hj : j < ids2.length
+  · obtain ⟨x, hx⟩ : ∃ x, ids1[i]? = some x := ⟨_, List.getElem?_eq_getElem hi⟩
+    obtain ⟨y, hy⟩ : ∃ y, ids2[j]? = some y := ⟨_, List.getElem?_eq_getElem hj⟩
+    have e1 := h1 i x hx
+    have e2 := h2 j y hy
+    have hli : ls1[i]? = some ls1[i] := List.getElem?_eq_getElem (by omega)
+    have hlj : ls2[j]? = some ls2[j] := List.getElem?_eq_getElem (by omega)
+    rw [hx, hy, hli, hlj]
+    rw [hli] at e1; rw [hlj] at e2
+    simp only [Option.map_some, Option.some.injEq, slice_val_inj]
+    constructor
+    · intro h; have : x = y := h
+      subst this; rw [e1] at e2; exact Option.some.inj e2
+    · intro h
+      rw [h] at e1
+      have := hds _ _ _ e1 e2
+      have hxy : x.val = y.val := this
+      have : x = y := UScalar.eq_of_val_eq hxy
+      rw [this]
+  · have a1 : ids2[j]? = none := List.getElem?_eq_none (by omega)
+    have a2 : ls2[j]? = none := List.getElem?_eq_none (by omega)
+    have a3 : ids1[i]? ≠ none := by rw [List.getElem?_eq_getElem hi]; simp
+    have a4 : ls1[i]? ≠ none := by rw [List.getElem?_eq_getElem (by omega)]; simp
+    rw [a1, a2]; simp only [Option.map_none]
+    constructor
+    · intro h; exact absurd h a3
+    · intro h; exact absurd (by simpa using h) a4
+  · have a1 : ids1[i]? = none := List.getElem?_eq_none (by omega)
+    have a2 : ls1[i]? = none := List.getElem?_eq_none (by omega)
+    have a3 : ids2[j]? ≠ none := by rw [List.getElem?_eq_getElem hj]; simp
+    have a4 : ls2[j]? ≠ none := by rw [List.getElem?_eq_getElem (by omega)]; simp
+    rw [a1, a2]; simp only [Option.map_none]
+    constructor
+    · intro h; exact absurd h.symm a3
+    · intro h; exact absurd (by simpa using h.symm) a4
+  · have a1 : ids1[i]? = none := List.getElem?_eq_none (by omega)
+    have a2 : ls1[i]? = none := List.getElem?_eq_none (by omega)
+    have a3 : ids2[j]? = none := List.getElem?_eq_none (by omega)
+    have a4 : ls2[j]? = none := List.getElem?_eq_none (by omega)
+    rw [a1, a2, a3, a4]; simp
+
+theorem vec_ext_of_ids (out : List U32) (ids : List U32) (hl : out.length = ids.length)
+    (h : ∀ (j : Nat) x, ids[j]? = some x → out[0 + j]? = some x) : out = ids := by
+  apply List.ext_getElem?
+  intro j
+  by_cases hj : j < ids.length
+  · obtain ⟨x, hx⟩ : ∃ x, ids[j]? = some x := ⟨_, List.getElem?_eq_getElem hj⟩
+    rw [hx]; simpa using h j x hx
+  · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+
+theorem intern_seeded_spec (a b : Slice (Slice U8)) (seed : U64) (hN : a.val.length + b.val.length ≤ 2 ^ 28) :
+    lines.intern_seeded a b seed ⦃ ia ib n =>
+      InternExact (a.val.map (fun s => s.val)) (b.val.map (fun s => s.val)) ia.val ib.val n.val ⦄ := by
+  unfold lines.intern_seeded
+  step as ⟨total, htot⟩
+  step with table_size_spec total (by simp [Slice.len] at htot ⊢; omega) as ⟨cap, hcap1, hcap2⟩
+  have hcl : ∀ x : U32, core.clone.CloneU32.clone x = ok x := fun x => rfl
+  step with alloc.vec.from_elem_spec core.clone.CloneU32 lines.NIL cap (hcl _) as ⟨head, hhead1, hhead2⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneU32 0#u32 a.len (hcl _) as ⟨ia, hia1, hia2⟩
+  step with alloc.vec.from_elem_spec core.clone.CloneU32 0#u32 b.len (hcl _) as ⟨ib, hib1, hib2⟩
+  step as ⟨p, hp⟩
+  rename_i hd1
+  have hpv : p.val = ia.val := by
+    have := congrArg Prod.fst hd1; simp [alloc.vec.Vec.deref_mut] at this; rw [← this]; rfl
+  have hal : a.val.length = a.len.val := by simp [Slice.len]
+  have hbl : b.val.length = b.len.val := by simp [Slice.len]
+  have hnx0 : (alloc.vec.Vec.with_capacity U32 total).val = [] := by
+    simp [alloc.vec.Vec.with_capacity, alloc.vec.Vec.new]
+  have hrp0 : (alloc.vec.Vec.with_capacity (Slice U8) total).val = [] := by
+    simp [alloc.vec.Vec.with_capacity, alloc.vec.Vec.new]
+  have hTI : TInv seed head.val (alloc.vec.Vec.with_capacity U32 total).val
+      (alloc.vec.Vec.with_capacity (Slice U8) total).val := by
+    rw [hnx0, hrp0]
+    refine ⟨?_, rfl, ?_, ?_, ?_, ?_⟩
+    · rw [hhead1]; simp; omega
+    · intro x hx; rw [hhead1] at hx; left; exact (List.eq_of_mem_replicate hx)
+    · intro i s h; simp at h
+    · intro k r h; simp at h
+    · intro i j r h; simp at h
+  have hplen : p.val.length = a.val.length := by rw [hpv, hia1]; simp [hal]
+  step with (intern_all_spec seed a.val.length a 0#usize head _ _ p rfl hTI
+    (by rw [hrp0]; simpa using by omega) (by simp; omega)) as ⟨reps1, head1, nxt1, s1, P1⟩
+  obtain ⟨ids1, hl1', hol1, ho1l, ho1o, hT1, hhl1, hp1, hrl1, hid1, hcv1⟩ := P1
+  step as ⟨p2, hp2⟩
+  rename_i hd2
+  have hp2v : p2.val = ib.val := by
+    have := congrArg Prod.fst hd2; simp [alloc.vec.Vec.deref_mut] at this; rw [← this]; rfl
+  have hplen2 : p2.val.length = b.val.length := by rw [hp2v, hib1]; simp [hbl]
+  have hr1 : reps1.val.length ≤ a.val.length := by rw [hrp0] at hrl1; simpa using hrl1
+  step with (intern_all_spec seed b.val.length b 0#usize head1 nxt1 reps1 p2 rfl hT1
+    (by omega) (by simp; omega)) as ⟨reps2, head2, nxt2, s3, P2⟩
+  obtain ⟨ids2, hl2', hol2, ho2l, ho2o, hT2, hhl2, hp2', hrl2, hid2, hcv2⟩ := P2
+  sorry
+
 end difffold_myers_extract

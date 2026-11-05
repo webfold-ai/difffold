@@ -336,6 +336,12 @@ theorem count_byte_spec : ∀ (N : Nat) (t : Slice U8) (b : U8), t.val.length = 
     step as ⟨r, hr⟩
     scalar_tac
 
+theorem fromBool_false : (core.convert.num.FromUsizeBool.from false).val = 0 := by
+  simp [core.convert.num.FromUsizeBool.from]
+
+theorem fromBool_true : (core.convert.num.FromUsizeBool.from true).val = 1 := by
+  simp [core.convert.num.FromUsizeBool.from]
+
 theorem count_lines_spec (t : Slice U8) :
     lines.count_lines t ⦃ r => r.val = (Myers.lines (bytes t.val)).length ⦄ := by
   rw [Myers.lines_length]
@@ -349,14 +355,64 @@ theorem count_lines_spec (t : Slice U8) :
   · have hbt : b = true := by rw [hb]; simp [hnil]
     subst hbt
     simp only [if_true, bind_tc_ok, lift]
-    simp [hnil, bytes, core.convert.num.FromUsizeBool.from, hc]
+    have hc0 : c.val = 0 := by rw [hc]; simp [hnil, bytes]
+    have hf := fromBool_false
+    step as ⟨r, hr⟩
+    have e : bytes t.val = [] := by simp [hnil, bytes]
+    rw [e]; simp [Myers.nlines]; rw [fromBool_false] at hr; omega
   · have hbf : b = false := by
       cases b
       · rfl
       · exfalso; apply hnil; have := hb.mp rfl; exact List.length_eq_zero_iff.mp this
     subst hbf
     simp only [Bool.false_eq_true, if_false]
-    trace_state
-    sorry
+    have hl : t.len.val = t.val.length := by simp [Slice.len]
+    have hpos : 1 ≤ t.val.length := by
+      cases h : t.val with
+      | nil => exact absurd h hnil
+      | cons _ _ => simp
+    simp only [lift, bind_tc_ok]
+    step as ⟨i2, hi2⟩
+    step as ⟨i3, hi3⟩
+    have hlast : (bytes t.val).getLast? = some i3.val := by
+      have hlt : i2.val < t.val.length := by omega
+      have e : i3 = t.val[i2.val]'hlt := hi3
+      have h2 : t.val.getLast? = some i3 := by
+        rw [List.getLast?_eq_getElem?, e]
+        have : t.val.length - 1 = i2.val := by omega
+        rw [this, List.getElem?_eq_getElem hlt]
+      rw [bytes, List.getLast?_map, h2]; rfl
+    have hbd : i3.val ≠ 10 → c.val + 1 ≤ t.val.length := by
+      intro hne
+      obtain ⟨L, y, hLy⟩ : ∃ L y, bytes t.val = L ++ [y] := by
+        have hne' : bytes t.val ≠ [] := by
+          intro h; apply hnil; simpa [bytes] using h
+        exact ⟨(bytes t.val).dropLast, (bytes t.val).getLast hne', (List.dropLast_append_getLast hne').symm⟩
+      have hy : y = i3.val := by
+        rw [hLy] at hlast; simpa using hlast
+      have : (bytes t.val).count 10 = L.count 10 := by
+        rw [hLy, List.count_append, hy]; simp [hne]
+      have hL : L.length + 1 = t.val.length := by
+        have := congrArg List.length hLy; simpa [bytes_length] using this.symm
+      have := List.count_le_length (a := 10) (l := L)
+      omega
+    have hbnz : (bytes t.val) ≠ [] := by intro h; apply hnil; simpa [bytes] using h
+    by_cases h10 : i3 = 10#u8
+    · have hbf : (i3 != 10#u8) = false := by simp [h10]
+      have h3 : i3.val = 10 := by rw [h10]; rfl
+      rw [hbf]
+      have hn : Myers.nlines (bytes t.val) = c.val := by simp [Myers.nlines, hlast, h3, hc]
+      have hf := fromBool_false
+      step as ⟨r, hr⟩
+      omega
+    · have hbt : (i3 != 10#u8) = true := by simpa using h10
+      have h3 : i3.val ≠ 10 := fun h => h10 (UScalar.eq_of_val_eq (by simpa using h))
+      rw [hbt]
+      have hn : Myers.nlines (bytes t.val) = c.val + 1 := by
+        simp [Myers.nlines, hlast, h3, hc, hbnz]
+      have hb1 := hbd h3
+      have hf := fromBool_true
+      step as ⟨r, hr⟩
+      omega
 
 end difffold_myers_extract
