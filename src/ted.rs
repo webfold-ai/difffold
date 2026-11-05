@@ -610,7 +610,7 @@ fn traceback(a: &PostTree, b: &PostTree, cost: u32, prefer_match: bool) -> Vec<u
         fill_window(a, b, &mut td, &mut fd, (i, j), cost, false, &mut st);
         let mut p = si;
         let mut q = sj;
-        while p > 0 || q > 0 {
+        while p + q > 0 {
             let v = get_cell(&fd, w, t, inf, p, q);
             let x = li + umax(p, 1) - 1;
             let y = lj + umax(q, 1) - 1;
@@ -629,7 +629,8 @@ fn traceback(a: &PostTree, b: &PostTree, cost: u32, prefer_match: bool) -> Vec<u
             }
             let del_ok = p > 0 && eq32(get_cell(&fd, w, t, inf, p - 1, q) + 1, v);
             let ins_ok = q > 0 && eq32(get_cell(&fd, w, t, inf, p, q - 1) + 1, v);
-            if prefer_match && diag_ok {
+            let go_diag = (prefer_match && diag_ok) || (!del_ok && !ins_ok);
+            if go_diag {
                 if leaf_case {
                     to_b[x] = y;
                     p -= 1;
@@ -648,23 +649,8 @@ fn traceback(a: &PostTree, b: &PostTree, cost: u32, prefer_match: bool) -> Vec<u
                 }
             } else if del_ok {
                 p -= 1;
-            } else if ins_ok {
-                q -= 1;
-            } else if leaf_case {
-                to_b[x] = y;
-                p -= 1;
-                q -= 1;
             } else {
-                if top == stack_i.len() {
-                    stack_i.push(x);
-                    stack_j.push(y);
-                } else {
-                    stack_i[top] = x;
-                    stack_j[top] = y;
-                }
-                top += 1;
-                p = lx - li;
-                q = ly - lj;
+                q -= 1;
             }
         }
     }
