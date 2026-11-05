@@ -1,4 +1,3 @@
 # Code ownership for the required code-owner review on the default-branch ruleset.
-# TODO(maintainers): replace the two placeholders with real human owners (at least two; never bot
-# accounts). The render tooling refuses fewer than two. See docs/OPENSSF.md.
-*       @OWNER-1 @OWNER-2
+# Owners: two human maintainers, never bot accounts. See docs/OPENSSF.md.
+*       @twn-lloyd @yokoszn

@@ -6,9 +6,8 @@ and says what is not yet met. Status values: **met** (the repository has it), **
 
 ## Maintainer decisions needed
 
-- **TODO: CODEOWNERS.** `.github/CODEOWNERS` lists `@OWNER-1 @OWNER-2`, placeholders. Replace them
-  with at least two human owners before the default-branch ruleset requires code-owner review. Bot
-  accounts should not be listed.
+- **Resolved: CODEOWNERS.** `.github/CODEOWNERS` lists `@twn-lloyd @yokoszn`. Both are human
+  maintainers. The default-branch ruleset still needs to be applied by a repository owner.
 - **TODO: branch protection / ruleset.** Protect `main`: require the `Rust checks` status check,
   require pull requests with two approvals and code-owner review, block force-push and deletion, and
   allow no admin bypass. Nothing in this repository changes these settings.

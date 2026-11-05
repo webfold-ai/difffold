@@ -49,8 +49,8 @@ resolver = "2"
 members = ["gitcompat", "harness/rust", "linebench"]
 # Excluded, not built: corpus/ (src/lib.rs and both bins are missing from the tree); proof/* are
 # Lean extraction tools with their own [workspace]; tools/omni_dump depends on an absolute local
-# OmniDiff checkout.
-exclude = ["corpus", "proof/extract", "proof/extract-lines", "tools/omni_dump"]
+# OmniDiff checkout; tools/xdiff-baseline (git2) has its own lock file so git2 stays out of the root lock.
+exclude = ["corpus", "proof/extract", "proof/extract-lines", "tools/omni_dump", "tools/xdiff-baseline"]
 
 [profile.release]
 debug = 1
