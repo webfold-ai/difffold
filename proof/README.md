@@ -151,9 +151,9 @@ its optimality theorem. **Layer 2 (`Myers2/Real*.lean`, over Aeneas)** proves th
 real `src/lines.rs` search refines that model. Both layers have zero `sorry` and use only `propext`,
 `Classical.choice`, `Quot.sound` (`AXIOMS-myers.txt`, `AXIOMS-myers-extract.txt`). An earlier `bv_decide` proof of one bit lemma pulled in a native-code axiom; it is now a kernel proof and the audit shows the three only.
 
-Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline Bound Glue TrimSpec Splice SolveLen CpreChar Text AxiomAudit`
+Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline Bound Glue TrimSpec Splice SolveLen CpreChar Text HistPure AxiomAudit`
 then `AENEAS_HOME=... ./extract-real.sh` and `LEAN_WS=... ./check-real.sh RealCommon RealSnake RealDefs RealX0 RealFwd
-RealSnakeBack RealBack RealScan RealBits RealHalve RealSweep RealMiddle RealSolve RealCompact RealDiffIds` and then `RealSwar RealWord RealNL RealLines RealSplit RealCut InternExact RealIntern RealText RealDiffText` (oleans in `build-myers/`).
+RealSnakeBack RealBack RealScan RealBits RealHalve RealSweep RealMiddle RealSolve RealCompact RealDiffIds` and then `RealSwar RealWord RealNL RealLines RealSplit RealCut InternExact RealIntern RealHist RealText RealDiffText` (oleans in `build-myers/`).
 
 ### Layer 1: the model (proved)
 
@@ -222,14 +222,47 @@ Aeneas turns into an explicit instance argument; the `Algo::Minimal` path calls 
 The cut is not required to be maximal: any common prefix ending at a line start and any common suffix starting
 at a line start give an optimal script for the middle (`minL_trim`).
 
+### Layer 2c: the interner and the histogram differ (proved)
+
+`intern` (the hash-table interner) was rewritten without changing any output: equal lines get equal ids, ids are
+dense in `0..n_ids` and given in order of first appearance. The std `HashMap` with a custom `Hasher` and the
+`each` closures, which Aeneas cannot extract, were replaced by a table of `a.len() + b.len()` buckets (a power of
+two) over `Vec`s: `head[bucket]` is the newest id in the bucket, `nxt[id]` the next older id, `reps[id]` the line,
+and a probe walks the chain comparing the real bytes (`find_in_chain`, a tail call that ends because links point
+to older ids). The keyed hash only chooses a bucket (`hash_line`, a `while` loop over eight-byte words); the seed is
+a parameter of `intern_seeded`, and `intern` passes a fresh random seed. This is chaining over index vectors, not
+open addressing: the termination argument is that links strictly decrease, so no "table never full" side
+condition is needed. Loops over `&[&[u8]]` do not extract (nested borrows), hence the halving recursion
+`intern_all`; `Hist` no longer holds the id slices.
+
+| extracted function | theorem | states |
+|---|---|---|
+| `hash_line` | `hash_line_total` (RealIntern) | the hash never fails (the only property of it that is used) |
+| `table_size` | `table_size_spec` | result is at least 2 and at least the requested size, no overflow for `<= 2^28` lines |
+| `find_in_chain` | `find_in_chain_spec` | returns an id whose stored line equals the query, or `NIL` when no id on the chain does |
+| `intern_line`, `intern_all` | `intern_line_spec`, `intern_all_spec` | invariant `TInv` (chains reach every stored line, stored lines pairwise distinct, links decrease) is preserved; the new id is the next free one exactly when the line is new |
+| `intern_seeded` | `intern_seeded_spec` (RealIntern) | for `|la| + |lb| <= 2^28`, every seed: `InternExact la lb ia ib n` (`InternExact.lean`): one id per line, ids below `n`, ids equal exactly when the byte lists are equal (within and across the two sides), every id below `n` is used |
+| `index_a`, `unindex_a` | `index_a_spec`, `unindex_a_spec` (RealHist) | chain heads, links and counts of `a[alo..ahi)` are well formed; `unindex_a` restores the all-empty state |
+| `walk_chain`, `find_anchor` | `walk_chain_spec`, `find_anchor_spec` | every anchor found is a run of equal ids inside both ranges, `bl < len` |
+| `any_common` | `any_common_spec` | never fails |
+| `hist_fallback` | `hist_fallback_spec` | the real `solve` on the range; the result is a valid script (`solve_optimal`) |
+| `hist` | `hist_spec` | for ranges whose flags are unset and a clean state, the flag arrays receive a valid script for the range: `HPost` (`HistPure.lean`), kept lines of the two ranges equal; trimming, the two fill cases, the anchor split and the fallback are all covered |
+| `diff_histogram_ids` | `diff_histogram_ids_spec` (RealHist) | for ids below `n_ids` and `|A|+|B| <= 2^28`, returns flags with `Myers.Valid A B da di`: deleting the flagged old lines and inserting the flagged new lines turns `A` into `B` |
+
+The histogram theorem is soundness only. No optimality is claimed: the result is in general not minimal (the
+anchor choice is a heuristic), and nothing here relates its cost to `lcs`. Its recursion depth cap
+(`HIST_DEPTH`) and the occurrence limit (`HIST_LIMIT`) are not needed for validity and are not reasoned about
+beyond the `u32` increment of the depth.
+
+Performance of the refactors (release build, same machine, outputs byte for byte identical on every fixture):
+PERF_PLACEHOLDER
+
 ### Not yet done (open, nothing here is claimed proved)
 
-- `diff_text_with` itself is not extracted: `intern` seeds its hash from `random_seed` (std `RandomState`), and
-  the histogram path pulls in `HashMap`; extracting them introduces unknown external definitions, so the end
-  theorem is stated for `diff_text_core` with the real `intern_seeded` and an arbitrary seed and histogram stub.
-- `Algo::Histogram` (`hist`, `find_anchor`, `walk_chain`, `index_a`): soundness (valid script) is not proved here;
-  optimality is not claimed for it.
-- Performance of the refactors: a synthetic 60,000-line release micro-benchmark (`diff_text`, best of 15) took 6.7 ms after the refactors against 8.3 ms before (same cost 6032); `linebench` on the real corpus was not run.
+- `diff_text_with` itself is not extracted: it calls `intern` with `random_seed` (std `RandomState`). The end
+  theorem is stated for `diff_text_core` with the real `intern_seeded` and an arbitrary seed.
+- Optimality of `Algo::Histogram` is not claimed and is false in general; `diff_histogram_ids_spec` is the only
+  statement about it.
 
 Earlier, smaller extraction of closure-free copies (`extract/myers_core.rs`, `Myers2/CommonCopy.lean`,
 `Myers2/SnakeSpec.lean`, `tests/myers_core.rs`) is superseded by the real-source extraction above and kept only as

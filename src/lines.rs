@@ -10,13 +10,13 @@
 //!    uses them);
 //! 4. linear-space bidirectional Myers (middle snake) solves what is left.
 //!
-//! **No `while`, `loop`, `for` or iterator chain appears in this file.** Every traversal is a
-//! structural recursion, and wherever the traversal order does not matter it halves the slice, so the
-//! call depth is `O(log n)`. The one inherently sequential recursion is the edit-distance sweep
-//! (`sweep`): its depth is at most `D / 2 + 1` for edit distance `D`; callers with adversarial inputs
-//! of unbounded `D` should call from a thread with a large stack (see `tests/adversarial.rs`).
-//! The standard library's hash table and slice primitives (`fill`, `==` on slices) are used as
-//! primitives and are not part of the recursion discipline.
+//! Traversals over slices of slices are structural recursions that halve the slice, so the call depth is
+//! `O(log n)`; the Aeneas extraction used for the proofs cannot carry nested borrows through a loop. Plain
+//! index loops (`while`) are used for the hash, the interner table and the histogram index, which hold no
+//! nested borrows. The one inherently sequential recursion is the edit-distance sweep (`sweep`): its depth is
+//! at most `D / 2 + 1` for edit distance `D`; callers with adversarial inputs of unbounded `D` should call from
+//! a thread with a large stack (see `tests/adversarial.rs`). Slice primitives (`fill`, `==` on slices) are used
+//! as primitives.
 
 use std::hash::BuildHasher;
 

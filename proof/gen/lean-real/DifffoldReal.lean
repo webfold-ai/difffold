@@ -1916,4 +1916,429 @@ def lines.diff_text_core
   let inserted1 := index_mut_back1 s10
   ok { deleted := deleted1, inserted := inserted1 }
 
+/-- [difffold_myers_extract::lines::HIST_LIMIT]
+    Source: '../../src/lines.rs', lines 750:0-750:27 -/
+@[global_simps, irreducible] def lines.HIST_LIMIT : Std.U32 := 64#u32
+
+/-- [difffold_myers_extract::lines::HIST_DEPTH]
+    Source: '../../src/lines.rs', lines 752:0-752:29 -/
+@[global_simps, irreducible] def lines.HIST_DEPTH : Std.U32 := 1500#u32
+
+/-- [difffold_myers_extract::lines::Hist]
+    Source: '../../src/lines.rs', lines 753:0-761:1 -/
+structure lines.Hist where
+  cnt : alloc.vec.Vec Std.U32
+  head : alloc.vec.Vec Std.U32
+  nxt : alloc.vec.Vec Std.U32
+  del : alloc.vec.Vec Bool
+  ins : alloc.vec.Vec Bool
+  vf : alloc.vec.Vec Std.I32
+  vb : alloc.vec.Vec Std.I32
+
+/-- [difffold_myers_extract::lines::Anchor]
+    Source: '../../src/lines.rs', lines 765:0-771:1 -/
+structure lines.Anchor where
+  cnt : Std.U32
+  len : Std.Usize
+  i : Std.Usize
+  j : Std.Usize
+  bl : Std.Usize
+
+/-- [difffold_myers_extract::lines::walk_chain]:
+    Source: '../../src/lines.rs', lines 899:0-945:1 -/
+def lines.walk_chain
+  (a : Slice Std.U32) (b : Slice Std.U32) (h : lines.Hist) («at» : Std.U32)
+  (p : (Std.Usize × Std.Usize)) (p1 : (Std.Usize × Std.Usize))
+  (j : Std.Usize) (c : Std.U32) (best : Option lines.Anchor) :
+  Result (Option lines.Anchor)
+  := do
+  let (alo, ahi) := p
+  let (blo, bhi) := p1
+  if «at» = lines.NIL
+  then ok best
+  else
+    let i ← lift (UScalar.cast .Usize «at»)
+    let s ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U32) a { start := alo, «end» := i }
+    let s1 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U32) b { start := blo, «end» := j }
+    let bl ← lines.common_suffix core.cmp.PartialEqU32 s s1
+    let s2 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U32) a { start := i, «end» := ahi }
+    let s3 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U32) b { start := j, «end» := bhi }
+    let fl ← lines.common_prefix core.cmp.PartialEqU32 s2 s3
+    let i1 ← bl + fl
+    let (best1, better) ←
+      match best with
+      | none => ok (none, true)
+      | some b0 =>
+        do
+        let b1 ←
+          if c < b0.cnt
+          then ok true
+          else if c = b0.cnt
+               then ok (i1 > b0.len)
+               else ok false
+        ok (best, b1)
+    let i2 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32) 
+        h.nxt i
+    let best2 ←
+      if better
+      then ok (some ({ cnt := c, len := i1, i, j, bl } : lines.Anchor))
+      else ok best1
+    lines.walk_chain a b h i2 p p1 j c best2
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::find_anchor]: loop body 0:
+    Source: '../../src/lines.rs', lines 880:4-893:5 -/
+@[rust_loop_body]
+def lines.find_anchor_loop.body
+  (a : Slice Std.U32) (b : Slice Std.U32) (h : lines.Hist) (alo : Std.Usize)
+  (ahi : Std.Usize) (blo : Std.Usize) (bhi : Std.Usize)
+  (best : Option lines.Anchor) (j : Std.Usize) :
+  Result (ControlFlow ((Option lines.Anchor) × Std.Usize) (Option
+    lines.Anchor))
+  := do
+  if j < bhi
+  then
+    let i ← Slice.index_usize b j
+    let id ← lift (UScalar.cast .Usize i)
+    let c ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32) 
+        h.cnt id
+    let best1 ←
+      if c > 0#u32
+      then
+        if c <= lines.HIST_LIMIT
+        then
+          do
+          let (best2, rarer) ←
+            match best with
+            | none => ok (none, true)
+            | some bst => ok (best, c <= bst.cnt)
+          if rarer
+          then
+            let i1 ←
+              alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice
+                Std.U32) h.head id
+            lines.walk_chain a b h i1 (alo, ahi) (blo, bhi) j c best2
+          else ok best2
+        else ok best
+      else ok best
+    let j1 ← j + 1#usize
+    ok (cont (best1, j1))
+  else ok (done best)
+
+/-- [difffold_myers_extract::lines::find_anchor]: loop 0:
+    Source: '../../src/lines.rs', lines 880:4-893:5 -/
+@[rust_loop]
+def lines.find_anchor_loop
+  (a : Slice Std.U32) (b : Slice Std.U32) (h : lines.Hist) (alo : Std.Usize)
+  (ahi : Std.Usize) (blo : Std.Usize) (bhi : Std.Usize)
+  (best : Option lines.Anchor) (j : Std.Usize) :
+  Result (Option lines.Anchor)
+  := do
+  loop
+    (fun (best1, j1) => lines.find_anchor_loop.body a b h alo ahi blo bhi best1
+      j1)
+    (best, j)
+
+/-- [difffold_myers_extract::lines::find_anchor]:
+    Source: '../../src/lines.rs', lines 877:0-895:1 -/
+def lines.find_anchor
+  (a : Slice Std.U32) (b : Slice Std.U32) (h : lines.Hist)
+  (p : (Std.Usize × Std.Usize)) (p1 : (Std.Usize × Std.Usize)) :
+  Result (Option lines.Anchor)
+  := do
+  let (alo, ahi) := p
+  let (blo, bhi) := p1
+  lines.find_anchor_loop a b h alo ahi blo bhi none blo
+
+/-- [difffold_myers_extract::lines::any_common]: loop body 0:
+    Source: '../../src/lines.rs', lines 866:4-871:5 -/
+@[rust_loop_body]
+def lines.any_common_loop.body
+  (b : Slice Std.U32) (h : lines.Hist) (bhi : Std.Usize) (found : Bool)
+  (j : Std.Usize) :
+  Result (ControlFlow (Bool × Std.Usize) Bool)
+  := do
+  if j < bhi
+  then
+    let i ← Slice.index_usize b j
+    let i1 ← lift (UScalar.cast .Usize i)
+    let i2 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32) 
+        h.cnt i1
+    let found1 ← if i2 > 0#u32
+                   then ok true
+                   else ok found
+    let j1 ← j + 1#usize
+    ok (cont (found1, j1))
+  else ok (done found)
+
+/-- [difffold_myers_extract::lines::any_common]: loop 0:
+    Source: '../../src/lines.rs', lines 866:4-871:5 -/
+@[rust_loop]
+def lines.any_common_loop
+  (b : Slice Std.U32) (h : lines.Hist) (bhi : Std.Usize) (found : Bool)
+  (j : Std.Usize) :
+  Result Bool
+  := do
+  loop
+    (fun (found1, j1) => lines.any_common_loop.body b h bhi found1 j1)
+    (found, j)
+
+/-- [difffold_myers_extract::lines::any_common]:
+    Source: '../../src/lines.rs', lines 863:0-873:1 -/
+@[reducible]
+def lines.any_common
+  (b : Slice Std.U32) (h : lines.Hist) (blo : Std.Usize) (bhi : Std.Usize) :
+  Result Bool
+  := do
+  lines.any_common_loop b h bhi false blo
+
+/-- [difffold_myers_extract::lines::unindex_a]: loop body 0:
+    Source: '../../src/lines.rs', lines 855:4-860:5 -/
+@[rust_loop_body]
+def lines.unindex_a_loop.body
+  (a : Slice Std.U32) (ahi : Std.Usize) (h : lines.Hist) (i : Std.Usize) :
+  Result (ControlFlow (lines.Hist × Std.Usize) lines.Hist)
+  := do
+  if i < ahi
+  then
+    let i1 ← Slice.index_usize a i
+    let id ← lift (UScalar.cast .Usize i1)
+    let (_, index_mut_back) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        h.cnt id
+    let (_, index_mut_back1) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        h.head id
+    let i2 ← i + 1#usize
+    let v := index_mut_back1 lines.NIL
+    let v1 := index_mut_back 0#u32
+    ok (cont ({ h with cnt := v1, head := v }, i2))
+  else ok (done h)
+
+/-- [difffold_myers_extract::lines::unindex_a]: loop 0:
+    Source: '../../src/lines.rs', lines 855:4-860:5 -/
+@[rust_loop]
+def lines.unindex_a_loop
+  (a : Slice Std.U32) (h : lines.Hist) (ahi : Std.Usize) (i : Std.Usize) :
+  Result lines.Hist
+  := do
+  loop
+    (fun (h1, i1) => lines.unindex_a_loop.body a ahi h1 i1)
+    (h, i)
+
+/-- [difffold_myers_extract::lines::unindex_a]:
+    Source: '../../src/lines.rs', lines 853:0-861:1 -/
+@[reducible]
+def lines.unindex_a
+  (a : Slice Std.U32) (h : lines.Hist) (alo : Std.Usize) (ahi : Std.Usize) :
+  Result lines.Hist
+  := do
+  lines.unindex_a_loop a h ahi alo
+
+/-- [difffold_myers_extract::lines::index_a]: loop body 0:
+    Source: '../../src/lines.rs', lines 843:4-849:5 -/
+@[rust_loop_body]
+def lines.index_a_loop.body
+  (a : Slice Std.U32) (ahi : Std.Usize) (h : lines.Hist) (i : Std.Usize) :
+  Result (ControlFlow (lines.Hist × Std.Usize) lines.Hist)
+  := do
+  if i < ahi
+  then
+    let i1 ← Slice.index_usize a i
+    let id ← lift (UScalar.cast .Usize i1)
+    let (i2, index_mut_back) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        h.cnt id
+    let i3 ← i2 + 1#u32
+    let i4 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        h.head id
+    let (_, index_mut_back1) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        h.nxt i
+    let (_, index_mut_back2) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        h.head id
+    let i5 ← lift (UScalar.cast .U32 i)
+    let i6 ← i + 1#usize
+    let v := index_mut_back2 i5
+    let v1 := index_mut_back1 i4
+    let v2 := index_mut_back i3
+    ok (cont ({ h with cnt := v2, head := v, nxt := v1 }, i6))
+  else ok (done h)
+
+/-- [difffold_myers_extract::lines::index_a]: loop 0:
+    Source: '../../src/lines.rs', lines 843:4-849:5 -/
+@[rust_loop]
+def lines.index_a_loop
+  (a : Slice Std.U32) (h : lines.Hist) (ahi : Std.Usize) (i : Std.Usize) :
+  Result lines.Hist
+  := do
+  loop
+    (fun (h1, i1) => lines.index_a_loop.body a ahi h1 i1)
+    (h, i)
+
+/-- [difffold_myers_extract::lines::index_a]:
+    Source: '../../src/lines.rs', lines 841:0-850:1 -/
+@[reducible]
+def lines.index_a
+  (a : Slice Std.U32) (h : lines.Hist) (alo : Std.Usize) (ahi : Std.Usize) :
+  Result lines.Hist
+  := do
+  lines.index_a_loop a h ahi alo
+
+/-- [difffold_myers_extract::lines::hist_fallback]:
+    Source: '../../src/lines.rs', lines 827:0-838:1 -/
+def lines.hist_fallback
+  (a : Slice Std.U32) (b : Slice Std.U32) (h : lines.Hist)
+  (p : (Std.Usize × Std.Usize)) (p1 : (Std.Usize × Std.Usize)) :
+  Result lines.Hist
+  := do
+  let (alo, ahi) := p
+  let (blo, bhi) := p1
+  let s ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) a { start := alo, «end» := ahi }
+  let s1 ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) b { start := blo, «end» := bhi }
+  let (s2, deref_mut_back) ← lift (alloc.vec.Vec.deref_mut h.del)
+  let (s3, deref_mut_back1) ← lift (alloc.vec.Vec.deref_mut h.ins)
+  let (s4, deref_mut_back2) ← lift (alloc.vec.Vec.deref_mut h.vf)
+  let (s5, deref_mut_back3) ← lift (alloc.vec.Vec.deref_mut h.vb)
+  let (s6, s7, s8, s9) ← lines.solve s s1 alo blo s2 s3 s4 s5
+  let v := deref_mut_back s6
+  let v1 := deref_mut_back1 s7
+  let v2 := deref_mut_back2 s8
+  let v3 := deref_mut_back3 s9
+  ok { h with del := v, ins := v1, vf := v2, vb := v3 }
+
+/-- [difffold_myers_extract::lines::hist]:
+    Source: '../../src/lines.rs', lines 794:0-824:1 -/
+def lines.hist
+  (a : Slice Std.U32) (b : Slice Std.U32) (h : lines.Hist)
+  (p : (Std.Usize × Std.Usize)) (p1 : (Std.Usize × Std.Usize))
+  (depth : Std.U32) :
+  Result lines.Hist
+  := do
+  let (alo, ahi) := p
+  let (blo, bhi) := p1
+  let s ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) a { start := alo, «end» := ahi }
+  let s1 ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) b { start := blo, «end» := bhi }
+  let p2 ← lines.common_prefix core.cmp.PartialEqU32 s s1
+  let alo1 ← alo + p2
+  let blo1 ← blo + p2
+  let s2 ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) a { start := alo1, «end» := ahi }
+  let s3 ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) b { start := blo1, «end» := bhi }
+  let sfx ← lines.common_suffix core.cmp.PartialEqU32 s2 s3
+  let ahi1 ← ahi - sfx
+  let bhi1 ← bhi - sfx
+  if alo1 = ahi1
+  then
+    let (s4, index_mut_back) ←
+      alloc.vec.Vec.index_mut (core.slice.index.SliceIndexRangeUsizeSlice Bool)
+        h.ins { start := blo1, «end» := bhi1 }
+    let s5 ← core.slice.Slice.fill core.clone.CloneBool s4 true
+    let v := index_mut_back s5
+    ok { h with ins := v }
+  else
+    if blo1 = bhi1
+    then
+      let (s4, index_mut_back) ←
+        alloc.vec.Vec.index_mut (core.slice.index.SliceIndexRangeUsizeSlice
+          Bool) h.del { start := alo1, «end» := ahi1 }
+      let s5 ← core.slice.Slice.fill core.clone.CloneBool s4 true
+      let v := index_mut_back s5
+      ok { h with del := v }
+    else
+      if depth >= lines.HIST_DEPTH
+      then lines.hist_fallback a b h (alo1, ahi1) (blo1, bhi1)
+      else
+        let h1 ← lines.index_a a h alo1 ahi1
+        let best ← lines.find_anchor a b h1 (alo1, ahi1) (blo1, bhi1)
+        let common ← lines.any_common b h1 blo1 bhi1
+        let h2 ← lines.unindex_a a h1 alo1 ahi1
+        match best with
+        | none =>
+          if common
+          then lines.hist_fallback a b h2 (alo1, ahi1) (blo1, bhi1)
+          else
+            let (s4, index_mut_back) ←
+              alloc.vec.Vec.index_mut
+                (core.slice.index.SliceIndexRangeUsizeSlice Bool) h2.del
+                { start := alo1, «end» := ahi1 }
+            let s5 ← core.slice.Slice.fill core.clone.CloneBool s4 true
+            let (s6, index_mut_back1) ←
+              alloc.vec.Vec.index_mut
+                (core.slice.index.SliceIndexRangeUsizeSlice Bool) h2.ins
+                { start := blo1, «end» := bhi1 }
+            let s7 ← core.slice.Slice.fill core.clone.CloneBool s6 true
+            let v := index_mut_back s5
+            let v1 := index_mut_back1 s7
+            ok { h2 with del := v, ins := v1 }
+        | some an =>
+          let i0 ← an.i - an.bl
+          let j0 ← an.j - an.bl
+          let i1 ← i0 + an.len
+          let j1 ← j0 + an.len
+          let i ← depth + 1#u32
+          let h3 ← lines.hist a b h2 (alo1, i0) (blo1, j0) i
+          lines.hist a b h3 (i1, ahi1) (j1, bhi1) i
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::diff_histogram_ids]:
+    Source: '../../src/lines.rs', lines 776:0-792:1
+    Visibility: public -/
+def lines.diff_histogram_ids
+  (a : Slice Std.U32) (b : Slice Std.U32) (n_ids : Std.Usize) :
+  Result lines.LineDiff
+  := do
+  let i := Slice.len a
+  let i1 := Slice.len b
+  let i2 ← i + i1
+  let i3 ← 2#usize * i2
+  let size ← i3 + 3#usize
+  let v ← alloc.vec.from_elem core.clone.CloneU32 0#u32 n_ids
+  let v1 ← alloc.vec.from_elem core.clone.CloneU32 lines.NIL n_ids
+  let i4 := Slice.len a
+  let v2 ← alloc.vec.from_elem core.clone.CloneU32 lines.NIL i4
+  let i5 := Slice.len a
+  let v3 ← alloc.vec.from_elem core.clone.CloneBool false i5
+  let i6 := Slice.len b
+  let v4 ← alloc.vec.from_elem core.clone.CloneBool false i6
+  let v5 ← alloc.vec.from_elem core.clone.CloneI32 0#i32 size
+  let i7 := Slice.len a
+  let i8 := Slice.len b
+  let h ←
+    lines.hist a b
+      {
+        cnt := v,
+        head := v1,
+        nxt := v2,
+        del := v3,
+        ins := v4,
+        vf := v5,
+        vb := v5
+      } (0#usize, i7) (0#usize, i8) 0#u32
+  ok { deleted := h.del, inserted := h.ins }
+
 end difffold_myers_extract
