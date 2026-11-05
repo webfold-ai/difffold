@@ -9,6 +9,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 
 ### Changed
 
+- Documentation: README restated around three engines (`lines`, top-down `diff`, general `ted`) with a
+  "Choose an engine" table, an evidence table, and result provenance; the APTED section no longer describes
+  the `ted-*` files as top-down. `docs/ARCHITECTURE.md` added. Cargo `description` updated. No code,
+  dependency or version change.
 - Cargo workspace: the root is the workspace root with `gitcompat`, `harness/rust` and `linebench`
   as members, sharing one `Cargo.lock`. `corpus/` is excluded (its sources are incomplete).
 - `tree-sitter-language` is pinned to 0.1.7 to keep the declared MSRV of Rust 1.89.

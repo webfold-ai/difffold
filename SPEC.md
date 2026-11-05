@@ -2,10 +2,17 @@
 
 Each contract is a statement the code enforces or the tests check against an independent oracle
 (`tests/contracts.rs`: naive recursion, full alignment DP, no memo, strip, threshold or pruning).
-Status is stated per contract. **None is proved in Lean yet**; Lean is not installed in the
-environment this was written in. The statements are written to be portable to the apeiron corpus.
+Status is stated per contract. The "status" column below describes the Rust tests only. Lean work
+exists in `proof/` (a model of the top-down objective in `proof/Difffold/`, and proofs over the
+Aeneas translation of `src/kernel.rs`); it is about a model or a part of the code, not about the Rust
+`diff` end to end, and `proof/README.md` gives the per-theorem status. The statements are written to be
+portable to the apeiron corpus.
 
-Objective: top-down (Selkow) ordered-tree edit distance, unit cost per node. `dist(x,y) = 0` if
+This file states the contracts of the **top-down `diff` engine** (`src/diff.rs`, `src/intern.rs`). The
+general tree-edit-distance engine `src/ted.rs` has a different objective and is covered by
+`tests/ted.rs`; see the README "Choose an engine" table.
+
+Objective of `diff`: top-down (Selkow) ordered-tree edit distance, unit cost per node. `dist(x,y) = 0` if
 `x = y`; otherwise `[label x != label y] + align(kids x, kids y)`, where `align` is the cheapest
 ordered pairing of two child lists with delete = subtree size, insert = subtree size, pair =
 `dist`. Roots always pair.

@@ -3,7 +3,7 @@ name = "difffold"
 version = "0.0.1"
 edition = "2021"
 rust-version = "1.89"
-description = "Ordered-tree diff on an exact hash-consed arena, with a certified-optimal banded aligner."
+description = "Line and ordered-tree differencing in Rust, with optimal tree mappings and Git-compatible unified patches."
 license = "Apache-2.0"
 publish = false
 

@@ -7,8 +7,10 @@ contributions are ones that come with a test, a measurement, or a stated contrac
 
 - Read [SPEC.md](SPEC.md). Each change should keep the contracts it lists (I1, C2, C3 and the rest),
   or say explicitly which one it changes and why.
-- Read the [README](README.md) limitations. The objective is top-down ordered-tree distance. Moves,
-  wrap/unwrap and cross-level matches are not implemented, and that is not a bug.
+- Read the [README](README.md) limitations and its "Choose an engine" table. The `diff` engine's
+  objective is top-down ordered-tree distance: moves, wrap/unwrap and cross-level matches are not
+  implemented there, and that is not a bug. The `ted` engine matches across levels by child promotion but
+  has no move operation.
 - For a security issue, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
 ## Development setup
