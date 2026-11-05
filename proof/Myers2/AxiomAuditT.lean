@@ -1,4 +1,5 @@
 import RealText
+import RealDiffText
 open difffold_myers_extract
 #print axioms nl_mask_spec
 #print axioms newline_count_spec
@@ -24,3 +25,5 @@ open difffold_myers_extract
 #print axioms Myers.applyS_eq
 #print axioms Myers.lines_spec
 #print axioms Myers.lines_length
+#print axioms seeded_exact
+#print axioms diff_text_minimal_seeded

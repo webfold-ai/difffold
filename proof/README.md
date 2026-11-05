@@ -151,9 +151,9 @@ its optimality theorem. **Layer 2 (`Myers2/Real*.lean`, over Aeneas)** proves th
 real `src/lines.rs` search refines that model. Both layers have zero `sorry` and use only `propext`,
 `Classical.choice`, `Quot.sound` (`AXIOMS-myers.txt`, `AXIOMS-myers-extract.txt`). An earlier `bv_decide` proof of one bit lemma pulled in a native-code axiom; it is now a kernel proof and the audit shows the three only.
 
-Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline Bound Glue TrimSpec Splice SolveLen CpreChar AxiomAudit`
+Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline Bound Glue TrimSpec Splice SolveLen CpreChar Text AxiomAudit`
 then `AENEAS_HOME=... ./extract-real.sh` and `LEAN_WS=... ./check-real.sh RealCommon RealSnake RealDefs RealX0 RealFwd
-RealSnakeBack RealBack RealScan RealBits RealHalve RealSweep RealMiddle RealSolve` (oleans in `build-myers/`).
+RealSnakeBack RealBack RealScan RealBits RealHalve RealSweep RealMiddle RealSolve RealCompact RealDiffIds` and then `RealSwar RealWord RealNL RealLines RealSplit RealCut InternExact RealIntern RealText RealDiffText` (oleans in `build-myers/`).
 
 ### Layer 1: the model (proved)
 
@@ -192,17 +192,44 @@ behaviour (`or_else` as `match`, `snake`/`snake_back` take the two slices). Unde
 `Myers.Solve Myers.mid` is optimal by `solve_optimal`, so the real `solve` writes a minimal script into the
 segment it is given.
 
+### Layer 2b: the byte level and the whole differ (proved)
+
+`Myers/Text.lean` (plain Lean, no Mathlib) models a text as a list of byte values: `lines` (each line keeps its
+`\n`, a final unterminated line is kept, no empty trailing line; `lines_spec` gives flatten, nonempty chunks,
+newline only at a chunk end), `applyS` (apply a flag script: drop deleted lines, take inserted lines from the
+new side, copy kept lines; `applyS_eq` shows it rebuilds the new side from any valid script), `MinL` (valid and
+no valid script is cheaper, for arbitrary elements), its transport from the id model (`minL_of_optimal`,
+`optimal_of_minL`, `VL_map`) and `minL_trim` (equal leading and trailing lines may be cut: this is `opt_trim`
+at line granularity). Over the real extraction (`Myers2/RealSwar`, `RealWord`, `RealNL`, `RealLines`,
+`RealSplit`, `RealCut`, `RealText`, `RealDiffText`):
+
+| extracted function | theorem | states |
+|---|---|---|
+| `nl_mask`, `newline_count`, `lowest_byte`, `word` | `nl_mask_spec`, `newline_count_spec`, `lowest_byte_spec`, `word_spec` | the SWAR mask marks exactly the `0x0A` bytes of the little-endian word, the multiply-and-shift sums the marks, `lowest_byte` is the first marked byte, `word` loads the first eight bytes zero padded (kernel proofs, no `bv_decide`) |
+| `first_in_block`, `first_nl`, `last_in_block`, `last_nl` | `first_in_block_spec`, `first_nl_spec`, `last_in_block_spec`, `last_nl_spec` | index of the first (last) `0x0A` or none |
+| `count_block`, `count_byte`, `count_lines` | `count_block_spec`, `count_byte_spec`, `count_lines_spec` | the number of newlines; `count_lines t` is `(lines t).length` |
+| `split_seq`, `split_into`, `split_lines` | `split_seq_spec`, `split_into_spec`, `split_lines_spec` | the slices pushed are exactly `lines t` in order (halving at a newline, depth `O(log n)`) |
+| `line_start` | `line_start_spec` | start of the line holding byte `p` (`0` or just after a `0x0A`, no newline between) |
+| `shrink_suffix`, `suffix_on_line_start` | `shrink_suffix_spec`, `suffix_on_line_start_spec` | the shrunk common suffix is still common and starts a line in both texts |
+| `diff_text_core` | `diff_text_minimal` (RealText) | given `LineIdsExact inst` (the interner assigns equal ids exactly to equal lines), for `Algo::Minimal` the returned flags `(da, di)` satisfy `MinL (lines old) (lines new) da di` (a valid script, no valid script is cheaper) and `(applyS (lines old) (lines new) da di).flatten = new`, through the byte prefix cut, the suffix cut, `split_lines`, `intern`, the real `diff_ids`, and the `copy_from_slice` assembly |
+| `intern_seeded`, `diff_text_core` | `diff_text_minimal_seeded` (RealDiffText) | the interner contract is discharged for the real `intern_seeded` for every seed (`seeded_exact`, from `intern_seeded_spec`), so the end theorem holds for the production interner up to its seed |
+
+Hypotheses of `diff_text_minimal`: `old` and `new` have at most `B` bytes with `B + 8 <= Usize.max` (so the
+word-at-a-time scans cannot overflow) and the two texts have at most `2^28` lines together (the `i32` bound of
+the line search). `src/lines.rs` was refactored without changing behaviour: `diff_text_with` is now
+`diff_text_core::<HashLines>`, generic over a private trait `LineIds` (interning and the histogram differ), which
+Aeneas turns into an explicit instance argument; the `Algo::Minimal` path calls `diff_ids` directly.
+The cut is not required to be maximal: any common prefix ending at a line start and any common suffix starting
+at a line start give an optimal script for the middle (`minL_trim`).
+
 ### Not yet done (open, nothing here is claimed proved)
 
-- `diff_text_with`: the byte-level cut (`line_start`, `suffix_on_line_start`, `count_lines`, `split_lines`,
-  `first_nl`/`last_nl` with `trailing_zeros`, `count_ones`), final-newline handling, and the application of the
-  script to the texts.
-- `intern`: uses `std::collections::HashMap` with a keyed hasher; Aeneas has no model of it. Planned replacement:
-  an open-addressing interner with real byte equality on probe, then a proof that equal ids mean equal lines.
-- `Algo::Histogram` (`hist`, `find_anchor`, `walk_chain`, `index_a`): soundness (valid script) not started;
+- `diff_text_with` itself is not extracted: `intern` seeds its hash from `random_seed` (std `RandomState`), and
+  the histogram path pulls in `HashMap`; extracting them introduces unknown external definitions, so the end
+  theorem is stated for `diff_text_core` with the real `intern_seeded` and an arbitrary seed and histogram stub.
+- `Algo::Histogram` (`hist`, `find_anchor`, `walk_chain`, `index_a`): soundness (valid script) is not proved here;
   optimality is not claimed for it.
 - Performance of the refactors: a synthetic 60,000-line release micro-benchmark (`diff_text`, best of 15) took 6.7 ms after the refactors against 8.3 ms before (same cost 6032); `linebench` on the real corpus was not run.
-- Byte-level helpers (`first_nl`, `last_nl`, `line_start`, `suffix_on_line_start`, `count_lines`, `split_into`, `split_lines`) now extract from the real source with no unknown external definitions: `count_ones` and `trailing_zeros` were replaced by `newline_count` (multiply-and-shift) and `lowest_byte` (shift loop), closures by `match`, `..=` by `..i + 1`. `cargo test` passes. Their specifications are not yet proved.
 
 Earlier, smaller extraction of closure-free copies (`extract/myers_core.rs`, `Myers2/CommonCopy.lean`,
 `Myers2/SnakeSpec.lean`, `tests/myers_core.rs`) is superseded by the real-source extraction above and kept only as

@@ -586,10 +586,130 @@ theorem hist_fallback_spec (a b : Slice U32) (n : Nat) (h : lines.Hist) (alo ahi
   obtain ⟨da, di, hso, hs6, hs7, hs8, hs9⟩ := hpost
   have hopt := Myers.solve_optimal Myers.mid_spec hso
   have hva := hopt.1
-  obtain ⟨hv1, hv2, hv3⟩ := hva
-  rw [hsvals] at hv1 hv3
-  rw [hs1vals] at hv2 hv3
-  have hdal : da.length = ahi.val - alo.val := by rw [hv1, hsvals]; simp [Myers.sg]; omega
-  sorry
+  have hv1 := hva.1
+  have hv2 := hva.2.1
+  have hdal : da.length = ahi.val - alo.val := by rw [hv1]; exact hAl
+  have hdil : di.length = bhi.val - blo.val := by rw [hv2]; exact hBl
+  have hl2 : alo.val + da.length ≤ p2.val.length := by rw [e2, hs.del]; omega
+  have hl3 : blo.val + di.length ≤ p3.val.length := by rw [e3, hs.ins]; omega
+  have hn6 : (hp2 s6).val.length = h.del.val.length := by
+    rw [b2, hs6, Myers.splice_length _ _ _ hl2, e2]
+  have hn7 : (hp3 s7).val.length = h.ins.val.length := by
+    rw [b3, hs7, Myers.splice_length _ _ _ hl3, e3]
+  refine ⟨⟨hs.cnt, hs.head, hs.nxt, ?_, ?_, ?_, ?_⟩, ?_⟩
+  · simp only []; rw [hn6]; exact hs.del
+  · simp only []; rw [hn7]; exact hs.ins
+  · simp only []; rw [b4, hs8, e4]; exact hs.vf
+  · simp only []; rw [b5, hs9, e5]; exact hs.vb
+  · refine ⟨da, di, ?_, ?_, ?_⟩
+    · rw [← hsvals, ← hs1vals]; exact hva
+    · rw [b2, hs6, e2]
+    · rw [b3, hs7, e3]
+
+theorem vec_setSlice_val (v : alloc.vec.Vec Bool) (lo : Nat) (d : List Bool) (h : lo + d.length ≤ v.val.length) :
+    (alloc.vec.Vec.setSlice! v lo d).val = Myers.splice v.val lo d := by
+  have : (alloc.vec.Vec.setSlice! v lo d).val = v.val.setSlice! lo d := by
+    show (v.slice.setSlice! lo d).val = v.val.setSlice! lo d
+    exact Slice.setSlice!_val _ _ _
+  rw [this]; exact setSlice_splice _ _ _ h
+
+/-- Setting a range of a flag vector to `true`, as `hist` does with `fill`. -/
+theorem fill_true (v : alloc.vec.Vec Bool) (lo hi : Usize) (h1 : lo.val ≤ hi.val) (h2 : hi.val ≤ v.val.length) :
+    (do
+      let (s4, back) ← alloc.vec.Vec.index_mut (core.slice.index.SliceIndexRangeUsizeSlice Bool) v
+        { start := lo, «end» := hi }
+      let s5 ← core.slice.Slice.fill core.clone.CloneBool s4 true
+      ok (back s5)) ⦃ v' => v'.val = Myers.splice v.val lo.val (List.replicate (hi.val - lo.val) true) ⦄ := by
+  have hcl : core.clone.CloneBool.clone true ⦃ fun v' => v' = true ⦄ := by
+    simp [core.clone.CloneBool]
+  step as ⟨s4, back, hs4v, hs4l, hback⟩
+  step as ⟨s5, hs5l, hs5v⟩
+  rw [hback, vec_setSlice_val]
+  · simp [hs5v, hs5l, hs4l]
+  · simp [hs5v, hs5l, hs4l]; omega
+
+/-- The postcondition of `hist` on a trimmed range, and what the recursion hands back. -/
+def HOut (a b : Slice U32) (n : Nat) (h : lines.Hist) (alo ahi blo bhi : Nat) (h' : lines.Hist) : Prop :=
+  HSz a.val.length b.val.length n h' ∧ HClean h' ∧
+  Myers.HPost (Myers.sg (vals a.val) alo ahi) (Myers.sg (vals b.val) blo bhi) alo blo
+    h.del.val h.ins.val h'.del.val h'.ins.val
+
+theorem hist_spec (a b : Slice U32) (n : Nat) (hida : ∀ x ∈ a.val, x.val < n) (hidb : ∀ x ∈ b.val, x.val < n)
+    (hN : a.val.length + b.val.length ≤ NMAX) :
+    ∀ (N : Nat) (h : lines.Hist) (alo ahi blo bhi : Usize) (depth : U32),
+    (ahi.val - alo.val) + (bhi.val - blo.val) ≤ N → alo.val ≤ ahi.val → ahi.val ≤ a.val.length →
+    blo.val ≤ bhi.val → bhi.val ≤ b.val.length → HSz a.val.length b.val.length n h → HClean h →
+    (∀ i, alo.val ≤ i → i < ahi.val → h.del.val[i]? = some false) →
+    (∀ j, blo.val ≤ j → j < bhi.val → h.ins.val[j]? = some false) →
+    lines.hist a b h (alo, ahi) (blo, bhi) depth ⦃ h' => HOut a b n h alo.val ahi.val blo.val bhi.val h' ⦄ := by
+  intro N
+  induction N using Nat.strong_induction_on with
+  | _ N ih =>
+  intro h alo ahi blo bhi depth hNN hlo hahi hblo hbhi hs hcl hD hI
+  rw [lines.hist.eq_1]
+  step as ⟨s, hsv, hsl⟩
+  step as ⟨s1, hs1v, hs1l⟩
+  have hsL : s.val.length = ahi.val - alo.val := hsl
+  have hs1L : s1.val.length = bhi.val - blo.val := hs1l
+  step with common_prefix_u32 s s1 as ⟨p2, hp2a, hp2b, hp2c⟩
+  have hp2v : p2.val ≤ ahi.val - alo.val ∧ p2.val ≤ bhi.val - blo.val := by omega
+  step as ⟨alo1, halo1⟩
+  step as ⟨blo1, hblo1⟩
+  step as ⟨s2, hs2v, hs2l⟩
+  step as ⟨s3, hs3v, hs3l⟩
+  have hs2L : s2.val.length = ahi.val - alo1.val := hs2l
+  have hs3L : s3.val.length = bhi.val - blo1.val := hs3l
+  step with common_suffix_u32 s2 s3 as ⟨sfx, hsf1, hsf2, hsf3⟩
+  have hsfv : sfx.val ≤ ahi.val - alo1.val ∧ sfx.val ≤ bhi.val - blo1.val := by omega
+  have hsfa : sfx.val ≤ ahi.val := by omega
+  have hsfb : sfx.val ≤ bhi.val := by omega
+  step as ⟨ahi1, hahi1⟩
+  step as ⟨bhi1, hbhi1⟩
+  have hq1 : alo.val ≤ alo1.val ∧ alo1.val ≤ ahi1.val ∧ ahi1.val ≤ ahi.val := by omega
+  have hq2 : blo.val ≤ blo1.val ∧ blo1.val ≤ bhi1.val ∧ bhi1.val ≤ bhi.val := by omega
+  have hPu : Myers.sg a.val alo.val alo1.val = Myers.sg b.val blo.val blo1.val := by
+    have := hp2b
+    rw [hsv, hs1v] at this
+    change List.take _ (Myers.sg a.val alo.val ahi.val) = List.take _ (Myers.sg b.val blo.val bhi.val) at this
+    rw [Myers.sg_take _ _ _ _ (by omega), Myers.sg_take _ _ _ _ (by omega)] at this
+    rw [halo1, hblo1]; exact this
+  have hSu : Myers.sg a.val ahi1.val ahi.val = Myers.sg b.val bhi1.val bhi.val := by
+    have := hsf2
+    rw [hs2L, hs3L, hs2v, hs3v] at this
+    change List.drop _ (Myers.sg a.val alo1.val ahi.val) = List.drop _ (Myers.sg b.val blo1.val bhi.val) at this
+    rw [Myers.sg_drop _ _ _ _ (by omega), Myers.sg_drop _ _ _ _ (by omega)] at this
+    rwa [show alo1.val + (ahi.val - alo1.val - sfx.val) = ahi1.val by omega,
+      show blo1.val + (bhi.val - blo1.val - sfx.val) = bhi1.val by omega] at this
+  have hP : Myers.sg (vals a.val) alo.val alo1.val = Myers.sg (vals b.val) blo.val blo1.val := by
+    rw [← vals_sg, ← vals_sg, hPu]
+  have hS : Myers.sg (vals a.val) ahi1.val ahi.val = Myers.sg (vals b.val) bhi1.val bhi.val := by
+    rw [← vals_sg, ← vals_sg, hSu]
+  have hpp : blo1.val = blo.val + (alo1.val - alo.val) := by omega
+  have hvl : (vals a.val).length = a.val.length := vals_len _
+  have hvlb : (vals b.val).length = b.val.length := vals_len _
+  refine Aeneas.Std.WP.spec_mono (P₁ := fun h' => HOut a b n h alo1.val ahi1.val blo1.val bhi1.val h') ?_ ?_
+  swap
+  · intro h' hh
+    obtain ⟨hs', hc', hp⟩ := hh
+    refine ⟨hs', hc', ?_⟩
+    exact Myers.hp_wrap hq1.1 hq1.2.1 hq1.2.2 (by omega) hq2.1 hq2.2.1 hq2.2.2 (by omega) hpp hP hS
+      (by rw [hs.del]; omega) (by rw [hs.ins]; omega) (fun j h1 h2 => hD j h1 h2) (fun j h1 h2 => hI j h1 h2) hp
+  have hDl : ahi1.val ≤ h.del.val.length := by rw [hs.del]; omega
+  have hIl : bhi1.val ≤ h.ins.val.length := by rw [hs.ins]; omega
+  have hD1 : ∀ i, alo1.val ≤ i → i < ahi1.val → h.del.val[i]? = some false := fun i h1 h2 => hD i (by omega) (by omega)
+  have hI1 : ∀ j, blo1.val ≤ j → j < bhi1.val → h.ins.val[j]? = some false := fun j h1 h2 => hI j (by omega) (by omega)
+  by_cases hc1 : alo1 = ahi1
+  · rw [if_pos hc1]
+    sorry
+  · rw [if_neg hc1]
+    by_cases hc2 : blo1 = bhi1
+    · rw [if_pos hc2]
+      sorry
+    · rw [if_neg hc2]
+      by_cases hc3 : depth ≥ lines.HIST_DEPTH
+      · rw [if_pos hc3]
+        sorry
+      · rw [if_neg hc3]
+        sorry
 
 end difffold_myers_extract
