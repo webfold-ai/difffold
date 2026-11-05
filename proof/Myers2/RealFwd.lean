@@ -35,12 +35,21 @@ theorem forward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int
       obtain ⟨e, he, hev⟩ := hf
       have hb1 : ikp.val < s.vf.length := by omega
       have hip : ikp.val = ((s.off.val + 1).toNat) := by rw [ikp_post]; congr 1; omega
-      rw [hip] at he
+      have he' : s.vf.val[ikp.val]? = some e := by rw [hip]; exact he
       step with Slice.index_usize_spec as ⟨x, hx⟩
-      have := rd_val (i := ikp) (by rw [hip]; exact he) hb1
+      have := rd_val he' hb1
       simp [X0v, hx, this, hev]
     | succ d' =>
       sorry
   step with key as ⟨x0, hx0v⟩
+  have hxb : X0v A B dn k ≤ A.length + dn := by
+    have := Myers.F_le A B dn k; rw [F_eq_X0v] at this; omega
+  have hx0b : x0.val ≤ (A.length : Int) + dn := by rw [hx0v]; exact_mod_cast hxb
+  have hx0n : 0 ≤ x0.val := by rw [hx0v]; omega
+  have hx0k : kk.val ≤ x0.val := by rw [hx0v, hk]; exact X0v_ge A B dn k ⟨hd1, hd2, hd3⟩
+  have hal : s.a.val.length = A.length := by have := congrArg List.length ha; simpa [vals] using this
+  have hbl : s.b.val.length = B.length := by have := congrArg List.length hb'; simpa [vals] using this
+  have hImax : (I32.max : Int) = 2147483647 := by scalar_tac
   step*
+  all_goals (first | omega | skip)
   all_goals (trace_state; sorry)

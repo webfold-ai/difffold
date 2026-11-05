@@ -41,7 +41,23 @@ theorem Search_ix_spec (s : lines.Search) (k : I32) (h0 : 0 ≤ s.off.val + k.va
   simp [*]
 end difffold_myers_extract
 
+
 namespace difffold_myers_extract
+/-- `snake_spec` with the size bounds the overflow checks need. -/
+@[step]
+theorem snake_step (a b : Slice U32) (x y : I32) (hx : 0 ≤ x.val) (hy : 0 ≤ y.val)
+    (ha : a.val.length ≤ I32.max) (hb : b.val.length ≤ I32.max) :
+    lines.snake a b x y ⦃ r => 0 ≤ r.val ∧ x.val + r.val ≤ max x.val a.val.length ∧
+      y.val + r.val ≤ max y.val b.val.length ∧
+      r.val = Myers.snake (vals a.val) (vals b.val) x.val.toNat y.val ⦄ := by
+  have h := snake_spec a b x y hx hy ha hb
+  have h1 := Myers.snake_le (vals a.val) (vals b.val) x.val.toNat y.val
+  have h2 := Myers.snake_le_y (vals a.val) (vals b.val) x.val.toNat y.val
+  simp only [vals, List.length_map] at h1 h2
+  have hxn : (x.val.toNat : Int) = x.val := Int.toNat_of_nonneg hx
+  exact Aeneas.Std.WP.spec_mono h (fun r hr => by
+    simp only [vals] at hr
+    refine ⟨by omega, by omega, by omega, hr⟩)
 /-- Value that round `dn` starts from on diagonal `k`: the sentinel `0` in round 0, otherwise `X0`. -/
 def X0v (A B : List Nat) : Nat → Int → Nat
   | 0, _ => 0
@@ -52,6 +68,11 @@ theorem F_eq_X0v (A B : List Nat) (dn : Nat) (k : Int) :
   cases dn with
   | zero => simp [X0v, Myers.F_zero]
   | succ d => simp [X0v, Myers.F_succ]
+
+theorem X0v_ge (A B : List Nat) (dn : Nat) (k : Int) (hk : Myers.Dom dn k) : k ≤ (X0v A B dn k : Int) := by
+  cases dn with
+  | zero => obtain ⟨h1, h2, _⟩ := hk; simp [X0v]; simp at h1 h2; omega
+  | succ d => simpa [X0v] using Myers.X0_ge_k A B d k hk
 
 theorem rd_val {v : Slice I32} {i : Usize} {e : I32} (h : v.val[i.val]? = some e) (hb : i.val < v.length) :
     v.val[i.val] = e := by

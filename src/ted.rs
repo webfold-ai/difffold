@@ -778,32 +778,3 @@ pub fn replay_script(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result
     }
     Ok(ops)
 }
-
-/// Entry points for the agreement test of the extraction copy in `proof/extract/ted_core.rs`
-/// (`tests/ted_core.rs`). Not part of the API.
-#[doc(hidden)]
-pub mod proof_api {
-    use super::{PostTree, Stats};
-    /// `label_lower_bound` of the real source.
-    #[must_use]
-    pub fn label_lower_bound(a: &PostTree, b: &PostTree) -> u32 {
-        super::label_lower_bound(a, b)
-    }
-    /// `fill_window` of the real source.
-    pub fn fill_window(
-        a: &PostTree,
-        b: &PostTree,
-        td: &mut [u32],
-        fd: &mut [u32],
-        i0: usize,
-        j0: usize,
-        tau: u32,
-    ) {
-        super::fill_window(a, b, td, fd, (i0, j0), tau, &mut Stats::default());
-    }
-    /// `within_td` of the real source.
-    #[must_use]
-    pub fn within_td(a: &PostTree, b: &PostTree, tau: u32) -> (Option<u32>, Vec<u32>) {
-        super::within_td(a, b, tau, &mut Stats::default())
-    }
-}

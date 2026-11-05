@@ -33,6 +33,9 @@ namespace difffold_lines_extract
 theorem getU_eq (l : List Std.U32) (i : Nat) (h : i < l.length) : l[i]! = l[i]'h := by
   simp [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem h]
 
+theorem getU_eq' (l : List Std.U32) (i j : Nat) (h : i < l.length) (hij : i = j) : l[i]'h = l[j]! := by
+  subst hij; exact (getU_eq l i h).symm
+
 theorem getU_set_eq (l : List Std.U32) (i : Nat) (x : Std.U32) (h : i < l.length) :
     (l.set i x)[i]! = x := by
   simp [h]
