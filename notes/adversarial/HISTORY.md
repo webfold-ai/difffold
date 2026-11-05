@@ -122,7 +122,7 @@ All CVE IDs in this section dated 2026 were read via CERT.PL and INCIBE pages
 ### 2.1 CVE-2026-56289: GNU patch infinite loop on huge hunk line number
 - What: unified diff specifying an extremely large hunk line number makes patch loop
   searching for the position, burning CPU indefinitely. patch <= 2.8.0.
-  Fix commit faba04ef4f2b410257f76c1b9dc85e350929c4b9.
+  Fixed upstream in GNU patch after 2.8.0.
 - Source: https://cert.pl/en/posts/2026/07/CVE-2026-56288 (VERIFIED)
 - Trigger: `@@ -9223372036854775807,1 +1,1 @@`.
 - T (difffold's patch applier, if any): apply hunk with start = i64::MAX / u64::MAX;
@@ -132,7 +132,7 @@ All CVE IDs in this section dated 2026 were read via CERT.PL and INCIBE pages
 ### 2.2 CVE-2026-56288: GNU patch NULL deref, consecutive EOF newline markers
 - What: crafted unified diff with consecutive "end-of-file newline" markers corrupts
   hunk structures; NULL passed to fwrite(); crash. patch <= 2.8.0.
-  Fix commit e6d6a4e021660679d7fc9150f981d4920f722313.
+  Fixed upstream in GNU patch after 2.8.0.
 - Source: https://cert.pl/en/posts/2026/07/CVE-2026-56288 (VERIFIED)
 - Trigger: two `\ No newline at end of file` lines in a row, or one at the start of
   a hunk with no preceding line.
@@ -143,14 +143,14 @@ All CVE IDs in this section dated 2026 were read via CERT.PL and INCIBE pages
 - What: signed integer overflow in line-mapping calc in diff3 leads to under-allocation
   and OOB write; requires attacker controlling output of the diff program
   (`--diff-program`). Maintainers dispute security relevance. Low CVSS 4.0 (2.1).
-  Fix commit 9ff04d5b84743e331e80b589335a52c5480d1815.
+  Fixed upstream in GNU diffutils after 3.12.
 - Source: https://www.incibe.es/en/incibe-cert/early-warning/vulnerabilities/cve-2026-53910 (VERIFIED)
 - Lesson: line numbers/counts read from an external script are not trusted.
 - T: for any parser of hunks/edit scripts we accept, feed counts near usize::MAX and
   assert checked arithmetic (error, not wrap).
 
 ### 2.4 CVE-2014-9637: GNU patch <= 2.7.2 memory consumption and segfault
-- What: crafted diff file. NVD CWE-399. Fix commit 0c08d7a9 per references.
+- What: crafted diff file. NVD CWE-399. Fixed in GNU patch 2.7.3.
 - Sources: https://cve.circl.lu/cve/CVE-2014-9637 (VERIFIED, aggregator of NVD)
   Savannah bug 44051 listed there (not opened).
 - Exact trigger shape: UNVERIFIED (I did not read the Savannah bug).

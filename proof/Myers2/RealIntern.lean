@@ -422,22 +422,20 @@ theorem intern_all_spec (seed : U64) : ∀ (N : Nat) (xs : Slice (Slice U8)) (ba
     step with intern_line_spec head nxt reps seed s hI hn as ⟨i, reps1, head1, nxt1, hi1, hi2, hi3, hi4, hi5⟩
     have hbd : base.val < out.val.length := by omega
     step as ⟨out1, ho1⟩
-    trace_state
     refine ⟨[i], by simp [hu], ?_, ?_, ?_, hi4, hi3, ?_, ?_, ?_, ?_⟩
-    · rw [ho1]; simp
+    · rw [ho1]; simp [Slice.set_val_eq]
     · intro j hj
-      rw [ho1, List.getElem?_set_ne]
-      omega
+      rw [ho1, Slice.set_val_eq, List.getElem?_set_ne (by omega)]
     · intro j x h
       have hj : j = 0 := by
         by_contra hne
         rw [List.getElem?_eq_none (by simp; omega)] at h; simp at h
       subst hj
       simp at h; subst h
-      rw [ho1]; simp [List.getElem?_set_self hbd]
+      simp [ho1, Slice.set_val_eq, hbd]
     · rcases hi5 with ⟨h, _⟩ | ⟨h, _⟩
-      · rw [h]; exact List.prefix_refl _
-      · rw [h]; exact List.prefix_append _ _
+      · simp [h]
+      · simp [h]
     · rcases hi5 with ⟨h, _⟩ | ⟨h, _⟩
       · rw [h]; simp [hu]
       · rw [h]; simp [hu]
@@ -451,7 +449,8 @@ theorem intern_all_spec (seed : U64) : ∀ (N : Nat) (xs : Slice (Slice U8)) (ba
     · intro k hk1 hk2
       rcases hi5 with ⟨h, h'⟩ | ⟨h, h'⟩
       · rw [h] at hk2; omega
-      · refine ⟨i, by simp, ?_⟩; omega
+      · rw [h] at hk2; simp at hk2
+        exact ⟨i, by simp, by omega⟩
   · rename_i hn0 hn1
     have hl2 : 2 ≤ xs.val.length := by
       have : ¬ xs.val.length = 0 := by simpa [Slice.len] using hn0
@@ -462,6 +461,53 @@ theorem intern_all_spec (seed : U64) : ∀ (N : Nat) (xs : Slice (Slice U8)) (ba
     step as ⟨s, hsv, hsl⟩
     have hsv' : s.val = xs.val.take h.val := by rw [hsv]; simp [List.slice]
     have hslen : s.val.length = h.val := by rw [hsv']; simp; omega
-    sorry
+    have hslen' : s.val.length = xs.val.length / 2 := by omega
+    step with (ih s.val.length (by omega) s base head nxt reps out rfl hI (by omega) (by omega))
+      as ⟨reps1, head1, nxt1, out1, P1⟩
+    obtain ⟨ids1, hl1', hol1, ho1l, ho1o, hT1, hhl1, hp1, hrl1, hid1, hcv1⟩ := P1
+    step as ⟨s1, hs1v, hs1l⟩
+    step as ⟨i, hi⟩
+    have hs1' : s1.val = xs.val.drop h.val := by rw [hs1v]
+    have hs1len : s1.val.length = xs.val.length - h.val := by rw [hs1']; simp
+    have hiv : i.val = base.val + h.val := hi
+    step with (ih s1.val.length (by omega) s1 i head1 nxt1 reps1 out1 rfl hT1 (by omega) (by omega))
+      as ⟨reps2, head2, nxt2, out2, P2⟩
+    obtain ⟨ids2, hl2', hol2, ho2l, ho2o, hT2, hhl2, hp2, hrl2, hid2, hcv2⟩ := P2
+    refine ⟨ids1 ++ ids2, by simp; omega, by omega, ?_, ?_, hT2, by omega, ?_, by omega, ?_, ?_⟩
+    · intro j hj
+      rw [ho2l j (by omega), ho1l j (by omega)]
+    · intro j x hx
+      by_cases hjh : j < ids1.length
+      · rw [List.getElem?_append_left hjh] at hx
+        have := ho1o j x hx
+        rw [ho2l (base.val + j) (by omega)]; exact this
+      · have e1 : ids1.length = h.val := by omega
+        rw [List.getElem?_append_right (by omega), e1] at hx
+        have := ho2o (j - h.val) x hx
+        rw [hiv] at this
+        rw [show base.val + j = base.val + h.val + (j - h.val) by omega]
+        exact this
+    · exact hp1.trans hp2
+    · intro j x hx
+      by_cases hjh : j < ids1.length
+      · rw [List.getElem?_append_left hjh] at hx
+        obtain ⟨hx1, hx2⟩ := hid1 j x hx
+        have hpl := hp2.length_le
+        refine ⟨by omega, ?_⟩
+        obtain ⟨t, ht⟩ := hp2
+        rw [← ht, List.getElem?_append_left hx1, hx2, hsv']
+        simp [List.getElem?_take, hjh, show j < h.val by omega]
+      · rw [List.getElem?_append_right (by omega)] at hx
+        obtain ⟨hx1, hx2⟩ := hid2 (j - ids1.length) x hx
+        refine ⟨hx1, ?_⟩
+        rw [hx2, hs1']
+        simp [List.getElem?_drop, show ids1.length = h.val by omega]
+        congr 1; omega
+    · intro k hk1 hk2
+      by_cases hk : k < reps1.val.length
+      · obtain ⟨x, hx, hxk⟩ := hcv1 k hk1 hk
+        exact ⟨x, List.mem_append_left _ hx, hxk⟩
+      · obtain ⟨x, hx, hxk⟩ := hcv2 k (by omega) hk2
+        exact ⟨x, List.mem_append_right _ hx, hxk⟩
 
 end difffold_myers_extract

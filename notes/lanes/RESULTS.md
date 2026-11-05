@@ -34,7 +34,7 @@ imara-diff 174 ms total. imara is faster at this stage. Not a win.
 - RTED/APTED/Zhang-Shasha: different objective, timing only where run; see lane results below.
 
 ### Git's xdiff, direct (no libgit2 patch objects)  [measured]
-`libgit2/xdiff` at c46ae8d compiled with `gcc -O2` and called from a C harness (`xdl_diff`, context 0,
+`libgit2/xdiff`, an unreleased snapshot after git 2.48.1, compiled with `gcc -O2` and called from a C harness (`xdl_diff`, context 0,
 counting +/- lines in the emit callback), median of 15, same 2,302 pairs, bytes in memory:
 
 | tool | total ms | median us | p99 us |
@@ -60,7 +60,7 @@ non-minimal results. Whether the smaller scripts also give more useful hunks is 
 
 ## Lane 2b: general ordered tree edit distance (Zhang-Shasha objective)  [measured]
 Unit insert, delete and relabel costs, deletion promotes children. Baselines: the Rust port `apted`
-0.1.1 and the authors' Java APTED (commit 193666b, JVM, 5 reps after warm-up, so small-tree Java
+0.1.1 and the authors' Java APTED (unreleased snapshot after its 0.1.1 tag, JVM, 5 reps after warm-up, so small-tree Java
 numbers include JIT warm-up). Real tree-sitter ASTs; every distance is asserted equal.
 
 | cohort | pairs | vs Rust APTED port (total / median) | vs Java APTED (total / median) |
