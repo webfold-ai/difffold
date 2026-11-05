@@ -1,5 +1,7 @@
 # difffold
 
+> **Status: research build.** This code is not production-ready. It is being hardened toward a production release, and interfaces, formats and results may change without notice.
+
 [![CI](https://github.com/webfold-ai/difffold/actions/workflows/ci.yml/badge.svg)](https://github.com/webfold-ai/difffold/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/webfold-ai/difffold/actions/workflows/codeql.yml/badge.svg)](https://github.com/webfold-ai/difffold/actions/workflows/codeql.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
