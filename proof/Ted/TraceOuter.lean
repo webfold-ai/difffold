@@ -68,7 +68,8 @@ theorem outer_spec (a b : ted.PostTree) (prefer_match : Bool) {T : Nat} (tt : TT
     (hS : OS a b T td to_b stack_i stack_j top.val) :
     ted.traceback_loop0 a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind cost
       prefer_match st td t inf w to_b stack_i stack_j top ⦃ r =>
-      Sol (laOf a) (laOf b) (rcost a b) 1 a.label.length 1 b.label.length (Pto a.label.length r.val) ⦄ := by
+      r.length = a.label.length + 1 ∧
+        Sol (laOf a) (laOf b) (rcost a b) 1 a.label.length 1 b.label.length (Pto a.label.length r.val) ⦄ := by
   unfold ted.traceback_loop0
   have hUM : 2 ^ 32 ≤ Std.Usize.max + 1 := by scalar_tac
   have hA := tt.hA
@@ -221,7 +222,7 @@ theorem outer_spec (a b : ted.PostTree) (prefer_match : Bool) {T : Nat} (tt : TT
       have h0 : top1.val = 0 := by have : ¬ 0 < top1.val := hz; omega
       have := hs.oinv
       rw [h0, stk_zero] at this
-      exact oinv_final this
+      exact ⟨hs.tblen, oinv_final this⟩
   · exact hS
 
 end difffold_lines_extract
