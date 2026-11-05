@@ -82,25 +82,60 @@ impl PostTree {
     }
 
     /// The mirror image (children in reverse order). Mirroring both trees leaves the distance unchanged.
+    ///
+    /// The postorder of the mirror image is the reverse of the preorder of `self`, and the preorder index of a node
+    /// (1-based) is its leftmost leaf plus its depth, so node `x` moves to `n - lml[x] - depth[x]` (0-based).
     #[must_use]
     pub fn mirror(&self) -> PostTree {
-        if self.is_empty() {
+        let n = self.label.len();
+        if n == 0 {
             return PostTree::from_kids(Vec::new(), &[]);
         }
-        let (mut label, mut kids, mut kind) = (Vec::new(), Vec::new(), Vec::new());
-        mirror_expand(self, self.len() - 1, &mut label, &mut kids, &mut kind);
+        // Depths, parents first: a parent has a larger index than its children.
+        let mut depth = vec![0usize; n];
+        let mut p = n;
+        while p > 0 {
+            p -= 1;
+            let d = depth[p] + 1;
+            let mut j = 0;
+            while j < self.kids[p].len() {
+                depth[self.kids[p][j] as usize] = d;
+                j += 1;
+            }
+        }
+        let mut pos = vec![0usize; n];
+        let mut x = 0;
+        while x < n {
+            let l = self.lml[x] as usize;
+            let d = depth[x];
+            let q = n - l;
+            let v = q - d;
+            pos[x] = v;
+            x += 1;
+        }
+        let mut label = vec![0u32; n];
+        let mut kind = vec![0u32; n];
+        let mut kids: Vec<Vec<u32>> = vec![Vec::new(); n];
+        x = 0;
+        while x < n {
+            let y = pos[x];
+            label[y] = self.label[x];
+            kind[y] = self.kind[x];
+            let mut ks = Vec::new();
+            let mut j = self.kids[x].len();
+            while j > 0 {
+                j -= 1;
+                ks.push(pos[self.kids[x][j] as usize] as u32);
+            }
+            kids[y] = ks;
+            x += 1;
+        }
         PostTree::from_kids(label, &kids).with_kinds(kind)
     }
 
     /// Work estimate of the left-path decomposition against `other`: the product of the keyroot subtree sizes.
     fn cost_against(&self, other: &PostTree) -> u128 {
-        let sum = |t: &PostTree| -> u128 {
-            t.keyroots
-                .iter()
-                .map(|&k| u128::from(k - t.lml[k as usize - 1] + 1))
-                .sum()
-        };
-        sum(self) * sum(other)
+        keyroot_work(self) * keyroot_work(other)
     }
 
     /// Expand an arena tree (a DAG when subtrees repeat) into its postorder tree.
@@ -120,26 +155,10 @@ impl PostTree {
     /// Whether the tree is empty.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.label.is_empty()
+        #[allow(clippy::len_zero)]
+        let e = self.label.len() == 0;
+        e
     }
-}
-
-fn mirror_expand(
-    t: &PostTree,
-    i: usize,
-    label: &mut Vec<u32>,
-    kids: &mut Vec<Vec<u32>>,
-    kind: &mut Vec<u32>,
-) -> u32 {
-    let ks: Vec<u32> = t.kids[i]
-        .iter()
-        .rev()
-        .map(|&k| mirror_expand(t, k as usize, label, kids, kind))
-        .collect();
-    label.push(t.label[i]);
-    kind.push(t.kind[i]);
-    kids.push(ks);
-    label.len() as u32 - 1
 }
 
 fn expand(arena: &Arena, x: Id, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) -> u32 {
@@ -151,6 +170,18 @@ fn expand(arena: &Arena, x: Id, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) 
     label.push(arena.label(x));
     kids.push(ks);
     label.len() as u32 - 1
+}
+
+/// The sum of the keyroot subtree sizes.
+fn keyroot_work(t: &PostTree) -> u128 {
+    let mut s = 0u128;
+    let mut i = 0;
+    while i < t.keyroots.len() {
+        let k = t.keyroots[i];
+        s += (k - t.lml[k as usize - 1] + 1) as u128;
+        i += 1;
+    }
+    s
 }
 
 /// Work counters of one [`ted_stats`] run.
@@ -177,17 +208,20 @@ pub fn ted(a: &PostTree, b: &PostTree) -> u32 {
 /// The exact distance with work counters.
 #[must_use]
 pub fn ted_stats(a: &PostTree, b: &PostTree) -> (u32, Stats) {
+    let mut st = Stats::default();
     if a.is_empty() || b.is_empty() {
-        return (a.len().max(b.len()) as u32, Stats::default());
+        return (umax(a.len(), b.len()) as u32, st);
     }
     // Left paths or right paths, whichever the keyroot sizes say is cheaper.
-    let (ma, mb) = (a.mirror(), b.mirror());
-    let mut st = Stats::default();
+    let ma = a.mirror();
+    let mb = b.mirror();
     if ma.cost_against(&mb) < a.cost_against(b) {
         st.mirrored = true;
-        (ted_oriented(&ma, &mb, &mut st), st)
+        let d = ted_oriented(&ma, &mb, &mut st);
+        (d, st)
     } else {
-        (ted_oriented(a, b, &mut st), st)
+        let d = ted_oriented(a, b, &mut st);
+        (d, st)
     }
 }
 

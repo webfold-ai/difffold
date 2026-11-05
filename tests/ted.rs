@@ -274,3 +274,25 @@ fn kind_aware_cost_matches_the_oracle_and_maps_legally() {
         );
     }
 }
+
+fn flip(t: &T) -> T {
+    T(t.0, t.1.iter().rev().map(flip).collect())
+}
+
+#[test]
+fn mirror_is_the_tree_with_children_reversed() {
+    let mut r = Rng(0x9e37_79b9_7f4a_7c15);
+    for round in 0..3000 {
+        let alpha = 1 + r.next() % 4;
+        let mut budget = 1 + (r.next() % 40) as i32;
+        let t = random_tree(&mut r, &mut budget, alpha);
+        let (p, want) = (post(&t), post(&flip(&t)));
+        let got = p.mirror();
+        assert_eq!(got.label, want.label, "round {round}: {t:?}");
+        assert_eq!(got.lml, want.lml, "round {round}: {t:?}");
+        assert_eq!(got.keyroots, want.keyroots, "round {round}: {t:?}");
+        let back = got.mirror();
+        assert_eq!(back.label, p.label, "round {round}: {t:?}");
+        assert_eq!(back.lml, p.lml, "round {round}: {t:?}");
+    }
+}
