@@ -10,6 +10,9 @@ The winner tables below are generated from that file by `tools/strbench/summariz
 Labels: MEASURED means the number came from the harness on the machine described under Hardware.
 Nothing here is claimed for other hardware or builds.
 
+The difffold numbers in the sections above are for the version 1 kernel. The section "After v2" at the
+end gives the version 2 kernel, measured against the version 1 kernel in the same session.
+
 ## Status
 
 - Externals (Edlib, RapidFuzz, WFA2-lib): built, verified against independent oracles, and run over the
@@ -440,3 +443,229 @@ cargo +1.89.0 build --release --bins
 ./run_matrix.sh target/release/bench /tmp/matrix.tsv all
 python3 summarize.py /tmp/matrix.tsv
 ```
+
+## After v2
+
+This section reports the version 2 difffold kernel (wavefront, symbol-count bound, banded bit-parallel,
+and a new dispatcher, described in `notes/lanes/LEVENSHTEIN.md`) against the version 1 kernel. Both were
+measured in one session with the same harness, and RapidFuzz in each run is the control.
+
+Edlib and WFA2-lib were not re-run. Their source trees are not on this machine, so the harness was built
+without them (cfg `strbench_no_externals`), and they report `not-built`. Their numbers are the ones already
+in `results/matrix.tsv` from an earlier session. They are not comparable to the numbers below.
+
+Harness changes in `tools/strbench/`:
+
+- `difffold-v2` is a new bench tool name for the current kernel. `difffold` runs the kernel of whichever
+  build it is compiled into, so the version 1 rows are the `difffold` rows of the `before` run here and of
+  the earlier matrix.
+- `STRBENCH_EXT` is optional. Without it, the build omits Edlib and WFA2-lib and reports them as
+  `not-built`.
+- `run_matrix.sh` reads `STRB_LENS`, `STRB_ALPHS`, `STRB_TOOLS`, `STRB_BOUNDED_REGIMES`,
+  `STRB_EXACT_REGIMES` and `STRB_KS` from the environment, so a subset can be run.
+
+Run conditions: `taskset -c 0`, median of seven timed passes after one warm-up, five pairs (three at length
+10,000 and above). Each timed pair was checked against the oracle first. No timed cell had a mismatch: 0 in
+all 960 bounded cells and in all ok exact cells.
+
+- Bounded: lengths 1,000, 10,000 and 100,000; alphabets 2, 4, 256 and sparse `u32`; regimes `d<k`,
+  `d==k`, `d==k+1`, `d>>k` and `unrelated`; bounds 1, 8, 32 and 128. Tools RapidFuzz and difffold, before
+  and after. 480 cells per run. Raw data: `tools/strbench/results/subset-before-final.tsv` and
+  `tools/strbench/results/subset-after-final.tsv`.
+- Exact: the same lengths and alphabets; regimes `tiny-prefix-suffix`, `d=16` and `unrelated`. 72 cells per
+  run. Raw data: `tools/strbench/results/subset-before-exact.tsv` and
+  `tools/strbench/results/subset-after-exact.tsv`. Unrelated pairs at length 100,000 time out at 60 seconds
+  for difffold on alphabets 2, 4, 256 and sparse ids, before and after. RapidFuzz timed out on sparse
+  unrelated pairs in both runs, and on sparse `d=16` in the after run only.
+
+Load: the `load1_at_start` column is the 1-minute average at the start of each cell. The after run had a
+median of 3.97 and the before run a median of 3.19, on 4 vCPUs. Another agent's benchmark shared CPU 0
+for part of the session. RapidFuzz, which did not change, was 8 percent slower in the after run
+(geometric mean of the after/before ratio over 240 cells), so the difffold ratios are slightly pessimistic
+for the after run. Sub-microsecond cells are within timer noise.
+
+### Summary, bounded job
+
+Ratios are difffold after over difffold before. Against RapidFuzz, "faster" means difffold is more than 1.3
+times faster, "tie" means within 1.3 times, and "slower" means more than 1.3 times slower. Both are from the
+after run.
+
+| len | cells | faster than before | slower than before (>1.2x) | geomean after/before | difffold vs RapidFuzz after (faster / tie within 1.3x / slower) |
+|---|---|---|---|---|---|
+| 1000 | 80 | 66 | 13 | 0.220 | 37 / 8 / 35 |
+| 10000 | 80 | 64 | 15 | 0.068 | 59 / 5 / 16 |
+| 100000 | 80 | 68 | 9 | 0.028 | 70 / 1 / 9 |
+
+### Bounded job, median microseconds per pair
+
+Each cell is `difffold before -> difffold after`, then `RF`, the RapidFuzz time in the after run. Units are
+microseconds (us) or milliseconds (ms). Rows are regime and bound. Columns are alphabets.
+
+Each cell is `before -> after` for difffold, then the RapidFuzz time from the same after run. Lengths are 1,000, 10,000 and 100,000. Alphabets are 2, 4, 256 and sparse `u32`.
+
+#### length 1000
+
+| regime | k | alphabet 2 | alphabet 4 | alphabet 256 | sparse u32 |
+|---|---|---|---|---|---|
+| d<k | 1 | 0.35 us -> 0.19 us (RF 0.72 us) | 0.65 us -> 0.26 us (RF 1.04 us) | 0.36 us -> 0.25 us (RF 0.67 us) | 0.36 us -> 0.19 us (RF 0.68 us) |
+| d<k | 8 | 26.25 us -> 0.66 us (RF 6.82 us) | 24.60 us -> 0.52 us (RF 5.77 us) | 63.65 us -> 0.45 us (RF 4.17 us) | 38.10 us -> 0.61 us (RF 22.11 us) |
+| d<k | 32 | 58.94 us -> 4.89 us (RF 32.15 us) | 61.08 us -> 4.24 us (RF 26.38 us) | 95.46 us -> 2.69 us (RF 15.24 us) | 116.54 us -> 2.70 us (RF 40.95 us) |
+| d<k | 128 | 91.25 us -> 58.81 us (RF 40.35 us) | 88.75 us -> 47.80 us (RF 37.77 us) | 127.85 us -> 49.17 us (RF 21.80 us) | 128.13 us -> 173.68 us (RF 93.70 us) |
+| d==k | 1 | 0.43 us -> 0.23 us (RF 0.76 us) | 0.79 us -> 0.39 us (RF 1.47 us) | 0.70 us -> 0.35 us (RF 0.75 us) | 0.56 us -> 0.25 us (RF 1.29 us) |
+| d==k | 8 | 44.05 us -> 0.96 us (RF 4.29 us) | 55.25 us -> 1.46 us (RF 7.37 us) | 75.96 us -> 0.86 us (RF 6.44 us) | 100.44 us -> 0.94 us (RF 48.40 us) |
+| d==k | 32 | 67.14 us -> 13.13 us (RF 14.81 us) | 96.04 us -> 15.97 us (RF 28.56 us) | 85.64 us -> 18.01 us (RF 15.51 us) | 128.21 us -> 14.77 us (RF 42.82 us) |
+| d==k | 128 | 74.10 us -> 31.43 us (RF 20.64 us) | 69.84 us -> 56.03 us (RF 38.16 us) | 100.83 us -> 76.97 us (RF 48.33 us) | 128.83 us -> 177.12 us (RF 97.32 us) |
+| d==k+1 | 1 | 0.63 us -> 0.21 us (RF 0.47 us) | 4.08 us -> 0.44 us (RF 0.63 us) | 2.69 us -> 0.26 us (RF 0.52 us) | 2.64 us -> 0.38 us (RF 0.86 us) |
+| d==k+1 | 8 | 55.74 us -> 0.77 us (RF 3.81 us) | 63.54 us -> 1.41 us (RF 6.89 us) | 73.13 us -> 0.89 us (RF 9.39 us) | 86.16 us -> 1.44 us (RF 55.57 us) |
+| d==k+1 | 32 | 88.18 us -> 15.21 us (RF 15.99 us) | 81.16 us -> 16.86 us (RF 27.86 us) | 80.97 us -> 9.34 us (RF 14.65 us) | 107.04 us -> 18.59 us (RF 62.42 us) |
+| d==k+1 | 128 | 99.80 us -> 30.72 us (RF 27.79 us) | 86.98 us -> 33.20 us (RF 27.49 us) | 97.48 us -> 48.12 us (RF 19.16 us) | 125.71 us -> 175.22 us (RF 92.03 us) |
+| d>>k | 1 | 0.94 us -> 0.10 us (RF 0.05 us) | 1.45 us -> 0.13 us (RF 0.27 us) | 0.30 us -> 0.11 us (RF 0.07 us) | 0.46 us -> 0.15 us (RF 0.07 us) |
+| d>>k | 8 | 14.59 us -> 0.71 us (RF 1.12 us) | 12.91 us -> 0.33 us (RF 0.11 us) | 13.66 us -> 0.62 us (RF 0.34 us) | 15.80 us -> 0.72 us (RF 4.08 us) |
+| d>>k | 32 | 63.11 us -> 19.61 us (RF 6.05 us) | 36.82 us -> 20.09 us (RF 3.24 us) | 46.50 us -> 14.57 us (RF 5.00 us) | 61.23 us -> 9.05 us (RF 7.84 us) |
+| d>>k | 128 | 72.06 us -> 59.34 us (RF 12.26 us) | 60.02 us -> 66.06 us (RF 14.97 us) | 52.96 us -> 9.93 us (RF 14.25 us) | 67.17 us -> 48.05 us (RF 19.56 us) |
+| unrelated | 1 | 0.08 us -> 0.15 us (RF 0.04 us) | 0.14 us -> 0.09 us (RF 0.02 us) | 0.07 us -> 0.15 us (RF 0.04 us) | 0.06 us -> 0.08 us (RF 0.04 us) |
+| unrelated | 8 | 0.93 us -> 1.52 us (RF 0.59 us) | 0.55 us -> 0.67 us (RF 0.19 us) | 0.35 us -> 1.10 us (RF 0.21 us) | 0.30 us -> 0.60 us (RF 0.32 us) |
+| unrelated | 32 | 53.13 us -> 27.19 us (RF 8.35 us) | 56.26 us -> 11.86 us (RF 2.46 us) | 3.75 us -> 8.83 us (RF 3.15 us) | 3.36 us -> 13.33 us (RF 9.09 us) |
+| unrelated | 128 | 77.46 us -> 52.89 us (RF 19.48 us) | 55.79 us -> 29.48 us (RF 6.87 us) | 37.03 us -> 3.01 us (RF 3.83 us) | 39.73 us -> 49.61 us (RF 9.87 us) |
+
+#### length 10000
+
+| regime | k | alphabet 2 | alphabet 4 | alphabet 256 | sparse u32 |
+|---|---|---|---|---|---|
+| d<k | 1 | 3.28 us -> 1.65 us (RF 5.92 us) | 3.39 us -> 2.08 us (RF 9.02 us) | 6.42 us -> 1.65 us (RF 8.23 us) | 5.87 us -> 2.30 us (RF 10.00 us) |
+| d<k | 8 | 210.34 us -> 2.07 us (RF 39.92 us) | 258.12 us -> 2.85 us (RF 65.82 us) | 591.63 us -> 2.08 us (RF 56.96 us) | 207.79 us -> 2.72 us (RF 502.12 us) |
+| d<k | 32 | 1.76 ms -> 4.45 us (RF 238.63 us) | 1.91 ms -> 6.62 us (RF 285.29 us) | 1.84 ms -> 4.72 us (RF 171.70 us) | 1.95 ms -> 6.83 us (RF 660.62 us) |
+| d<k | 128 | 7.15 ms -> 67.27 us (RF 242.24 us) | 8.04 ms -> 78.23 us (RF 398.23 us) | 7.50 ms -> 44.27 us (RF 430.57 us) | 9.54 ms -> 73.18 us (RF 1.12 ms) |
+| d==k | 1 | 6.05 us -> 1.85 us (RF 9.53 us) | 4.38 us -> 2.38 us (RF 12.43 us) | 4.65 us -> 1.79 us (RF 7.68 us) | 4.27 us -> 2.41 us (RF 11.48 us) |
+| d==k | 8 | 812.15 us -> 2.38 us (RF 43.78 us) | 460.13 us -> 3.91 us (RF 74.07 us) | 435.77 us -> 2.62 us (RF 48.95 us) | 333.41 us -> 4.11 us (RF 566.84 us) |
+| d==k | 32 | 3.84 ms -> 15.46 us (RF 175.89 us) | 2.51 ms -> 18.84 us (RF 288.42 us) | 1.55 ms -> 11.74 us (RF 191.45 us) | 2.45 ms -> 17.28 us (RF 789.34 us) |
+| d==k | 128 | 7.47 ms -> 280.29 us (RF 213.32 us) | 7.46 ms -> 282.60 us (RF 240.92 us) | 7.85 ms -> 254.29 us (RF 421.41 us) | 10.41 ms -> 260.32 us (RF 1.05 ms) |
+| d==k+1 | 1 | 5.72 us -> 1.58 us (RF 5.32 us) | 44.97 us -> 2.25 us (RF 6.63 us) | 42.24 us -> 1.82 us (RF 2.96 us) | 71.18 us -> 2.89 us (RF 8.18 us) |
+| d==k+1 | 8 | 531.60 us -> 3.07 us (RF 38.62 us) | 750.68 us -> 3.90 us (RF 58.29 us) | 328.71 us -> 3.42 us (RF 66.90 us) | 591.71 us -> 3.42 us (RF 579.16 us) |
+| d==k+1 | 32 | 2.50 ms -> 15.17 us (RF 151.04 us) | 2.21 ms -> 21.21 us (RF 288.42 us) | 1.38 ms -> 22.84 us (RF 480.89 us) | 1.76 ms -> 19.93 us (RF 768.76 us) |
+| d==k+1 | 128 | 7.48 ms -> 250.57 us (RF 215.72 us) | 7.54 ms -> 272.02 us (RF 386.67 us) | 8.33 ms -> 150.25 us (RF 426.79 us) | 8.27 ms -> 227.38 us (RF 1.02 ms) |
+| d>>k | 1 | 6.46 us -> 0.82 us (RF 1.11 us) | 2.60 us -> 0.66 us (RF 0.03 us) | 5.72 us -> 0.70 us (RF 1.11 us) | 5.81 us -> 1.10 us (RF 1.35 us) |
+| d>>k | 8 | 92.27 us -> 1.07 us (RF 2.60 us) | 11.51 us -> 0.40 us (RF 0.81 us) | 28.11 us -> 0.94 us (RF 4.37 us) | 38.21 us -> 1.38 us (RF 53.88 us) |
+| d>>k | 32 | 453.95 us -> 18.32 us (RF 39.97 us) | 313.83 us -> 12.27 us (RF 49.98 us) | 199.27 us -> 17.84 us (RF 65.31 us) | 160.34 us -> 17.73 us (RF 277.67 us) |
+| d>>k | 128 | 5.41 ms -> 460.16 us (RF 51.20 us) | 3.57 ms -> 234.75 us (RF 85.35 us) | 2.20 ms -> 250.91 us (RF 69.34 us) | 2.33 ms -> 239.64 us (RF 335.36 us) |
+| unrelated | 1 | 0.10 us -> 0.15 us (RF 0.05 us) | 0.06 us -> 0.09 us (RF 0.03 us) | 0.14 us -> 0.15 us (RF 0.05 us) | 0.07 us -> 0.13 us (RF 0.04 us) |
+| unrelated | 8 | 0.90 us -> 1.36 us (RF 0.50 us) | 0.52 us -> 0.68 us (RF 0.31 us) | 0.32 us -> 1.12 us (RF 0.24 us) | 0.32 us -> 1.35 us (RF 0.45 us) |
+| unrelated | 32 | 12.55 us -> 23.12 us (RF 29.63 us) | 7.13 us -> 15.78 us (RF 20.97 us) | 3.71 us -> 16.66 us (RF 30.21 us) | 3.39 us -> 13.95 us (RF 252.09 us) |
+| unrelated | 128 | 252.73 us -> 410.74 us (RF 39.42 us) | 140.46 us -> 227.65 us (RF 23.96 us) | 56.66 us -> 251.04 us (RF 34.73 us) | 53.48 us -> 253.57 us (RF 257.51 us) |
+
+#### length 100000
+
+| regime | k | alphabet 2 | alphabet 4 | alphabet 256 | sparse u32 |
+|---|---|---|---|---|---|
+| d<k | 1 | 53.95 us -> 26.48 us (RF 107.67 us) | 35.09 us -> 38.36 us (RF 67.51 us) | 36.42 us -> 25.91 us (RF 60.79 us) | 61.63 us -> 28.64 us (RF 106.51 us) |
+| d<k | 8 | 3.11 ms -> 31.39 us (RF 605.92 us) | 1.88 ms -> 52.03 us (RF 415.60 us) | 5.04 ms -> 28.63 us (RF 723.27 us) | 5.20 ms -> 43.36 us (RF 3.54 ms) |
+| d<k | 32 | 26.02 ms -> 33.29 us (RF 2.65 ms) | 17.21 ms -> 58.65 us (RF 2.12 ms) | 17.49 ms -> 29.21 us (RF 2.24 ms) | 21.48 ms -> 21.21 us (RF 6.46 ms) |
+| d<k | 128 | 107.15 ms -> 121.17 us (RF 2.26 ms) | 73.28 ms -> 68.77 us (RF 2.28 ms) | 70.83 ms -> 99.22 us (RF 3.13 ms) | 53.65 ms -> 59.60 us (RF 8.21 ms) |
+| d==k | 1 | 40.70 us -> 28.24 us (RF 146.70 us) | 35.52 us -> 19.27 us (RF 77.27 us) | 64.08 us -> 28.32 us (RF 108.84 us) | 75.13 us -> 19.53 us (RF 80.04 us) |
+| d==k | 8 | 4.92 ms -> 39.31 us (RF 828.49 us) | 6.64 ms -> 32.00 us (RF 681.88 us) | 3.94 ms -> 30.62 us (RF 845.78 us) | 3.41 ms -> 20.02 us (RF 3.35 ms) |
+| d==k | 32 | 23.89 ms -> 30.61 us (RF 1.61 ms) | 23.87 ms -> 55.29 us (RF 1.61 ms) | 12.92 ms -> 31.18 us (RF 4.31 ms) | 11.21 ms -> 33.65 us (RF 8.11 ms) |
+| d==k | 128 | 74.84 ms -> 346.89 us (RF 3.45 ms) | 76.78 ms -> 364.29 us (RF 3.82 ms) | 78.67 ms -> 178.19 us (RF 3.00 ms) | 64.50 ms -> 193.05 us (RF 9.88 ms) |
+| d==k+1 | 1 | 289.28 us -> 30.63 us (RF 119.25 us) | 705.28 us -> 28.83 us (RF 90.93 us) | 499.35 us -> 14.54 us (RF 30.23 us) | 73.41 us -> 16.27 us (RF 50.47 us) |
+| d==k+1 | 8 | 5.06 ms -> 31.05 us (RF 753.36 us) | 4.99 ms -> 30.85 us (RF 826.72 us) | 4.38 ms -> 21.38 us (RF 405.50 us) | 4.25 ms -> 31.75 us (RF 2.73 ms) |
+| d==k+1 | 32 | 33.73 ms -> 34.28 us (RF 2.44 ms) | 28.06 ms -> 45.62 us (RF 2.22 ms) | 22.11 ms -> 30.80 us (RF 4.13 ms) | 23.78 ms -> 44.69 us (RF 5.87 ms) |
+| d==k+1 | 128 | 89.88 ms -> 376.57 us (RF 2.21 ms) | 77.69 ms -> 225.70 us (RF 3.58 ms) | 64.58 ms -> 283.80 us (RF 3.03 ms) | 55.60 ms -> 150.37 us (RF 7.45 ms) |
+| d>>k | 1 | 27.94 us -> 4.11 us (RF 15.67 us) | 31.39 us -> 4.11 us (RF 2.62 us) | 17.55 us -> 3.95 us (RF 8.49 us) | 34.23 us -> 3.96 us (RF 5.90 us) |
+| d>>k | 8 | 790.90 us -> 3.54 us (RF 104.53 us) | 657.93 us -> 2.60 us (RF 24.73 us) | 264.64 us -> 3.12 us (RF 26.65 us) | 656.97 us -> 3.19 us (RF 370.12 us) |
+| d>>k | 32 | 4.73 ms -> 20.84 us (RF 607.12 us) | 3.24 ms -> 15.62 us (RF 360.95 us) | 2.56 ms -> 11.87 us (RF 620.46 us) | 2.95 ms -> 11.44 us (RF 2.26 ms) |
+| d>>k | 128 | 19.09 ms -> 345.23 us (RF 505.56 us) | 10.60 ms -> 220.37 us (RF 514.82 us) | 8.23 ms -> 126.26 us (RF 806.22 us) | 11.20 ms -> 147.16 us (RF 2.51 ms) |
+| unrelated | 1 | 0.10 us -> 0.13 us (RF 0.03 us) | 0.10 us -> 0.08 us (RF 0.03 us) | 0.12 us -> 0.08 us (RF 0.03 us) | 0.07 us -> 0.17 us (RF 0.04 us) |
+| unrelated | 8 | 1.84 us -> 0.72 us (RF 0.37 us) | 0.58 us -> 0.70 us (RF 0.21 us) | 0.72 us -> 0.97 us (RF 0.14 us) | 0.31 us -> 1.41 us (RF 0.59 us) |
+| unrelated | 32 | 13.96 us -> 14.56 us (RF 334.18 us) | 14.41 us -> 11.19 us (RF 264.15 us) | 5.50 us -> 9.13 us (RF 533.03 us) | 4.94 us -> 8.75 us (RF 2.31 ms) |
+| unrelated | 128 | 488.43 us -> 308.10 us (RF 279.64 us) | 135.96 us -> 205.81 us (RF 354.31 us) | 105.13 us -> 237.27 us (RF 487.51 us) | 106.42 us -> 124.00 us (RF 1.88 ms) |
+
+### Exact job
+
+difffold exact runs `levenshtein`, which uses threshold doubling. Cells marked `timeout` hit the 60 second
+limit, and `-` means the cell was not run.
+
+| len | alphabet | regime | difffold before | difffold after | RapidFuzz before | RapidFuzz after |
+|---|---|---|---|---|---|---|
+| 1000 | 2 | tiny-prefix-suffix | 2.05 us | 0.32 us | 1.34 us | 1.65 us |
+| 1000 | 2 | d=16 | 133.16 us | 3.73 us | 49.56 us | 66.65 us |
+| 1000 | 2 | unrelated | 1.29 ms | 207.99 us | 75.22 us | 52.01 us |
+| 1000 | 4 | tiny-prefix-suffix | 10.94 us | 0.54 us | 6.65 us | 3.95 us |
+| 1000 | 4 | d=16 | 194.00 us | 3.87 us | 69.17 us | 72.03 us |
+| 1000 | 4 | unrelated | 403.60 us | 364.72 us | 57.28 us | 54.13 us |
+| 1000 | 256 | tiny-prefix-suffix | 3.38 us | 0.51 us | 5.42 us | 2.77 us |
+| 1000 | 256 | d=16 | 82.93 us | 3.96 us | 44.55 us | 43.41 us |
+| 1000 | 256 | unrelated | 1.57 ms | 1.85 ms | 52.59 us | 51.02 us |
+| 1000 | sparse-u32 | tiny-prefix-suffix | 3.36 us | 0.56 us | 3.99 us | 3.27 us |
+| 1000 | sparse-u32 | d=16 | 78.51 us | 6.20 us | 163.19 us | 155.96 us |
+| 1000 | sparse-u32 | unrelated | 4.23 ms | 4.69 ms | 185.56 us | 182.72 us |
+| 10000 | 2 | tiny-prefix-suffix | 41.40 us | 3.67 us | 113.01 us | 112.10 us |
+| 10000 | 2 | d=16 | 4.78 ms | 11.98 us | 8.14 ms | 7.88 ms |
+| 10000 | 2 | unrelated | 72.13 ms | 29.63 ms | 13.40 ms | 10.53 ms |
+| 10000 | 4 | tiny-prefix-suffix | 53.11 us | 4.88 us | 163.88 us | 167.52 us |
+| 10000 | 4 | d=16 | 4.04 ms | 12.26 us | 8.21 ms | 7.46 ms |
+| 10000 | 4 | unrelated | 54.93 ms | 39.85 ms | 11.58 ms | 10.71 ms |
+| 10000 | 256 | tiny-prefix-suffix | 26.08 us | 3.93 us | 71.69 us | 84.46 us |
+| 10000 | 256 | d=16 | 4.76 ms | 6.96 us | 8.00 ms | 7.88 ms |
+| 10000 | 256 | unrelated | 61.19 ms | 74.04 ms | 8.51 ms | 8.65 ms |
+| 10000 | sparse-u32 | tiny-prefix-suffix | 28.10 us | 3.76 us | 211.42 us | 211.62 us |
+| 10000 | sparse-u32 | d=16 | 4.67 ms | 10.40 us | 26.97 ms | 37.80 ms |
+| 10000 | sparse-u32 | unrelated | 314.72 ms | 383.03 ms | 33.59 ms | 36.78 ms |
+| 100000 | 2 | tiny-prefix-suffix | 441.68 us | 36.42 us | 7.90 ms | 7.81 ms |
+| 100000 | 2 | d=16 | 37.23 ms | 50.30 us | 902.71 ms | 973.71 ms |
+| 100000 | 2 | unrelated | timeout | timeout | 1120.98 ms | 1201.91 ms |
+| 100000 | 4 | tiny-prefix-suffix | 337.33 us | 35.15 us | 15.18 ms | 19.02 ms |
+| 100000 | 4 | d=16 | 32.15 ms | 72.41 us | 904.27 ms | 888.17 ms |
+| 100000 | 4 | unrelated | timeout | timeout | 1170.00 ms | 1101.47 ms |
+| 100000 | 256 | tiny-prefix-suffix | 326.77 us | 36.88 us | 4.94 ms | 4.72 ms |
+| 100000 | 256 | d=16 | 18.45 ms | 49.74 us | 847.93 ms | 891.06 ms |
+| 100000 | 256 | unrelated | timeout | timeout | 997.72 ms | 912.38 ms |
+| 100000 | sparse-u32 | tiny-prefix-suffix | 168.36 us | 39.21 us | 9.17 ms | 17.70 ms |
+| 100000 | sparse-u32 | d=16 | 7.43 ms | 77.60 us | 2113.93 ms | timeout |
+| 100000 | sparse-u32 | unrelated | timeout | timeout | timeout | timeout |
+
+### Cells where difffold after is more than 1.2 times slower than before
+
+These are the known losses of version 2. 34 of the 37 are unrelated pairs with a small or moderate bound. The
+version 1 band exited after a few rows on these pairs, and the wavefront does not. The other three are sparse
+`u32` cells at length 1,000 and k = 128, where the symbol-count sort costs more than the version 1 kernel. Each row shows the
+RapidFuzz time from the same after run, so a cell where RapidFuzz is also slower reflects load rather than
+the kernel.
+
+| len | alphabet | regime | k | difffold before (us) | difffold after (us) | after/before | RapidFuzz after (us) |
+|---|---|---|---|---|---|---|---|
+| 1000 | 2 | unrelated | 1 | 0.08 | 0.15 | 1.89 | 0.04 |
+| 1000 | 2 | unrelated | 8 | 0.93 | 1.52 | 1.65 | 0.59 |
+| 1000 | 256 | unrelated | 1 | 0.07 | 0.15 | 2.26 | 0.04 |
+| 1000 | 256 | unrelated | 8 | 0.35 | 1.10 | 3.15 | 0.21 |
+| 1000 | 256 | unrelated | 32 | 3.75 | 8.83 | 2.36 | 3.15 |
+| 1000 | 4 | unrelated | 8 | 0.55 | 0.67 | 1.21 | 0.19 |
+| 1000 | sparse-u32 | d<k | 128 | 128.13 | 173.68 | 1.36 | 93.70 |
+| 1000 | sparse-u32 | d==k | 128 | 128.83 | 177.12 | 1.37 | 97.32 |
+| 1000 | sparse-u32 | d==k+1 | 128 | 125.71 | 175.22 | 1.39 | 92.03 |
+| 1000 | sparse-u32 | unrelated | 1 | 0.06 | 0.08 | 1.49 | 0.04 |
+| 1000 | sparse-u32 | unrelated | 8 | 0.30 | 0.60 | 1.97 | 0.32 |
+| 1000 | sparse-u32 | unrelated | 32 | 3.36 | 13.33 | 3.97 | 9.09 |
+| 1000 | sparse-u32 | unrelated | 128 | 39.73 | 49.61 | 1.25 | 9.87 |
+| 10000 | 2 | unrelated | 1 | 0.10 | 0.15 | 1.52 | 0.05 |
+| 10000 | 2 | unrelated | 8 | 0.90 | 1.36 | 1.52 | 0.50 |
+| 10000 | 2 | unrelated | 32 | 12.55 | 23.12 | 1.84 | 29.63 |
+| 10000 | 2 | unrelated | 128 | 252.73 | 410.74 | 1.63 | 39.42 |
+| 10000 | 256 | unrelated | 8 | 0.32 | 1.12 | 3.46 | 0.24 |
+| 10000 | 256 | unrelated | 32 | 3.71 | 16.66 | 4.48 | 30.21 |
+| 10000 | 256 | unrelated | 128 | 56.66 | 251.04 | 4.43 | 34.73 |
+| 10000 | 4 | unrelated | 1 | 0.06 | 0.09 | 1.49 | 0.03 |
+| 10000 | 4 | unrelated | 8 | 0.52 | 0.68 | 1.31 | 0.31 |
+| 10000 | 4 | unrelated | 32 | 7.13 | 15.78 | 2.21 | 20.97 |
+| 10000 | 4 | unrelated | 128 | 140.46 | 227.65 | 1.62 | 23.96 |
+| 10000 | sparse-u32 | unrelated | 1 | 0.07 | 0.13 | 1.80 | 0.04 |
+| 10000 | sparse-u32 | unrelated | 8 | 0.32 | 1.35 | 4.21 | 0.45 |
+| 10000 | sparse-u32 | unrelated | 32 | 3.39 | 13.95 | 4.11 | 252.09 |
+| 10000 | sparse-u32 | unrelated | 128 | 53.48 | 253.57 | 4.74 | 257.51 |
+| 100000 | 2 | unrelated | 1 | 0.10 | 0.13 | 1.29 | 0.03 |
+| 100000 | 256 | unrelated | 8 | 0.72 | 0.97 | 1.36 | 0.14 |
+| 100000 | 256 | unrelated | 32 | 5.50 | 9.13 | 1.66 | 533.03 |
+| 100000 | 256 | unrelated | 128 | 105.13 | 237.27 | 2.26 | 487.51 |
+| 100000 | 4 | unrelated | 8 | 0.58 | 0.70 | 1.22 | 0.21 |
+| 100000 | 4 | unrelated | 128 | 135.96 | 205.81 | 1.51 | 354.31 |
+| 100000 | sparse-u32 | unrelated | 1 | 0.07 | 0.17 | 2.34 | 0.04 |
+| 100000 | sparse-u32 | unrelated | 8 | 0.31 | 1.41 | 4.53 | 0.59 |
+| 100000 | sparse-u32 | unrelated | 32 | 4.94 | 8.75 | 1.77 | 2308.84 |
