@@ -944,4 +944,149 @@ theorem check_loop4_spec (a b : ted.PostTree) (hA : PT.Wf a) (hB : PT.Wf b) (n :
       simp [show p.1 < nn + 1 by omega]
   · refine ⟨hx1, hx2, hrl⟩
 
+theorem valid_to_postord {la lb : Nat → Nat} {M : List (Nat × Nat)} (h : Valid la lb M) : PostOrd M :=
+  fun p hp q hq hlt => ((h.2 p hp q hq).2.1).mp hlt
+
+theorem valid_to_preord {la lb : Nat → Nat} {n m : Nat} {M : List (Nat × Nat)} (hA : WfL la) (hB : WfL lb)
+    (hr : Rng n m M) (h : Valid la lb M) : PreOrd la lb n m M :=
+  fun p hp q hq hlt => (((valid_to_validQ hA hB hr h).2 p hp q hq).2.1).mp hlt
+
+def CheckPost (a b : ted.PostTree) (M : List (Nat × Nat)) (r : ted.Check) : Prop :=
+  (∀ c, r = ted.Check.Cost c → Rng a.label.length b.label.length M ∧ Valid (laOf a) (laOf b) M ∧
+    c.val = Cost (rcost a b) 1 a.label.length 1 b.label.length M) ∧
+  ((Rng a.label.length b.label.length M ∧ Valid (laOf a) (laOf b) M) → ∃ c, r = ted.Check.Cost c)
+
+theorem checkpost_fail (a b : ted.PostTree) (M : List (Nat × Nat)) (r : ted.Check) (hNC : NotCost r)
+    (hnot : ¬ (Rng a.label.length b.label.length M ∧ Valid (laOf a) (laOf b) M)) : CheckPost a b M r :=
+  ⟨fun c h => absurd h (hNC c), fun h => absurd h hnot⟩
+
+theorem tbo_nil (n : Nat) (tb : List Std.Usize) (h : tb = List.replicate (n + 1) 0#usize) : TbO n tb [] := by
+  refine ⟨by simp [h], by simp, fun x hx _ => ?_⟩
+  rw [h, getG_eq _ _ (by simp; omega)]
+  simp
+
+theorem check_core_spec (a b : ted.PostTree) (hA : PT.Wf a) (hB : PT.Wf b) (hna : a.label.length < 2 ^ 14)
+    (hnb : b.label.length < 2 ^ 14) (pairs : Slice (Std.U32 × Std.U32)) :
+    ted.check_core a b pairs ⦃ r => CheckPost a b (Mp pairs.val) r ⦄ := by
+  unfold ted.check_core
+  have hlenA := alloc.vec.Vec.len_val a.label
+  have hlenB := alloc.vec.Vec.len_val b.label
+  simp only []
+  step as ⟨i, hi⟩
+  step as ⟨to_b, hto_b, hto_bl⟩
+  step as ⟨i1, hi1⟩
+  step as ⟨to_a, hto_a, hto_al⟩
+  have hto_b' : to_b.val = List.replicate (a.label.length + 1) 0#usize := by rw [hto_b, hi, hlenA]
+  have hto_a' : to_a.val = List.replicate (b.label.length + 1) 0#usize := by rw [hto_a, hi1, hlenB]
+  refine WP.spec_bind (check_loop0_spec pairs a.label.len b.label.len a.label.length b.label.length hlenA hlenB
+    to_b to_a (ted.Check.Cost 0#u32) 0#usize (by simp)
+    (fun p hp => by simp at hp) (fun i j hi => by simp at hi) (tbo_nil _ _ hto_b')
+    (by simpa using tbo_nil _ _ hto_a')) ?_
+  rintro ⟨to_b1, verdict, ok1⟩ ⟨hP1, hP2⟩
+  dsimp only at hP1 hP2
+  show (if ok1 = true then _ else _) ⦃ _ ⦄
+  by_cases hok1 : ok1 = true
+  · rw [if_pos hok1]
+    obtain ⟨hR, hI, hT⟩ := hP1 hok1
+    refine WP.spec_bind (check_loop1_spec a.label.len a.label.length b.label.length hlenA to_b1 (Mp pairs.val)
+      hR hI hT verdict 0#usize 1#usize (by simp) (by simp) ?_) ?_
+    · have h1v : (1#usize).val = 1 := rfl
+      have h0v : (0#usize).val = 0 := rfl
+      refine ⟨fun p hp q hq h1 h2 => ?_, fun p hp h1 => ?_, fun h => absurd rfl h⟩
+      · have := (hR q hq).1; omega
+      · have := (hR p hp).1; omega
+    rintro ⟨verdict1, ok2⟩ ⟨hQ1, hQ2⟩
+    dsimp only at hQ1 hQ2
+    show (if ok2 = true then _ else _) ⦃ _ ⦄
+    by_cases hok2 : ok2 = true
+    · rw [if_pos hok2]
+      have hPo := hQ1 hok2
+      refine WP.spec_bind (preorder_spec a hA) ?_
+      rintro pa ⟨hpal, hpa⟩
+      refine WP.spec_bind (preorder_spec b hB) ?_
+      rintro pb ⟨hpbl, hpb⟩
+      step as ⟨i2, hi2⟩
+      step as ⟨at0, hat0, hat0l⟩
+      have h1v : (1#usize).val = 1 := rfl
+      have hat0' : at0.length = a.label.length + 1 := by rw [hat0l, hi2, hlenA]
+      refine WP.spec_bind (check_loop2_spec hA.wfl a.label.len a.label.length hlenA pa hpal hpa 1#usize at0
+        (by simp) (by simp) hat0' (fun x' h1 h2 => by omega)) ?_
+      rintro at1 ⟨hat1l, hat1⟩
+      refine WP.spec_bind (check_loop3_spec hA.wfl hB.wfl a.label.len a.label.length b.label.length hlenA to_b1 pb at1
+        (Mp pairs.val) hR hI hT hpbl hpb hat1l hat1 verdict1 0#usize 1#usize (by simp) (by simp) ?_) ?_
+      · have h0v : (0#usize).val = 0 := rfl
+        refine ⟨fun p hp q hq h1 h2 => ?_, fun p hp h1 => ?_, fun h => absurd rfl h⟩
+        · have := pre_pos hA.wfl (n := a.label.length) (u := q.1) (hR q hq).1; omega
+        · have := pre_pos hA.wfl (n := a.label.length) (u := p.1) (hR p hp).1; omega
+      rintro ⟨verdict2, ok3⟩ ⟨hS1, hS2⟩
+      dsimp only at hS1 hS2
+      show (if ok3 = true then _ else _) ⦃ _ ⦄
+      by_cases hok3 : ok3 = true
+      · rw [if_pos hok3]
+        have hPr := hS1 hok3
+        have hVal := valid_of_orders hA.wfl hB.wfl hR hI hPo hPr
+        have hrs0 : RSum a b (Mp pairs.val) 1 = 0 := by
+          unfold RSum
+          have : (Mp pairs.val).map (fun p => if p.1 < 1 then rcost a b p.1 p.2 else 0) =
+              (Mp pairs.val).map (fun _ => 0) :=
+            List.map_congr_left (fun p hp => by
+              have := (hR p hp).1; simp [show ¬ p.1 < 1 by omega])
+          rw [this]; simp
+        have h0u : (0#u32).val = 0 := rfl
+        refine WP.spec_bind (check_loop4_spec a b hA hB a.label.len a.label.length b.label.length hlenA rfl rfl
+          hna to_b1 (Mp pairs.val) hR hI hT 1#usize 0#u32 (by simp) (by simp) (by rw [h0u, h1v]; exact hrs0.symm)) ?_
+        intro relabels hrel
+        simp only [lift, bind_tc_ok]
+        have hMl : (Mp pairs.val).length ≤ a.label.length := mlen_le hR hI
+        have hlp : (Slice.len pairs).val = (Mp pairs.val).length := by simp [Mp]
+        have hcnt : (UScalar.cast UScalarTy.U32 (Slice.len pairs)).val = (Mp pairs.val).length := by
+          rw [UScalar.cast_val_eq]; simp only [UScalarTy.numBits]
+          rw [hlp]; exact Nat.mod_eq_of_lt (by omega)
+        have hc4 : (UScalar.cast UScalarTy.U32 a.label.len).val = a.label.length := by
+          rw [UScalar.cast_val_eq]; simp only [UScalarTy.numBits]
+          rw [hlenA]; exact Nat.mod_eq_of_lt (by omega)
+        have hc6 : (UScalar.cast UScalarTy.U32 b.label.len).val = b.label.length := by
+          rw [UScalar.cast_val_eq]; simp only [UScalarTy.numBits]
+          rw [hlenB]; exact Nat.mod_eq_of_lt (by omega)
+        have hmM : (Mp pairs.val).length ≤ b.label.length := by
+          have := len_le_of_inj Prod.snd (Mp pairs.val) 1 b.label.length (iinj_nodup hI)
+            (fun p hp => ⟨(hR p hp).2.2.1, (hR p hp).2.2.2⟩) (fun p hp q hq e => iinj_snd hI hp hq e)
+          omega
+        generalize UScalar.cast UScalarTy.U32 (Slice.len pairs) = cnt at hcnt ⊢
+        generalize UScalar.cast UScalarTy.U32 a.label.len = i4 at hc4 ⊢
+        generalize UScalar.cast UScalarTy.U32 b.label.len = i6 at hc6 ⊢
+        step as ⟨i5, hi5⟩
+        step as ⟨i7, hi7⟩
+        have hrb : relabels.val ≤ 2 * a.label.length := by
+          have := rsum_le a b (Mp pairs.val) (a.label.length + 1)
+          have hsm : (Mp pairs.val).map (fun p => rcost a b p.1 p.2) =
+              (Mp pairs.val).map (fun p => if p.1 < a.label.length + 1 then rcost a b p.1 p.2 else 0) :=
+            List.map_congr_left (fun p hp => by have := (hR p hp).2.1; simp [show p.1 < a.label.length + 1 by omega])
+          unfold RSum at this
+          rw [← hsm] at this
+          omega
+        step as ⟨i8, hi8⟩
+        step as ⟨i9, hi9⟩
+        refine ⟨fun c h => ?_, fun _ => ⟨i9, rfl⟩⟩
+        injection h with h'
+        subst h'
+        refine ⟨hR, hVal, ?_⟩
+        unfold Cost
+        omega
+      · rw [if_neg hok3]
+        have hok3' : ok3 = false := by simpa using hok3
+        obtain ⟨hNC, hnot⟩ := hS2 hok3'
+        simp only [WP.spec_ok]
+        exact checkpost_fail a b _ _ hNC (fun ⟨hr, hv⟩ => hnot (valid_to_preord hA.wfl hB.wfl hr hv))
+    · rw [if_neg hok2]
+      have hok2' : ok2 = false := by simpa using hok2
+      obtain ⟨hNC, hnot⟩ := hQ2 hok2'
+      simp only [WP.spec_ok]
+      exact checkpost_fail a b _ _ hNC (fun ⟨_, hv⟩ => hnot (valid_to_postord hv))
+  · rw [if_neg hok1]
+    have hok1' : ok1 = false := by simpa using hok1
+    obtain ⟨hNC, hnot⟩ := hP2 hok1'
+    simp only [WP.spec_ok]
+    exact checkpost_fail a b _ _ hNC (fun ⟨hr, hv⟩ => hnot ⟨hr, valid_to_iinj hv⟩)
+
 end difffold_lines_extract
