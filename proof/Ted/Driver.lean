@@ -358,7 +358,15 @@ theorem within_outer_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
       obtain ⟨v, v1, v2, v3, v4, st2, td2, fd2⟩ := r
       dsimp only at e1 e2 e3 e4 e5 k1 k2 k3 k4 k5
       step as ⟨ia2, hia2⟩
-      sorry
+      refine ⟨?_, by omega, by rw [k1]; exact h2, by rw [k2]; exact h3, k3, k4, ?_, by omega⟩
+      · show ({ label := v, lml := v1, keyroots := v2, kids := v3, kind := v4 } : ted.PostTree) = b1
+        rw [e1, e2, e3, e4, e5]
+      · intro x y hx1 hxn hy1 hym
+        have hh := k5 x y hx1 hxn hy1 hym
+        refine ⟨hh.1, fun hw hb => hh.2 ?_ hb⟩
+        have : ia2.val = ia1.val + 1 := hia2
+        rw [this] at hw
+        exact Ctx.wb_next C hial hKe.mB hy1 hym hw
     · simp only [if_neg hq]
       have hia1 : ia1.val = (vals a.keyroots.val).length := by
         have : ¬ ia1.val < (alloc.vec.Vec.len a.keyroots).val := hq

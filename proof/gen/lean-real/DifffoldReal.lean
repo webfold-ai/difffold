@@ -17,6 +17,13 @@ set_option maxRecDepth 2048
 
 namespace difffold_myers_extract
 
+/-- [difffold_myers_extract::lines::LineDiff]
+    Source: '../../src/lines.rs', lines 98:0-103:1
+    Visibility: public -/
+structure lines.LineDiff where
+  deleted : alloc.vec.Vec Bool
+  inserted : alloc.vec.Vec Bool
+
 /-- [difffold_myers_extract::lines::common_prefix]:
     Source: '../../src/lines.rs', lines 171:0-185:1 -/
 def lines.common_prefix
@@ -127,7 +134,7 @@ def lines.common_suffix
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::snake_back]:
-    Source: '../../src/lines.rs', lines 811:0-818:1 -/
+    Source: '../../src/lines.rs', lines 841:0-848:1 -/
 def lines.snake_back
   (a : Slice Std.U32) (b : Slice Std.U32) (x : Std.I32) (y : Std.I32) :
   Result Std.I32
@@ -169,7 +176,7 @@ def lines.snake_back
         ok (UScalar.hcast .I32 i14)
 
 /-- [difffold_myers_extract::lines::Search]
-    Source: '../../src/lines.rs', lines 451:0-461:1 -/
+    Source: '../../src/lines.rs', lines 481:0-491:1 -/
 structure lines.Search where
   a : Slice Std.U32
   b : Slice Std.U32
@@ -182,14 +189,14 @@ structure lines.Search where
   vb : Slice Std.I32
 
 /-- [difffold_myers_extract::lines::{difffold_myers_extract::lines::Search<'_0>}::ix]:
-    Source: '../../src/lines.rs', lines 464:4-466:5 -/
+    Source: '../../src/lines.rs', lines 494:4-496:5 -/
 def lines.Search.ix
   (self : lines.Search) (k : Std.I32) : Result Std.Usize := do
   let i ← self.off + k
   ok (IScalar.hcast .Usize i)
 
 /-- [difffold_myers_extract::lines::backward_one]:
-    Source: '../../src/lines.rs', lines 579:0-597:1 -/
+    Source: '../../src/lines.rs', lines 609:0-627:1 -/
 def lines.backward_one
   (s : lines.Search) (d : Std.I32) (k : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -257,7 +264,7 @@ def lines.backward_one
       ok (none, { s with vb := s1 }, back)
 
 /-- [difffold_myers_extract::lines::backward_seq]:
-    Source: '../../src/lines.rs', lines 569:0-577:1 -/
+    Source: '../../src/lines.rs', lines 599:0-607:1 -/
 def lines.backward_seq
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -308,11 +315,11 @@ def lines.backward_seq
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::DIAG_BLOCK]
-    Source: '../../src/lines.rs', lines 491:0-491:27 -/
+    Source: '../../src/lines.rs', lines 521:0-521:27 -/
 @[global_simps, irreducible] def lines.DIAG_BLOCK : Std.I32 := 64#i32
 
 /-- [difffold_myers_extract::lines::backward]:
-    Source: '../../src/lines.rs', lines 554:0-566:1 -/
+    Source: '../../src/lines.rs', lines 584:0-596:1 -/
 def lines.backward
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -376,7 +383,7 @@ def lines.backward
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::snake]:
-    Source: '../../src/lines.rs', lines 801:0-808:1 -/
+    Source: '../../src/lines.rs', lines 831:0-838:1 -/
 def lines.snake
   (a : Slice Std.U32) (b : Slice Std.U32) (x : Std.I32) (y : Std.I32) :
   Result Std.I32
@@ -412,7 +419,7 @@ def lines.snake
         ok (UScalar.hcast .I32 i8)
 
 /-- [difffold_myers_extract::lines::forward_one]:
-    Source: '../../src/lines.rs', lines 534:0-552:1 -/
+    Source: '../../src/lines.rs', lines 564:0-582:1 -/
 def lines.forward_one
   (s : lines.Search) (d : Std.I32) (k : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -478,7 +485,7 @@ def lines.forward_one
     ok (none, { s with vf := s1 }, back)
 
 /-- [difffold_myers_extract::lines::forward_seq]:
-    Source: '../../src/lines.rs', lines 524:0-532:1 -/
+    Source: '../../src/lines.rs', lines 554:0-562:1 -/
 def lines.forward_seq
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -529,7 +536,7 @@ def lines.forward_seq
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::forward]:
-    Source: '../../src/lines.rs', lines 509:0-521:1 -/
+    Source: '../../src/lines.rs', lines 539:0-551:1 -/
 def lines.forward
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -593,7 +600,7 @@ def lines.forward
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::sweep]:
-    Source: '../../src/lines.rs', lines 494:0-504:1 -/
+    Source: '../../src/lines.rs', lines 524:0-534:1 -/
 def lines.sweep
   (s : lines.Search) (d : Std.I32) (max_d : Std.I32) :
   Result ((Std.Usize × Std.Usize) × lines.Search × (lines.Search →
@@ -696,7 +703,7 @@ def lines.sweep
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::middle]:
-    Source: '../../src/lines.rs', lines 470:0-488:1 -/
+    Source: '../../src/lines.rs', lines 500:0-518:1 -/
 def lines.middle
   (a : Slice Std.U32) (b : Slice Std.U32) (vf : Slice Std.I32)
   (vb : Slice Std.I32) :
@@ -734,7 +741,7 @@ def lines.middle
   ok (p, (sweep_back s).vf, (sweep_back s).vb)
 
 /-- [difffold_myers_extract::lines::solve]:
-    Source: '../../src/lines.rs', lines 420:0-448:1 -/
+    Source: '../../src/lines.rs', lines 450:0-478:1 -/
 def lines.solve
   (a : Slice Std.U32) (b : Slice Std.U32) (ao : Std.Usize) (bo : Std.Usize)
   (ra : Slice Bool) (rb : Slice Bool) (vf : Slice Std.I32) (vb : Slice Std.I32)
@@ -945,5 +952,181 @@ def lines.solve
           let i6 ← bo1 + y
           lines.solve s5 s6 i5 i6 ra1 rb1 vf2 vb2
 partial_fixpoint
+
+/-- [difffold_myers_extract::lines::scatter_flags]:
+    Source: '../../src/lines.rs', lines 437:0-446:1 -/
+def lines.scatter_flags
+  (r : Slice Bool) (pos : Slice Std.Usize) (out : Slice Bool) :
+  Result (Slice Bool)
+  := do
+  let n := Slice.len r
+  match n.val with
+  | 0 => ok out
+  | 1 =>
+    let b ← Slice.index_usize r 0#usize
+    let i ← Slice.index_usize pos 0#usize
+    Slice.update out i b
+  | _ =>
+    let i ← n / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeToUsizeSlice Bool) r { «end» := i }
+    let s1 ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeToUsizeSlice Std.Usize) pos
+        { «end» := i }
+    let out1 ← lines.scatter_flags s s1 out
+    let s2 ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Bool) r { start := i }
+    let s3 ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.Usize) pos
+        { start := i }
+    lines.scatter_flags s2 s3 out1
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::compact_ids]:
+    Source: '../../src/lines.rs', lines 418:0-434:1 -/
+def lines.compact_ids
+  (xs : Slice Std.U32) (base : Std.Usize) (other : Slice Bool)
+  (keep : alloc.vec.Vec Std.U32) (pos : alloc.vec.Vec Std.Usize)
+  (edit : Slice Bool) :
+  Result ((alloc.vec.Vec Std.U32) × (alloc.vec.Vec Std.Usize) × (Slice Bool))
+  := do
+  let n := Slice.len xs
+  match n.val with
+  | 0 => ok (keep, pos, edit)
+  | 1 =>
+    let i ← Slice.index_usize xs 0#usize
+    let i1 ← lift (UScalar.cast .Usize i)
+    let b ← Slice.index_usize other i1
+    if b
+    then
+      let keep1 ← alloc.vec.Vec.push keep i
+      let pos1 ← alloc.vec.Vec.push pos base
+      ok (keep1, pos1, edit)
+    else let edit1 ← Slice.update edit base true
+         ok (keep, pos, edit1)
+  | _ =>
+    let i ← n / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeToUsizeSlice Std.U32) xs
+        { «end» := i }
+    let (keep1, pos1, edit1) ← lines.compact_ids s base other keep pos edit
+    let s1 ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) xs
+        { start := i }
+    let i1 ← base + i
+    lines.compact_ids s1 i1 other keep1 pos1 edit1
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::mark_ids]:
+    Source: '../../src/lines.rs', lines 405:0-414:1 -/
+def lines.mark_ids
+  (xs : Slice Std.U32) (flags : Slice Bool) : Result (Slice Bool) := do
+  let n := Slice.len xs
+  match n.val with
+  | 0 => ok flags
+  | 1 =>
+    let i ← Slice.index_usize xs 0#usize
+    let i1 ← lift (UScalar.cast .Usize i)
+    Slice.update flags i1 true
+  | _ =>
+    let i ← n / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeToUsizeSlice Std.U32) xs
+        { «end» := i }
+    let flags1 ← lines.mark_ids s flags
+    let s1 ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) xs
+        { start := i }
+    lines.mark_ids s1 flags1
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::diff_ids]:
+    Source: '../../src/lines.rs', lines 378:0-402:1
+    Visibility: public -/
+def lines.diff_ids
+  (a : Slice Std.U32) (b : Slice Std.U32) (n_ids : Std.Usize) :
+  Result lines.LineDiff
+  := do
+  let i := Slice.len a
+  let deleted ← alloc.vec.from_elem core.clone.CloneBool false i
+  let i1 := Slice.len b
+  let inserted ← alloc.vec.from_elem core.clone.CloneBool false i1
+  let pre ← lines.common_prefix core.cmp.PartialEqU32 a b
+  let s ←
+    core.slice.index.Slice.index
+      (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) a
+      { start := pre }
+  let s1 ←
+    core.slice.index.Slice.index
+      (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U32) b
+      { start := pre }
+  let suf ← lines.common_suffix core.cmp.PartialEqU32 s s1
+  let i2 := Slice.len a
+  let i3 ← i2 - suf
+  let am ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) a { start := pre, «end» := i3 }
+  let i4 := Slice.len b
+  let i5 ← i4 - suf
+  let bm ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U32) b { start := pre, «end» := i5 }
+  let in_a ← alloc.vec.from_elem core.clone.CloneBool false n_ids
+  let (s2, deref_mut_back) ← lift (alloc.vec.Vec.deref_mut in_a)
+  let s3 ← lines.mark_ids am s2
+  let (s4, deref_mut_back1) ← lift (alloc.vec.Vec.deref_mut in_a)
+  let s5 ← lines.mark_ids bm s4
+  let in_b := deref_mut_back1 s5
+  let s6 := alloc.vec.Vec.deref in_b
+  let (s7, deref_mut_back2) ← lift (alloc.vec.Vec.deref_mut deleted)
+  let (ca, pa, s8) ←
+    lines.compact_ids am pre s6 (alloc.vec.Vec.new Std.U32) (alloc.vec.Vec.new
+      Std.Usize) s7
+  let in_a1 := deref_mut_back s3
+  let s9 := alloc.vec.Vec.deref in_a1
+  let (s10, deref_mut_back3) ← lift (alloc.vec.Vec.deref_mut inserted)
+  let (cb, pb, s11) ←
+    lines.compact_ids bm pre s9 (alloc.vec.Vec.new Std.U32) (alloc.vec.Vec.new
+      Std.Usize) s10
+  let i6 := alloc.vec.Vec.len ca
+  let ra ← alloc.vec.from_elem core.clone.CloneBool false i6
+  let i7 := alloc.vec.Vec.len cb
+  let rb ← alloc.vec.from_elem core.clone.CloneBool false i7
+  let i8 := alloc.vec.Vec.len ca
+  let i9 := alloc.vec.Vec.len cb
+  let i10 ← i8 + i9
+  let i11 ← 2#usize * i10
+  let size ← i11 + 3#usize
+  let vf ← alloc.vec.from_elem core.clone.CloneI32 0#i32 size
+  let s12 := alloc.vec.Vec.deref ca
+  let s13 := alloc.vec.Vec.deref cb
+  let (s14, deref_mut_back4) ← lift (alloc.vec.Vec.deref_mut ra)
+  let (s15, deref_mut_back5) ← lift (alloc.vec.Vec.deref_mut rb)
+  let (s16, _) ← lift (alloc.vec.Vec.deref_mut vf)
+  let (s17, _) ← lift (alloc.vec.Vec.deref_mut vf)
+  let (s18, s19, _, _) ← lines.solve s12 s13 0#usize 0#usize s14 s15 s16 s17
+  let ra1 := deref_mut_back4 s18
+  let s20 := alloc.vec.Vec.deref ra1
+  let s21 := alloc.vec.Vec.deref pa
+  let deleted1 := deref_mut_back2 s8
+  let (s22, deref_mut_back6) ← lift (alloc.vec.Vec.deref_mut deleted1)
+  let s23 ← lines.scatter_flags s20 s21 s22
+  let rb1 := deref_mut_back5 s19
+  let s24 := alloc.vec.Vec.deref rb1
+  let s25 := alloc.vec.Vec.deref pb
+  let inserted1 := deref_mut_back3 s11
+  let (s26, deref_mut_back7) ← lift (alloc.vec.Vec.deref_mut inserted1)
+  let s27 ← lines.scatter_flags s24 s25 s26
+  let deleted2 := deref_mut_back6 s23
+  let inserted2 := deref_mut_back7 s27
+  ok { deleted := deleted2, inserted := inserted2 }
 
 end difffold_myers_extract
