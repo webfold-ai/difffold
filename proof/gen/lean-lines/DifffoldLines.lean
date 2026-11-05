@@ -28,7 +28,7 @@ namespace difffold_lines_extract
 axiom core.num.U64.trailing_zeros : Std.U64 → Result Std.U32
 
 /-- [difffold_lines_extract::lines::each]:
-    Source: '../../src/lines.rs', lines 116:0-126:1 -/
+    Source: '../../src/lines.rs', lines 79:0-89:1 -/
 def lines.each
   {T : Type} {F : Type} (coreopsfunctionFnMutFPairUsizeShared0TTupleInst :
   core.ops.function.FnMut F (Std.Usize × T) Unit) (xs : Slice T)
@@ -58,7 +58,7 @@ def lines.each
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::count_true]:
-    Source: '../../src/lines.rs', lines 128:0-134:1 -/
+    Source: '../../src/lines.rs', lines 91:0-97:1 -/
 def lines.count_true (xs : Slice Bool) : Result Std.Usize := do
   let n := Slice.len xs
   match n.val with
@@ -80,12 +80,12 @@ def lines.count_true (xs : Slice Bool) : Result Std.Usize := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::nl_mask::LOW7]
-    Source: '../../src/lines.rs', lines 138:4-138:44 -/
+    Source: '../../src/lines.rs', lines 101:4-101:44 -/
 @[global_simps, irreducible]
 def lines.nl_mask.LOW7 : Std.U64 := 9187201950435737471#u64
 
 /-- [difffold_lines_extract::lines::nl_mask]:
-    Source: '../../src/lines.rs', lines 137:0-142:1 -/
+    Source: '../../src/lines.rs', lines 100:0-105:1 -/
 def lines.nl_mask (w : Std.U64) : Result Std.U64 := do
   let x ← lift (w ^^^ 723401728380766730#u64)
   let i ← lift (x &&& lines.nl_mask.LOW7)
@@ -95,7 +95,7 @@ def lines.nl_mask (w : Std.U64) : Result Std.U64 := do
   ok (~~~ i3)
 
 /-- [difffold_lines_extract::lines::newline_count]:
-    Source: '../../src/lines.rs', lines 146:0-148:1 -/
+    Source: '../../src/lines.rs', lines 109:0-111:1 -/
 def lines.newline_count (m : Std.U64) : Result Std.Usize := do
   let i ← m >>> 7#i32
   let i1 ← lift (core.num.U64.wrapping_mul i 72340172838076673#u64)
@@ -103,7 +103,7 @@ def lines.newline_count (m : Std.U64) : Result Std.Usize := do
   ok (UScalar.cast .Usize i2)
 
 /-- [difffold_lines_extract::lines::lowest_byte]:
-    Source: '../../src/lines.rs', lines 151:0-157:1 -/
+    Source: '../../src/lines.rs', lines 114:0-120:1 -/
 def lines.lowest_byte (m : Std.U64) (k : Std.Usize) : Result Std.Usize := do
   let i ← lift (m &&& 255#u64)
   if i != 0#u64
@@ -117,7 +117,7 @@ def lines.lowest_byte (m : Std.U64) (k : Std.Usize) : Result Std.Usize := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::word]:
-    Source: '../../src/lines.rs', lines 160:0-166:1 -/
+    Source: '../../src/lines.rs', lines 123:0-129:1 -/
 def lines.word (t : Slice Std.U8) : Result Std.U64 := do
   let n := Slice.len t
   match n.val with
@@ -150,7 +150,7 @@ def lines.word (t : Slice Std.U8) : Result Std.U64 := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::count_block]:
-    Source: '../../src/lines.rs', lines 169:0-175:1 -/
+    Source: '../../src/lines.rs', lines 132:0-138:1 -/
 def lines.count_block (t : Slice Std.U8) : Result Std.Usize := do
   let b ← core.slice.Slice.is_empty t
   if b
@@ -170,7 +170,7 @@ def lines.count_block (t : Slice Std.U8) : Result Std.Usize := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::count_byte]:
-    Source: '../../src/lines.rs', lines 177:0-183:1 -/
+    Source: '../../src/lines.rs', lines 140:0-146:1 -/
 def lines.count_byte (t : Slice Std.U8) (_b : Std.U8) : Result Std.Usize := do
   let i := Slice.len t
   if i <= 64#usize
@@ -194,7 +194,7 @@ def lines.count_byte (t : Slice Std.U8) (_b : Std.U8) : Result Std.Usize := do
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::common_prefix]:
-    Source: '../../src/lines.rs', lines 186:0-200:1 -/
+    Source: '../../src/lines.rs', lines 149:0-163:1 -/
 def lines.common_prefix
   {T : Type} (corecmpPartialEqInst : core.cmp.PartialEq T T) (a : Slice T)
   (b : Slice T) :
@@ -235,7 +235,7 @@ def lines.common_prefix
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::common_suffix]:
-    Source: '../../src/lines.rs', lines 203:0-217:1 -/
+    Source: '../../src/lines.rs', lines 166:0-180:1 -/
 def lines.common_suffix
   {T : Type} (corecmpPartialEqInst : core.cmp.PartialEq T T) (a : Slice T)
   (b : Slice T) :
@@ -303,7 +303,7 @@ def lines.common_suffix
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::first_in_block]:
-    Source: '../../src/lines.rs', lines 220:0-231:1 -/
+    Source: '../../src/lines.rs', lines 183:0-194:1 -/
 def lines.first_in_block
   (t : Slice Std.U8) («at» : Std.Usize) : Result (Option Std.Usize) := do
   let i := Slice.len t
@@ -326,7 +326,7 @@ def lines.first_in_block
 partial_fixpoint
 
 /-- [difffold_lines_extract::lines::last_in_block]:
-    Source: '../../src/lines.rs', lines 249:0-255:1 -/
+    Source: '../../src/lines.rs', lines 212:0-218:1 -/
 def lines.last_in_block (t : Slice Std.U8) : Result (Option Std.Usize) := do
   let n := Slice.len t
   match n.val with

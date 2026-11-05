@@ -296,3 +296,54 @@ fn mirror_is_the_tree_with_children_reversed() {
         assert_eq!(back.lml, p.lml, "round {round}: {t:?}");
     }
 }
+
+/// The textbook definition of a legal mapping: one to one, and for every two pairs the postorder and the
+/// ancestor relation agree.
+fn legal(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> bool {
+    let anc = |t: &PostTree, u: u32, v: u32| u < v && t.lml[v as usize - 1] <= u;
+    for &(x, y) in pairs {
+        if x == 0 || y == 0 || x as usize > a.len() || y as usize > b.len() {
+            return false;
+        }
+    }
+    for (i, &(x, y)) in pairs.iter().enumerate() {
+        for &(x2, y2) in &pairs[i + 1..] {
+            if x == x2 || y == y2 || (x < x2) != (y < y2) || anc(a, x, x2) != anc(b, y, y2) {
+                return false;
+            }
+            if anc(a, x2, x) != anc(b, y2, y) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+#[test]
+fn the_checker_accepts_exactly_the_legal_mappings() {
+    use difffold::ted::check_mapping;
+    let mut r = Rng(0x1234_5678_9abc_def1);
+    let (mut yes, mut no) = (0, 0);
+    for round in 0..20000 {
+        let (mut ba, mut bb) = (1 + (r.next() % 8) as i32, 1 + (r.next() % 8) as i32);
+        let (a, b) = (random_tree(&mut r, &mut ba, 2), random_tree(&mut r, &mut bb, 2));
+        let (pa, pb) = (post(&a), post(&b));
+        let k = (r.next() % 5) as usize;
+        let pairs: Vec<(u32, u32)> = (0..k)
+            .map(|_| {
+                (
+                    (r.next() % (pa.len() as u64 + 1)) as u32,
+                    (r.next() % (pb.len() as u64 + 1)) as u32,
+                )
+            })
+            .collect();
+        let ok = check_mapping(&pa, &pb, &pairs).is_ok();
+        assert_eq!(ok, legal(&pa, &pb, &pairs), "round {round}: {a:?} {b:?} {pairs:?}");
+        if ok {
+            yes += 1;
+        } else {
+            no += 1;
+        }
+    }
+    assert!(yes > 500 && no > 500, "yes {yes} no {no}");
+}

@@ -44,9 +44,9 @@ theorem mirror_inner_spec (a : ted.PostTree) (hW : PT.Wf a) (pp d j : Std.Usize)
     (hj : j.val ≤ (a.kids.val[pp.val]!).val.length) (hJ : DepthInv a P depth.val)
     (hK : ∀ i < j.val, (depth.val[((a.kids.val[pp.val]!).val[i]!).val]!).val =
       dep (laOf a) a.label.length (((a.kids.val[pp.val]!).val[i]!).val + 1)) :
-    ted.PostTree.mirror_loop0_loop0 a.kids depth pp d j ⦃ r =>
+    ted.depths_loop0_loop0 a.kids depth pp d j ⦃ r =>
       r.length = a.label.length ∧ DepthInv a (P - 1) r.val ⦄ := by
-  unfold ted.PostTree.mirror_loop0_loop0
+  unfold ted.depths_loop0_loop0
   have hkv : a.kids.val.length = a.label.length := hW.n4
   have hppn : pp.val < a.kids.val.length := by omega
   have hkp : a.kids.val[pp.val]! = a.kids.val[P - 1]! := by
@@ -62,7 +62,7 @@ theorem mirror_inner_spec (a : ted.PostTree) (hW : PT.Wf a) (pp d j : Std.Usize)
     obtain ⟨depth1, j1⟩ := s
     obtain ⟨hs1, hs2, hs3, hs4⟩ := hs
     dsimp only at hs1 hs2 hs3 hs4 ⊢
-    unfold ted.PostTree.mirror_loop0_loop0.body
+    unfold ted.depths_loop0_loop0.body
     step as ⟨v1, hv1⟩
     have hv1' : v1 = a.kids.val[pp.val]! := by rw [hv1, getG_eq _ _ hppn]
     have hlen1 : v1.len.val = (a.kids.val[pp.val]!).val.length := by
@@ -149,8 +149,8 @@ theorem mirror_inner_spec (a : ted.PostTree) (hW : PT.Wf a) (pp d j : Std.Usize)
 
 theorem mirror_depth_spec (a : ted.PostTree) (hW : PT.Wf a) (depth : alloc.vec.Vec Std.Usize) (p : Std.Usize)
     (hp : p.val ≤ a.label.length) (hlen : depth.length = a.label.length) (hJ : DepthInv a p.val depth.val) :
-    ted.PostTree.mirror_loop0 a.kids depth p ⦃ r => r.length = a.label.length ∧ DepthInv a 0 r.val ⦄ := by
-  unfold ted.PostTree.mirror_loop0
+    ted.depths_loop0 a.kids depth p ⦃ r => r.length = a.label.length ∧ DepthInv a 0 r.val ⦄ := by
+  unfold ted.depths_loop0
   apply loop.spec_decr_nat
     (measure := fun s => s.2.val)
     (inv := fun s => s.2.val ≤ a.label.length ∧ s.1.length = a.label.length ∧ DepthInv a s.2.val s.1.val)
@@ -158,7 +158,7 @@ theorem mirror_depth_spec (a : ted.PostTree) (hW : PT.Wf a) (depth : alloc.vec.V
     obtain ⟨depth1, p1⟩ := s
     obtain ⟨hs1, hs2, hs3⟩ := hs
     dsimp only at hs1 hs2 hs3 ⊢
-    unfold ted.PostTree.mirror_loop0.body
+    unfold ted.depths_loop0.body
     by_cases hp0 : p1 > 0#usize
     · rw [if_pos hp0]
       have hp0' : 0 < p1.val := hp0
@@ -205,9 +205,9 @@ theorem mirror_pos_spec (a : ted.PostTree) (hW : PT.Wf a) (n : Std.Usize) (depth
     (hdl : depth.length = a.label.length) (hpl : pos.length = a.label.length)
     (hD : ∀ c, 1 ≤ c → c ≤ a.label.length → (depth.val[c - 1]!).val = dep (laOf a) a.label.length c)
     (hP : ∀ y < x.val, (pos.val[y]!).val + 1 = pim (laOf a) a.label.length (y + 1)) :
-    ted.PostTree.mirror_loop1 a.lml n depth pos x ⦃ r =>
+    ted.PostTree.mirror_loop0 a.lml n depth pos x ⦃ r =>
       r.length = a.label.length ∧ ∀ y < a.label.length, (r.val[y]!).val + 1 = pim (laOf a) a.label.length (y + 1) ⦄ := by
-  unfold ted.PostTree.mirror_loop1
+  unfold ted.PostTree.mirror_loop0
   apply loop.spec_decr_nat
     (measure := fun s => a.label.length - s.2.val)
     (inv := fun s => s.2.val ≤ a.label.length ∧ s.1.length = a.label.length ∧
@@ -216,7 +216,7 @@ theorem mirror_pos_spec (a : ted.PostTree) (hW : PT.Wf a) (n : Std.Usize) (depth
     obtain ⟨pos1, x1⟩ := s
     obtain ⟨hs1, hs2, hs3⟩ := hs
     dsimp only at hs1 hs2 hs3 ⊢
-    unfold ted.PostTree.mirror_loop1.body
+    unfold ted.PostTree.mirror_loop0.body
     by_cases hxn : x1 < n
     · rw [if_pos hxn]
       have hxn' : x1.val < a.label.length := by have : x1.val < n.val := hxn; omega
@@ -279,9 +279,9 @@ theorem mirror_kids_spec (a : ted.PostTree) (hW : PT.Wf a) (pos : alloc.vec.Vec 
     (hj : j.val ≤ (a.kids.val[x.val]!).val.length)
     (hks : ks.val.map (fun k => k.val) = revPos (a.kids.val[x.val]!).val pos.val j.val)
     (hpv : ∀ y < a.label.length, (pos.val[y]!).val + 1 ≤ a.label.length) :
-    ted.PostTree.mirror_loop2_loop0 a.kids pos x ks j ⦃ r =>
+    ted.PostTree.mirror_loop1_loop0 a.kids pos x ks j ⦃ r =>
       r.val.map (fun k => k.val) = revPos (a.kids.val[x.val]!).val pos.val 0 ⦄ := by
-  unfold ted.PostTree.mirror_loop2_loop0
+  unfold ted.PostTree.mirror_loop1_loop0
   have hkv : a.kids.val.length = a.label.length := hW.n4
   have hkx : x.val + 1 - 1 = x.val := by omega
   apply loop.spec_decr_nat
@@ -292,7 +292,7 @@ theorem mirror_kids_spec (a : ted.PostTree) (hW : PT.Wf a) (pos : alloc.vec.Vec 
     obtain ⟨ks1, j1⟩ := s
     obtain ⟨hs1, hs2⟩ := hs
     dsimp only at hs1 hs2 ⊢
-    unfold ted.PostTree.mirror_loop2_loop0.body
+    unfold ted.PostTree.mirror_loop1_loop0.body
     by_cases hj0 : j1 > 0#usize
     · rw [if_pos hj0]
       have hj0' : 0 < j1.val := hj0
@@ -377,10 +377,10 @@ theorem mirror_fill_spec (a : ted.PostTree) (hW : PT.Wf a) (n : Std.Usize) (pos 
     (hll : label.length = a.label.length) (hkl : kind.length = a.label.length)
     (hkdl : kids.length = a.label.length) (hx : x.val ≤ a.label.length)
     (hI : FillInv a pos.val x.val label.val kind.val kids.val) :
-    ted.PostTree.mirror_loop2 a.label a.kids a.kind n pos x label kind kids ⦃ r =>
+    ted.PostTree.mirror_loop1 a.label a.kids a.kind n pos x label kind kids ⦃ r =>
       r.1.length = a.label.length ∧ r.2.1.length = a.label.length ∧ r.2.2.length = a.label.length ∧
       FillInv a pos.val a.label.length r.1.val r.2.1.val r.2.2.val ⦄ := by
-  unfold ted.PostTree.mirror_loop2
+  unfold ted.PostTree.mirror_loop1
   apply loop.spec_decr_nat
     (measure := fun s => a.label.length - s.1.val)
     (inv := fun s => s.1.val ≤ a.label.length ∧ s.2.1.length = a.label.length ∧ s.2.2.1.length = a.label.length ∧
@@ -389,7 +389,7 @@ theorem mirror_fill_spec (a : ted.PostTree) (hW : PT.Wf a) (n : Std.Usize) (pos 
     obtain ⟨x1, label1, kind1, kids1⟩ := s
     obtain ⟨hs1, hs2, hs3, hs4, hs5⟩ := hs
     dsimp only at hs1 hs2 hs3 hs4 hs5 ⊢
-    unfold ted.PostTree.mirror_loop2.body
+    unfold ted.PostTree.mirror_loop1.body
     by_cases hxn : x1 < n
     · rw [if_pos hxn]
       have hxn' : x1.val < a.label.length := by have : x1.val < n.val := hxn; omega

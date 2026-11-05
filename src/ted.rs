@@ -91,18 +91,7 @@ impl PostTree {
         if n == 0 {
             return PostTree::from_kids(Vec::new(), &[]);
         }
-        // Depths, parents first: a parent has a larger index than its children.
-        let mut depth = vec![0usize; n];
-        let mut p = n;
-        while p > 0 {
-            p -= 1;
-            let d = depth[p] + 1;
-            let mut j = 0;
-            while j < self.kids[p].len() {
-                depth[self.kids[p][j] as usize] = d;
-                j += 1;
-            }
-        }
+        let depth = depths(self);
         let mut pos = vec![0usize; n];
         let mut x = 0;
         while x < n {
@@ -170,6 +159,40 @@ fn expand(arena: &Arena, x: Id, label: &mut Vec<u32>, kids: &mut Vec<Vec<u32>>) 
     label.push(arena.label(x));
     kids.push(ks);
     label.len() as u32 - 1
+}
+
+/// The depth of every node (the root has depth 0). Parents have larger indices than their children, so the
+/// nodes are visited from the root down.
+fn depths(t: &PostTree) -> Vec<usize> {
+    let n = t.label.len();
+    let mut depth = vec![0usize; n];
+    let mut p = n;
+    while p > 0 {
+        p -= 1;
+        let d = depth[p] + 1;
+        let mut j = 0;
+        while j < t.kids[p].len() {
+            depth[t.kids[p][j] as usize] = d;
+            j += 1;
+        }
+    }
+    depth
+}
+
+/// The 1-based preorder index of every node: its leftmost leaf plus its depth.
+fn preorder(t: &PostTree) -> Vec<usize> {
+    let n = t.label.len();
+    let depth = depths(t);
+    let mut pre = vec![0usize; n];
+    let mut x = 0;
+    while x < n {
+        let l = t.lml[x] as usize;
+        let d = depth[x];
+        let v = l + d;
+        pre[x] = v;
+        x += 1;
+    }
+    pre
 }
 
 /// The sum of the keyroot subtree sizes.
@@ -605,6 +628,109 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
     Mapping { cost, pairs }
 }
 
+/// The verdict of [`check_core`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Check {
+    /// A legal tree edit mapping; the payload is the cost of its edit script.
+    Cost(u32),
+    /// The pair `(x, y)` names a node outside the trees.
+    Range(usize, usize),
+    /// The pair `(x, y)` reuses a node already mapped.
+    Dup(usize, usize),
+    /// The pair `(x, y)` reverses the postorder of an earlier pair.
+    Post(usize, usize),
+    /// The pair `(x, y)` reverses the preorder of an earlier pair.
+    Pre(usize, usize),
+}
+
+/// The checker behind [`check_mapping`].
+///
+/// A mapping is a legal tree edit mapping exactly when it is one to one and preserves both the postorder and
+/// the preorder (equivalently, the postorder and the ancestor relation). The postorder is checked by walking the
+/// nodes of `a` in postorder and the preorder by walking them in preorder, each time requiring the images in `b`
+/// to increase.
+pub fn check_core(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Check {
+    let n = a.label.len();
+    let m = b.label.len();
+    let mut to_b = vec![0usize; n + 1];
+    let mut to_a = vec![0usize; m + 1];
+    let mut verdict = Check::Cost(0);
+    let mut ok = true;
+    let mut i = 0;
+    while ok && i < pairs.len() {
+        let x = pairs[i].0 as usize;
+        let y = pairs[i].1 as usize;
+        if x == 0 || x > n || y == 0 || y > m {
+            verdict = Check::Range(x, y);
+            ok = false;
+        } else if to_b[x] != 0 || to_a[y] != 0 {
+            verdict = Check::Dup(x, y);
+            ok = false;
+        } else {
+            to_b[x] = y;
+            to_a[y] = x;
+            i += 1;
+        }
+    }
+    if !ok {
+        return verdict;
+    }
+    let mut prev = 0;
+    let mut x = 1;
+    while ok && x <= n {
+        let y = to_b[x];
+        if y != 0 && y <= prev {
+            verdict = Check::Post(x, y);
+            ok = false;
+        } else {
+            if y != 0 {
+                prev = y;
+            }
+            x += 1;
+        }
+    }
+    if !ok {
+        return verdict;
+    }
+    let pa = preorder(a);
+    let pb = preorder(b);
+    let mut at = vec![0usize; n + 1];
+    x = 1;
+    while x <= n {
+        at[pa[x - 1]] = x;
+        x += 1;
+    }
+    let mut prev_pre = 0;
+    let mut k = 1;
+    while ok && k <= n {
+        let x = at[k];
+        let y = to_b[x];
+        if y != 0 && pb[y - 1] <= prev_pre {
+            verdict = Check::Pre(x, y);
+            ok = false;
+        } else {
+            if y != 0 {
+                prev_pre = pb[y - 1];
+            }
+            k += 1;
+        }
+    }
+    if !ok {
+        return verdict;
+    }
+    let mut relabels = 0u32;
+    x = 1;
+    while x <= n {
+        let y = to_b[x];
+        if y != 0 {
+            relabels += relabel_cost(a, b, x, y);
+        }
+        x += 1;
+    }
+    let cnt = pairs.len() as u32;
+    Check::Cost((n as u32 - cnt) + (m as u32 - cnt) + relabels)
+}
+
 /// Independent validity check of a mapping. Returns the edit script cost it implies
 /// (unmapped nodes of `a` deleted with their children promoted, unmapped nodes of `b` inserted, mapped
 /// pairs with different labels relabelled) when the mapping is a legal tree edit mapping, else the reason.
@@ -613,65 +739,15 @@ pub fn ted_mapping_with(a: &PostTree, b: &PostTree, prefer_match: bool) -> Mappi
 /// preserved. Equivalently, deleting the unmapped nodes of `a` and of `b` (promoting children) leaves
 /// two ordered forests that coincide under the mapping, so the replay produces `b`.
 pub fn check_mapping(a: &PostTree, b: &PostTree, pairs: &[(u32, u32)]) -> Result<u32, String> {
-    let (n, m) = (a.len(), b.len());
-    let (mut to_b, mut to_a) = (vec![0usize; n + 1], vec![0usize; m + 1]);
-    for &(x, y) in pairs {
-        let (x, y) = (x as usize, y as usize);
-        if x == 0 || x > n || y == 0 || y > m {
-            return Err(format!("pair ({x}, {y}) out of range"));
-        }
-        if to_b[x] != 0 || to_a[y] != 0 {
-            return Err(format!("not one to one at ({x}, {y})"));
-        }
-        to_b[x] = y;
-        to_a[y] = x;
+    match check_core(a, b, pairs) {
+        Check::Cost(c) => Ok(c),
+        Check::Range(x, y) => Err(format!("pair ({x}, {y}) out of range")),
+        Check::Dup(x, y) => Err(format!("not one to one at ({x}, {y})")),
+        Check::Post(x, y) => Err(format!("postorder broken at ({x}, {y})")),
+        Check::Pre(x, y) => Err(format!(
+            "ancestor relation or sibling order broken at ({x}, {y})"
+        )),
     }
-    let parents = |t: &PostTree| -> Vec<usize> {
-        let mut par = vec![0usize; t.len() + 1];
-        for (i, ks) in t.kids.iter().enumerate() {
-            for &k in ks {
-                par[k as usize + 1] = i + 1;
-            }
-        }
-        par
-    };
-    let (pa, pb) = (parents(a), parents(b));
-    // Nearest mapped proper ancestor, 0 for none.
-    let near = |par: &[usize], mapped: &dyn Fn(usize) -> bool, mut v: usize| -> usize {
-        loop {
-            v = par[v];
-            if v == 0 || mapped(v) {
-                return v;
-            }
-        }
-    };
-    let mut last_child_of: std::collections::HashMap<usize, usize> =
-        std::collections::HashMap::new();
-    let mut relabels = 0u32;
-    for x in 1..=n {
-        let y = to_b[x];
-        if y == 0 {
-            continue;
-        }
-        let ax = near(&pa, &|v| to_b[v] != 0, x);
-        let by = near(&pb, &|v| to_a[v] != 0, y);
-        let ax_in_b = if ax == 0 { 0 } else { to_b[ax] };
-        if ax_in_b != by {
-            return Err(format!(
-                "ancestor relation broken at ({x}, {y}): parent {ax_in_b} vs {by}"
-            ));
-        }
-        // Siblings visited in increasing a-postorder must have increasing b-postorder.
-        let prev = last_child_of.insert(by, y).unwrap_or(0);
-        if prev > y {
-            return Err(format!(
-                "sibling order broken under {by}: {prev} before {y}"
-            ));
-        }
-        relabels += relabel_cost(a, b, x, y);
-    }
-    let k = pairs.len() as u32;
-    Ok((n as u32 - k) + (m as u32 - k) + relabels)
 }
 
 struct RNode {

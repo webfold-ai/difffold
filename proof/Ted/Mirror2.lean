@@ -301,6 +301,32 @@ theorem firstKid_mirror (a : ted.PostTree) (hW : PT.Wf a) (pos : List Std.Usize)
     rw [e] at this
     exact this
 
+theorem depths_spec (a : ted.PostTree) (hW : PT.Wf a) :
+    ted.depths a ⦃ r => r.length = a.label.length ∧
+      ∀ c, 1 ≤ c → c ≤ a.label.length → (r.val[c - 1]!).val = dep (laOf a) a.label.length c ⦄ := by
+  unfold ted.depths
+  have hlenv := alloc.vec.Vec.len_val a.label
+  have hal : a.label.val.length = a.label.length := rfl
+  step as ⟨depth, hdepth, hdl⟩
+  have hJ0 : DepthInv a (alloc.vec.Vec.len a.label).val depth.val := by
+    intro c hc1 hcn hprem
+    rcases hprem with h | ⟨q, hq1, hq2, _⟩
+    · have hdl' : depth.val.length = a.label.length := by rw [← hlenv]; exact hdl
+      rw [hdepth, getG_eq _ _ (by simp; omega)]
+      have hdep : dep (laOf a) a.label.length c = 0 := by rw [h]; unfold dep; simp [cn]
+      rw [hdep]
+      simp
+    · omega
+  refine WP.spec_mono (mirror_depth_spec a hW depth a.label.len (by omega) (by rw [hdl]; exact hlenv) hJ0) ?_
+  rintro depth1 ⟨hl1, hJ1⟩
+  refine ⟨hl1, ?_⟩
+  intro c hc1 hcn
+  apply hJ1 c hc1 hcn
+  by_cases hcn' : c = a.label.length
+  · exact Or.inl hcn'
+  · obtain ⟨q, hq⟩ := par_exists hW.wfl hW.root (c := c) hc1 (by omega)
+    exact Or.inr ⟨q, by have := hq.1.1; omega, hq.2.1, hq⟩
+
 theorem mirror_spec (a : ted.PostTree) (hW : PT.Wf a) (hn : a.label.length < 2 ^ 14) :
     ted.PostTree.mirror a ⦃ r => PT.Wf r ∧ MirrorOf a r ⦄ := by
   unfold ted.PostTree.mirror
@@ -316,25 +342,8 @@ theorem mirror_spec (a : ted.PostTree) (hW : PT.Wf a) (hn : a.label.length < 2 ^
     have hn31 : a.label.length < 2 ^ 31 := by omega
     have hal : a.label.val.length = a.label.length := rfl
     have hkv : a.kids.length = a.label.length := hW.n4
-    step as ⟨depth, hdepth, hdl⟩
-    have hJ0 : DepthInv a (alloc.vec.Vec.len a.label).val depth.val := by
-      intro c hc1 hcn hprem
-      rcases hprem with h | ⟨q, hq1, hq2, _⟩
-      · have hdl' : depth.val.length = a.label.length := by rw [← hlenv]; exact hdl
-        rw [hdepth, getG_eq _ _ (by simp; omega)]
-        have hdep : dep (laOf a) a.label.length c = 0 := by rw [h]; unfold dep; simp [cn]
-        rw [hdep]
-        simp
-      · omega
-    refine WP.spec_bind (mirror_depth_spec a hW depth a.label.len (by omega) (by rw [hdl]; exact hlenv) hJ0) ?_
-    rintro depth1 ⟨hl1, hJ1⟩
-    have hD : ∀ c, 1 ≤ c → c ≤ a.label.length → (depth1.val[c - 1]!).val = dep (laOf a) a.label.length c := by
-      intro c hc1 hcn
-      apply hJ1 c hc1 hcn
-      by_cases hcn' : c = a.label.length
-      · exact Or.inl hcn'
-      · obtain ⟨q, hq⟩ := par_exists hW.wfl hW.root (c := c) hc1 (by omega)
-        exact Or.inr ⟨q, by have := hq.1.1; omega, hq.2.1, hq⟩
+    refine WP.spec_bind (depths_spec a hW) ?_
+    rintro depth1 ⟨hl1, hD⟩
     step as ⟨pos, hpos, hpl0⟩
     refine WP.spec_bind (mirror_pos_spec a hW a.label.len depth1 pos 0#usize hlenv (by simp) hl1
       (by rw [hpl0]; exact hlenv) hD (by simp)) ?_
