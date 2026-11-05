@@ -20,7 +20,7 @@ for r in first_nl last_nl; do args+=(--start-from "crate::lines_core::$r"); done
 ( cd extract-lines && "$AENEAS_HOME/charon" cargo --preset aeneas --dest-file ../gen/difffold_lines.llbc "${args[@]}" -- --offline --lib --target-dir "$SCRATCH/target" )
 rm -rf gen/lean-lines && mkdir -p gen/lean-lines
 "$AENEAS_HOME/aeneas" -backend lean -dest gen/lean-lines -no-progress-bar gen/difffold_lines.llbc
-( cd extract-lines && "$AENEAS_HOME/charon" cargo --preset aeneas --dest-file ../gen/difffold_ted.llbc --start-from crate::root_from_kids --start-from crate::ted::label_lower_bound --start-from crate::ted::fill_window --start-from crate::ted::within_td -- --offline --lib --target-dir "$SCRATCH/target" )
+( cd extract-lines && "$AENEAS_HOME/charon" cargo --preset aeneas --dest-file ../gen/difffold_ted.llbc --start-from crate::root_from_kids --start-from crate::ted::label_lower_bound --start-from crate::ted::fill_window --start-from crate::ted::within_td --start-from crate::ted::ted_oriented -- --offline --lib --target-dir "$SCRATCH/target" )
 rm -rf gen/lean-ted && mkdir -p gen/lean-ted
 "$AENEAS_HOME/aeneas" -backend lean -dest gen/lean-ted -no-progress-bar gen/difffold_ted.llbc || true
 {

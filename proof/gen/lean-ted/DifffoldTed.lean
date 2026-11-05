@@ -188,7 +188,7 @@ def ted.relabel_cost
     else ok 2#u32
 
 /-- [difffold_lines_extract::ted::umax]:
-    Source: '../../src/ted.rs', lines 277:0-283:1 -/
+    Source: '../../src/ted.rs', lines 299:0-305:1 -/
 def ted.umax (x : Std.Usize) (y : Std.Usize) : Result Std.Usize := do
   if x >= y
   then ok x
@@ -339,29 +339,8 @@ def ted.label_lower_bound
   let i3 ← lift (UScalar.cast .U32 i2)
   i3 - common
 
-/-- [difffold_lines_extract::ted::umin]:
-    Source: '../../src/ted.rs', lines 287:0-293:1 -/
-def ted.umin (x : Std.Usize) (y : Std.Usize) : Result Std.Usize := do
-  if x <= y
-  then ok x
-  else ok y
-
-/-- [difffold_lines_extract::ted::adiff]:
-    Source: '../../src/ted.rs', lines 297:0-303:1 -/
-def ted.adiff (x : Std.Usize) (y : Std.Usize) : Result Std.Usize := do
-  if x >= y
-  then x - y
-  else y - x
-
-/-- [difffold_lines_extract::ted::min32]:
-    Source: '../../src/ted.rs', lines 307:0-313:1 -/
-def ted.min32 (x : Std.U32) (y : Std.U32) : Result Std.U32 := do
-  if x <= y
-  then ok x
-  else ok y
-
 /-- [difffold_lines_extract::ted::bidx]:
-    Source: '../../src/ted.rs', lines 317:0-319:1 -/
+    Source: '../../src/ted.rs', lines 339:0-341:1 -/
 def ted.bidx
   (w : Std.Usize) (t : Std.Usize) (x : Std.Usize) (y : Std.Usize) :
   Result Std.Usize
@@ -371,8 +350,15 @@ def ted.bidx
   let i2 ← i1 - x
   i + i2
 
+/-- [difffold_lines_extract::ted::adiff]:
+    Source: '../../src/ted.rs', lines 319:0-325:1 -/
+def ted.adiff (x : Std.Usize) (y : Std.Usize) : Result Std.Usize := do
+  if x >= y
+  then x - y
+  else y - x
+
 /-- [difffold_lines_extract::ted::get_cell]:
-    Source: '../../src/ted.rs', lines 323:0-329:1 -/
+    Source: '../../src/ted.rs', lines 345:0-351:1 -/
 def ted.get_cell
   (fd : Slice Std.U32) (w : Std.Usize) (t : Std.Usize) (inf : Std.U32)
   (pp : Std.Usize) (qq : Std.Usize) :
@@ -384,8 +370,22 @@ def ted.get_cell
        Slice.index_usize fd i1
   else ok inf
 
+/-- [difffold_lines_extract::ted::min32]:
+    Source: '../../src/ted.rs', lines 329:0-335:1 -/
+def ted.min32 (x : Std.U32) (y : Std.U32) : Result Std.U32 := do
+  if x <= y
+  then ok x
+  else ok y
+
+/-- [difffold_lines_extract::ted::umin]:
+    Source: '../../src/ted.rs', lines 309:0-315:1 -/
+def ted.umin (x : Std.Usize) (y : Std.Usize) : Result Std.Usize := do
+  if x <= y
+  then ok x
+  else ok y
+
 /-- [difffold_lines_extract::ted::fill_window]: loop body 0:
-    Source: '../../src/ted.rs', lines 403:4-406:5 -/
+    Source: '../../src/ted.rs', lines 425:4-428:5 -/
 @[rust_loop_body]
 def ted.fill_window_loop0.body
   (t : Std.Usize) (w : Std.Usize) (lim_q : Std.Usize) (fd : Slice Std.U32)
@@ -403,7 +403,7 @@ def ted.fill_window_loop0.body
   else ok (done (fd, q))
 
 /-- [difffold_lines_extract::ted::fill_window]: loop 0:
-    Source: '../../src/ted.rs', lines 403:4-406:5 -/
+    Source: '../../src/ted.rs', lines 425:4-428:5 -/
 @[rust_loop]
 def ted.fill_window_loop0
   (fd : Slice Std.U32) (t : Std.Usize) (w : Std.Usize) (lim_q : Std.Usize)
@@ -415,7 +415,7 @@ def ted.fill_window_loop0
     (fd, q)
 
 /-- [difffold_lines_extract::ted::fill_window]: loop body 1:
-    Source: '../../src/ted.rs', lines 409:4-412:5 -/
+    Source: '../../src/ted.rs', lines 431:4-434:5 -/
 @[rust_loop_body]
 def ted.fill_window_loop1.body
   (t : Std.Usize) (w : Std.Usize) (lim_p : Std.Usize) (fd : Slice Std.U32)
@@ -432,7 +432,7 @@ def ted.fill_window_loop1.body
   else ok (done fd)
 
 /-- [difffold_lines_extract::ted::fill_window]: loop 1:
-    Source: '../../src/ted.rs', lines 409:4-412:5 -/
+    Source: '../../src/ted.rs', lines 431:4-434:5 -/
 @[rust_loop]
 def ted.fill_window_loop1
   (fd : Slice Std.U32) (t : Std.Usize) (w : Std.Usize) (lim_p : Std.Usize)
@@ -444,7 +444,7 @@ def ted.fill_window_loop1
     (fd, p)
 
 /-- [difffold_lines_extract::ted::fill_window]: loop body 3:
-    Source: '../../src/ted.rs', lines 421:8-447:9 -/
+    Source: '../../src/ted.rs', lines 443:8-469:9 -/
 @[rust_loop_body]
 def ted.fill_window_loop2_loop0.body
   (v : alloc.vec.Vec Std.U32) (v1 : alloc.vec.Vec Std.U32)
@@ -541,7 +541,7 @@ def ted.fill_window_loop2_loop0.body
   else ok (done (td, fd, st, q, row_min))
 
 /-- [difffold_lines_extract::ted::fill_window]: loop 3:
-    Source: '../../src/ted.rs', lines 421:8-447:9 -/
+    Source: '../../src/ted.rs', lines 443:8-469:9 -/
 @[rust_loop]
 def ted.fill_window_loop2_loop0
   (v : alloc.vec.Vec Std.U32) (v1 : alloc.vec.Vec Std.U32)
@@ -562,7 +562,7 @@ def ted.fill_window_loop2_loop0
     (td, fd, st, q, row_min)
 
 /-- [difffold_lines_extract::ted::fill_window]: loop body 2:
-    Source: '../../src/ted.rs', lines 414:4-453:1 -/
+    Source: '../../src/ted.rs', lines 436:4-475:1 -/
 @[rust_loop_body]
 def ted.fill_window_loop2.body
   (v : alloc.vec.Vec Std.U32) (v1 : alloc.vec.Vec Std.U32)
@@ -608,7 +608,7 @@ def ted.fill_window_loop2.body
   else ok (done (td, fd, st))
 
 /-- [difffold_lines_extract::ted::fill_window]: loop 2:
-    Source: '../../src/ted.rs', lines 414:4-453:1 -/
+    Source: '../../src/ted.rs', lines 436:4-475:1 -/
 @[rust_loop]
 def ted.fill_window_loop2
   (v : alloc.vec.Vec Std.U32) (v1 : alloc.vec.Vec Std.U32)
@@ -628,7 +628,7 @@ def ted.fill_window_loop2
     (td, fd, st, q, p)
 
 /-- [difffold_lines_extract::ted::fill_window]:
-    Source: '../../src/ted.rs', lines 384:0-453:1 -/
+    Source: '../../src/ted.rs', lines 406:0-475:1 -/
 def ted.fill_window
   (a : ted.PostTree) (b : ted.PostTree) (td : Slice Std.U32)
   (fd : Slice Std.U32) (p : (Std.Usize × Std.Usize)) (tau : Std.U32)
@@ -664,7 +664,7 @@ def ted.fill_window
     b.lml b.keyroots b.kids b.kind td fd2 tau st t inf w li lj si sj q 1#usize
 
 /-- [difffold_lines_extract::ted::within_td]: loop body 1:
-    Source: '../../src/ted.rs', lines 357:8-367:9 -/
+    Source: '../../src/ted.rs', lines 379:8-389:9 -/
 @[rust_loop_body]
 def ted.within_td_loop0_loop0.body
   (v : alloc.vec.Vec Std.U32) (v1 : alloc.vec.Vec Std.U32)
@@ -715,7 +715,7 @@ def ted.within_td_loop0_loop0.body
   else ok (done (b.label, b.lml, b.keyroots, b.kids, b.kind, st, td, fd))
 
 /-- [difffold_lines_extract::ted::within_td]: loop 1:
-    Source: '../../src/ted.rs', lines 357:8-367:9 -/
+    Source: '../../src/ted.rs', lines 379:8-389:9 -/
 @[rust_loop]
 def ted.within_td_loop0_loop0
   (v : alloc.vec.Vec Std.U32) (v1 : alloc.vec.Vec Std.U32)
@@ -735,7 +735,7 @@ def ted.within_td_loop0_loop0
     (st, td, fd, ib)
 
 /-- [difffold_lines_extract::ted::within_td]: loop body 0:
-    Source: '../../src/ted.rs', lines 353:4-369:5 -/
+    Source: '../../src/ted.rs', lines 375:4-391:5 -/
 @[rust_loop_body]
 def ted.within_td_loop0.body
   (a : ted.PostTree) (tau : Std.U32) (t : Std.Usize) (b : ted.PostTree)
@@ -767,7 +767,7 @@ def ted.within_td_loop0.body
   else ok (done (st, td))
 
 /-- [difffold_lines_extract::ted::within_td]: loop 0:
-    Source: '../../src/ted.rs', lines 353:4-369:5 -/
+    Source: '../../src/ted.rs', lines 375:4-391:5 -/
 @[rust_loop]
 def ted.within_td_loop0
   (a : ted.PostTree) (b : ted.PostTree) (tau : Std.U32) (st : ted.Stats)
@@ -781,7 +781,7 @@ def ted.within_td_loop0
     (b, st, td, fd, ia)
 
 /-- [difffold_lines_extract::ted::within_td]:
-    Source: '../../src/ted.rs', lines 332:0-380:1 -/
+    Source: '../../src/ted.rs', lines 354:0-402:1 -/
 def ted.within_td
   (a : ted.PostTree) (b : ted.PostTree) (tau : Std.U32) (st : ted.Stats) :
   Result (((Option Std.U32) × (alloc.vec.Vec Std.U32)) × ted.Stats)
@@ -833,6 +833,72 @@ def ted.within_td
         if d <= tau
         then ok ((some d, td1), st1)
         else ok ((none, td1), st1)
+
+/-- [difffold_lines_extract::ted::dbl32]:
+    Source: '../../src/ted.rs', lines 279:0-285:1 -/
+def ted.dbl32 (x : Std.U32) : Result Std.U32 := do
+  if x >= 2147483648#u32
+  then ok core.num.U32.MAX
+  else 2#u32 * x
+
+/-- [difffold_lines_extract::ted::max32]:
+    Source: '../../src/ted.rs', lines 269:0-275:1 -/
+def ted.max32 (x : Std.U32) (y : Std.U32) : Result Std.U32 := do
+  if x >= y
+  then ok x
+  else ok y
+
+/-- [difffold_lines_extract::ted::ted_oriented]: loop body 0:
+    Source: '../../src/ted.rs', lines 253:4-264:5 -/
+@[rust_loop_body]
+def ted.ted_oriented_loop.body
+  (a : ted.PostTree) (b : ted.PostTree) (n : Std.Usize) (m : Std.Usize)
+  (cap : Std.U32) (st : ted.Stats) (tau : Std.U32) :
+  Result (ControlFlow (ted.Stats × Std.U32) (Std.U32 × ted.Stats))
+  := do
+  let i ← lift (UScalar.cast .U64 tau)
+  let i1 ← i * 3#u64
+  let i2 ← ted.umax n m
+  let i3 ← lift (UScalar.cast .U64 i2)
+  let tau1 ← if i1 >= i3
+               then ok cap
+               else ok tau
+  let i4 ← lift (core.num.U32.wrapping_add st.attempts 1#u32)
+  let i5 ← ted.min32 tau1 cap
+  let ((o, _), st1) ← ted.within_td a b i5 { st with attempts := i4 }
+  match o with
+  | none => let tau2 ← ted.dbl32 tau1
+            ok (cont (st1, tau2))
+  | some i6 => ok (done (i6, st1))
+
+/-- [difffold_lines_extract::ted::ted_oriented]: loop 0:
+    Source: '../../src/ted.rs', lines 253:4-264:5 -/
+@[rust_loop]
+def ted.ted_oriented_loop
+  (a : ted.PostTree) (b : ted.PostTree) (st : ted.Stats) (n : Std.Usize)
+  (m : Std.Usize) (cap : Std.U32) (tau : Std.U32) :
+  Result (Std.U32 × ted.Stats)
+  := do
+  loop
+    (fun (st1, tau1) => ted.ted_oriented_loop.body a b n m cap st1 tau1)
+    (st, tau)
+
+/-- [difffold_lines_extract::ted::ted_oriented]:
+    Source: '../../src/ted.rs', lines 247:0-265:1 -/
+def ted.ted_oriented
+  (a : ted.PostTree) (b : ted.PostTree) (st : ted.Stats) :
+  Result (Std.U32 × ted.Stats)
+  := do
+  let n ← ted.PostTree.len a
+  let m ← ted.PostTree.len b
+  let i ← n + m
+  let cap ← lift (UScalar.cast .U32 i)
+  let i1 ← ted.adiff n m
+  let i2 ← lift (UScalar.cast .U32 i1)
+  let i3 ← ted.label_lower_bound a b
+  let tau ← ted.max32 i2 i3
+  let tau1 ← ted.max32 tau 1#u32
+  ted.ted_oriented_loop a b st n m cap tau1
 
 /-- [difffold_lines_extract::root_from_kids]:
     Source: 'lib.rs', lines 31:0-33:1

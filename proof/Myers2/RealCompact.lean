@@ -223,13 +223,16 @@ theorem compact_ids_spec (kp : Nat → Bool) : ∀ (N : Nat) (xs : Slice U32) (b
       intro x hx; apply hk; rw [hs1', vals_drop] at hx; exact List.mem_of_mem_drop hx
     have hel : edit1.val.length = edit.val.length := by
       rw [r3, Myers.length_editOf]
-    have hk1l : (vals keep1.val).length = (vals keep.val).length + (List.filter kp (vals s.val)).length := by
-      rw [r1]; simp
-    have hp1l : (uvals pos1.val).length = (uvals pos.val).length + (Myers.posOf kp (vals s.val) base.val).length := by
-      rw [r2]; simp
+    have uv : ∀ l : List Usize, (uvals l).length = l.length := by intro l; simp [uvals]
+    have hk1l : keep1.val.length = keep.val.length + (List.filter kp (vals s.val)).length := by
+      have := congrArg List.length r1; rw [vals_len, List.length_append, vals_len] at this; exact this
+    have hp1l : pos1.val.length = pos.val.length + (Myers.posOf kp (vals s.val) base.val).length := by
+      have := congrArg List.length r2; rw [uv, List.length_append, uv] at this; exact this
     have hplen := Myers.length_posOf kp (vals s.val) base.val
-    have hvl : (vals s.val).length = i.val := by simp [vals, hlen1]
-    simp only [vals, uvals, List.length_map] at hk1l hp1l
+    have hvl : (vals s.val).length = i.val := by simp [vals_len, hlen1]
+    have hfl : (List.filter kp (vals s.val)).length ≤ i.val := by
+      calc _ ≤ (vals s.val).length := List.length_filter_le _ _
+        _ = i.val := hvl
     refine Aeneas.Std.WP.spec_mono (ih s1.val.length (by rw [hlen2]; omega) s1 i1 other keep1 pos1 edit1 rfl hk2
       (by rw [hel]; omega) (by omega) (by omega)) ?_
     rintro ⟨keep2, pos2, edit2⟩ ⟨q1, q2, q3⟩
@@ -240,10 +243,15 @@ theorem compact_ids_spec (kp : Nat → Bool) : ∀ (N : Nat) (xs : Slice U32) (b
       rw [vals_take, vals_drop, List.append_assoc, ← List.filter_append, List.take_append_drop]
     · rw [q2, r2, hsv', hs1', hi1]
       rw [vals_take, vals_drop, List.append_assoc]
-      rw [← Myers.posOf_append, List.take_append_drop]
-      sorry
+      have hap := Myers.posOf_append kp ((vals xs.val).take i.val) ((vals xs.val).drop i.val) base.val
+      have hlt : ((vals xs.val).take i.val).length = i.val := by simp [vals_len]; omega
+      rw [List.take_append_drop, hlt] at hap
+      rw [hap]
     · rw [q3, r3, hsv', hs1', hi1]
-      rw [vals_take, vals_drop, ← Myers.editOf_append, List.take_append_drop]
-      sorry
+      rw [vals_take, vals_drop]
+      have hap := Myers.editOf_append kp ((vals xs.val).take i.val) ((vals xs.val).drop i.val) base.val edit.val
+      have hlt : ((vals xs.val).take i.val).length = i.val := by simp [vals_len]; omega
+      rw [List.take_append_drop, hlt] at hap
+      rw [hap]
 
 end difffold_myers_extract
