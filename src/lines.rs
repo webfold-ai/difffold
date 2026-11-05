@@ -259,9 +259,10 @@ fn last_nl(t: &[u8]) -> Option<usize> {
     if t.len() <= 64 {
         last_in_block(t)
     } else {
-        last_nl(&t[t.len() / 2..])
-            .map(|i| i + t.len() / 2)
-            .or_else(|| last_nl(&t[..t.len() / 2]))
+        match last_nl(&t[t.len() / 2..]) {
+            Some(i) => Some(i + t.len() / 2),
+            None => last_nl(&t[..t.len() / 2]),
+        }
     }
 }
 
@@ -278,7 +279,7 @@ fn split_seq<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
     if !t.is_empty() {
         match first_nl(t) {
             Some(i) => {
-                out.push(&t[..=i]);
+                out.push(&t[..i + 1]);
                 split_seq(&t[i + 1..], out);
             }
             None => out.push(t),
@@ -294,10 +295,13 @@ fn split_into<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
     } else {
         let mid = t.len() / 2;
         // Cut after the first newline at or past the middle; fall back to the last newline before it.
-        let cut = first_nl(&t[mid..])
-            .map(|i| mid + i + 1)
-            .filter(|&c| c < t.len())
-            .or_else(|| last_nl(&t[..mid]).map(|i| i + 1));
+        let cut = match first_nl(&t[mid..]) {
+            Some(i) if mid + i + 1 < t.len() => Some(mid + i + 1),
+            _ => match last_nl(&t[..mid]) {
+                Some(i) => Some(i + 1),
+                None => None,
+            },
+        };
         match cut {
             Some(c) => {
                 split_into(&t[..c], out);
@@ -380,17 +384,31 @@ pub fn diff_text_with(old: &[u8], new: &[u8], algo: Algo) -> LineDiff {
 
 /// The largest line start at or before byte `p`: one past the last newline before `p`.
 fn line_start(t: &[u8], p: usize) -> usize {
-    last_nl(&t[..p]).map_or(0, |i| i + 1)
+    match last_nl(&t[..p]) {
+        Some(i) => i + 1,
+        None => 0,
+    }
+}
+
+/// Offset arithmetic of the shrink: the suffix restarts after its first newline.
+fn shrink_suffix(ro: &[u8], q: usize) -> usize {
+    match first_nl(&ro[ro.len() - q..]) {
+        Some(k) => q - k - 1,
+        None => 0,
+    }
 }
 
 /// Shrink the common suffix length `q` until the suffix starts a line in both texts. The suffix
 /// bytes are equal in both texts, so the first newline inside the suffix has the same offset in each.
 fn suffix_on_line_start(ro: &[u8], rn: &[u8], q: usize) -> usize {
-    let starts = |t: &[u8]| q >= t.len() || t[t.len() - q - 1] == b'\n';
-    if q == 0 || (starts(ro) && starts(rn)) {
+    if q == 0 {
         q
+    } else if q < ro.len() && ro[ro.len() - q - 1] != b'\n' {
+        shrink_suffix(ro, q)
+    } else if q < rn.len() && rn[rn.len() - q - 1] != b'\n' {
+        shrink_suffix(ro, q)
     } else {
-        first_nl(&ro[ro.len() - q..]).map_or(0, |k| q - k - 1)
+        q
     }
 }
 

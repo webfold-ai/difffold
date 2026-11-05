@@ -204,7 +204,8 @@ segment it is given.
   an open-addressing interner with real byte equality on probe, then a proof that equal ids mean equal lines.
 - `Algo::Histogram` (`hist`, `find_anchor`, `walk_chain`, `index_a`): soundness (valid script) not started;
   optimality is not claimed for it.
-- Performance check of the refactors with `linebench` has not been re-run.
+- Performance of the refactors: a synthetic 60,000-line release micro-benchmark (`diff_text`, best of 15) took 6.7 ms after the refactors against 8.3 ms before (same cost 6032); `linebench` on the real corpus was not run.
+- Byte-level helpers (`first_nl`, `last_nl`, `line_start`, `suffix_on_line_start`, `count_lines`, `split_into`, `split_lines`) now extract from the real source with no unknown external definitions: `count_ones` and `trailing_zeros` were replaced by `newline_count` (multiply-and-shift) and `lowest_byte` (shift loop), closures by `match`, `..=` by `..i + 1`. `cargo test` passes. Their specifications are not yet proved.
 
 Earlier, smaller extraction of closure-free copies (`extract/myers_core.rs`, `Myers2/CommonCopy.lean`,
 `Myers2/SnakeSpec.lean`, `tests/myers_core.rs`) is superseded by the real-source extraction above and kept only as

@@ -24,8 +24,122 @@ structure lines.LineDiff where
   deleted : alloc.vec.Vec Bool
   inserted : alloc.vec.Vec Bool
 
+/-- [difffold_myers_extract::lines::nl_mask::LOW7]
+    Source: '../../src/lines.rs', lines 138:4-138:44 -/
+@[global_simps, irreducible]
+def lines.nl_mask.LOW7 : Std.U64 := 9187201950435737471#u64
+
+/-- [difffold_myers_extract::lines::nl_mask]:
+    Source: '../../src/lines.rs', lines 137:0-142:1 -/
+def lines.nl_mask (w : Std.U64) : Result Std.U64 := do
+  let x ← lift (w ^^^ 723401728380766730#u64)
+  let i ← lift (x &&& lines.nl_mask.LOW7)
+  let i1 ← i + lines.nl_mask.LOW7
+  let i2 ← lift (i1 ||| x)
+  let i3 ← lift (i2 ||| lines.nl_mask.LOW7)
+  ok (~~~ i3)
+
+/-- [difffold_myers_extract::lines::newline_count]:
+    Source: '../../src/lines.rs', lines 146:0-148:1 -/
+def lines.newline_count (m : Std.U64) : Result Std.Usize := do
+  let i ← m >>> 7#i32
+  let i1 ← lift (core.num.U64.wrapping_mul i 72340172838076673#u64)
+  let i2 ← i1 >>> 56#i32
+  ok (UScalar.cast .Usize i2)
+
+/-- [difffold_myers_extract::lines::lowest_byte]:
+    Source: '../../src/lines.rs', lines 151:0-157:1 -/
+def lines.lowest_byte (m : Std.U64) (k : Std.Usize) : Result Std.Usize := do
+  let i ← lift (m &&& 255#u64)
+  if i != 0#u64
+  then ok k
+  else
+    if k >= 7#usize
+    then ok k
+    else let i1 ← m >>> 8#i32
+         let i2 ← k + 1#usize
+         lines.lowest_byte i1 i2
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::word]:
+    Source: '../../src/lines.rs', lines 160:0-166:1 -/
+def lines.word (t : Slice Std.U8) : Result Std.U64 := do
+  let n := Slice.len t
+  match n.val with
+  | 0 => ok 0#u64
+  | _ =>
+    if n >= 8#usize
+    then
+      let i ← Slice.index_usize t 0#usize
+      let i1 ← Slice.index_usize t 1#usize
+      let i2 ← Slice.index_usize t 2#usize
+      let i3 ← Slice.index_usize t 3#usize
+      let i4 ← Slice.index_usize t 4#usize
+      let i5 ← Slice.index_usize t 5#usize
+      let i6 ← Slice.index_usize t 6#usize
+      let i7 ← Slice.index_usize t 7#usize
+      ok (core.num.U64.from_le_bytes
+        (Array.make 8#usize [ i, i1, i2, i3, i4, i5, i6, i7 ]))
+    else
+      let i ← n - 1#usize
+      let s ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+          { «end» := i }
+      let i1 ← lines.word s
+      let i2 ← Slice.index_usize t i
+      let i3 ← lift (core.convert.num.FromU64U8.from i2)
+      let i4 ← 8#usize * i
+      let i5 ← i3 <<< i4
+      ok (i1 ||| i5)
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::count_block]:
+    Source: '../../src/lines.rs', lines 169:0-175:1 -/
+def lines.count_block (t : Slice Std.U8) : Result Std.Usize := do
+  let b ← core.slice.Slice.is_empty t
+  if b
+  then ok 0#usize
+  else
+    let i ← lines.word t
+    let i1 ← lines.nl_mask i
+    let i2 ← lines.newline_count i1
+    let i3 := Slice.len t
+    let i4 ← core.cmp.Ord.min.trait_default core.cmp.OrdUsize i3 8#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+        { start := i4 }
+    let i5 ← lines.count_block s
+    i2 + i5
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::count_byte]:
+    Source: '../../src/lines.rs', lines 177:0-183:1 -/
+def lines.count_byte (t : Slice Std.U8) (_b : Std.U8) : Result Std.Usize := do
+  let i := Slice.len t
+  if i <= 64#usize
+  then lines.count_block t
+  else
+    let i1 := Slice.len t
+    let i2 ← i1 / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+        { «end» := i2 }
+    let i3 ← lines.count_byte s 10#u8
+    let i4 := Slice.len t
+    let i5 ← i4 / 2#usize
+    let s1 ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+        { start := i5 }
+    let i6 ← lines.count_byte s1 10#u8
+    i3 + i6
+partial_fixpoint
+
 /-- [difffold_myers_extract::lines::common_prefix]:
-    Source: '../../src/lines.rs', lines 171:0-185:1 -/
+    Source: '../../src/lines.rs', lines 186:0-200:1 -/
 def lines.common_prefix
   {T : Type} (corecmpPartialEqInst : core.cmp.PartialEq T T) (a : Slice T)
   (b : Slice T) :
@@ -66,7 +180,7 @@ def lines.common_prefix
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::common_suffix]:
-    Source: '../../src/lines.rs', lines 188:0-202:1 -/
+    Source: '../../src/lines.rs', lines 203:0-217:1 -/
 def lines.common_suffix
   {T : Type} (corecmpPartialEqInst : core.cmp.PartialEq T T) (a : Slice T)
   (b : Slice T) :
@@ -133,8 +247,326 @@ def lines.common_suffix
         lines.common_suffix corecmpPartialEqInst s2 s3
 partial_fixpoint
 
+/-- [difffold_myers_extract::lines::first_in_block]:
+    Source: '../../src/lines.rs', lines 220:0-231:1 -/
+def lines.first_in_block
+  (t : Slice Std.U8) («at» : Std.Usize) : Result (Option Std.Usize) := do
+  let i := Slice.len t
+  if «at» >= i
+  then ok none
+  else
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+        { start := «at» }
+    let i1 ← lines.word s
+    let m ← lines.nl_mask i1
+    if m != 0#u64
+    then
+      let i2 ← lines.lowest_byte m 0#usize
+      let i3 ← «at» + i2
+      ok (some i3)
+    else let i2 ← «at» + 8#usize
+         lines.first_in_block t i2
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::first_nl]:
+    Source: '../../src/lines.rs', lines 234:0-246:1 -/
+def lines.first_nl (t : Slice Std.U8) : Result (Option Std.Usize) := do
+  let i := Slice.len t
+  if i <= 64#usize
+  then lines.first_in_block t 0#usize
+  else
+    let i1 := Slice.len t
+    let i2 ← i1 / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+        { «end» := i2 }
+    let o ← lines.first_nl s
+    match o with
+    | none =>
+      let i3 := Slice.len t
+      let i4 ← i3 / 2#usize
+      let s1 ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+          { start := i4 }
+      let o1 ← lines.first_nl s1
+      match o1 with
+      | none => ok none
+      | some i5 =>
+        let i6 := Slice.len t
+        let i7 ← i6 / 2#usize
+        let i8 ← i5 + i7
+        ok (some i8)
+    | some _ => ok o
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::last_in_block]:
+    Source: '../../src/lines.rs', lines 249:0-255:1 -/
+def lines.last_in_block (t : Slice Std.U8) : Result (Option Std.Usize) := do
+  let n := Slice.len t
+  match n.val with
+  | 0 => ok none
+  | _ =>
+    let i ← n - 1#usize
+    let i1 ← Slice.index_usize t i
+    if i1 = 10#u8
+    then ok (some i)
+    else
+      let s ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+          { «end» := i }
+      lines.last_in_block s
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::last_nl]:
+    Source: '../../src/lines.rs', lines 258:0-267:1 -/
+def lines.last_nl (t : Slice Std.U8) : Result (Option Std.Usize) := do
+  let i := Slice.len t
+  if i <= 64#usize
+  then lines.last_in_block t
+  else
+    let i1 := Slice.len t
+    let i2 ← i1 / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+        { start := i2 }
+    let o ← lines.last_nl s
+    match o with
+    | none =>
+      let i3 := Slice.len t
+      let i4 ← i3 / 2#usize
+      let s1 ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+          { «end» := i4 }
+      lines.last_nl s1
+    | some i3 =>
+      let i4 := Slice.len t
+      let i5 ← i4 / 2#usize
+      let i6 ← i3 + i5
+      ok (some i6)
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::count_lines]:
+    Source: '../../src/lines.rs', lines 269:0-271:1 -/
+def lines.count_lines (t : Slice Std.U8) : Result Std.Usize := do
+  let i ← lines.count_byte t 10#u8
+  let b ← core.slice.Slice.is_empty t
+  let b1 ←
+    if b
+    then ok false
+    else
+      do
+      let i1 := Slice.len t
+      let i2 ← i1 - 1#usize
+      let i3 ← Slice.index_usize t i2
+      ok (i3 != 10#u8)
+  let i1 ← lift (core.convert.num.FromUsizeBool.from b1)
+  i + i1
+
+/-- [difffold_myers_extract::lines::SEQ_CHUNK]
+    Source: '../../src/lines.rs', lines 275:0-275:30 -/
+@[global_simps, irreducible] def lines.SEQ_CHUNK : Std.Usize := 4096#usize
+
+/-- [difffold_myers_extract::lines::split_seq]:
+    Source: '../../src/lines.rs', lines 278:0-288:1 -/
+def lines.split_seq
+  (t : Slice Std.U8) (out : alloc.vec.Vec (Slice Std.U8)) :
+  Result (alloc.vec.Vec (Slice Std.U8))
+  := do
+  let b ← core.slice.Slice.is_empty t
+  if b
+  then ok out
+  else
+    let o ← lines.first_nl t
+    match o with
+    | none => alloc.vec.Vec.push out t
+    | some i =>
+      let i1 ← i + 1#usize
+      let s ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+          { «end» := i1 }
+      let out1 ← alloc.vec.Vec.push out s
+      let s1 ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+          { start := i1 }
+      lines.split_seq s1 out1
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::split_into]:
+    Source: '../../src/lines.rs', lines 292:0-314:1 -/
+def lines.split_into
+  (t : Slice Std.U8) (out : alloc.vec.Vec (Slice Std.U8)) :
+  Result (alloc.vec.Vec (Slice Std.U8))
+  := do
+  let i := Slice.len t
+  if i <= lines.SEQ_CHUNK
+  then lines.split_seq t out
+  else
+    let i1 := Slice.len t
+    let mid ← i1 / 2#usize
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+        { start := mid }
+    let o ← lines.first_nl s
+    match o with
+    | none =>
+      let s1 ←
+        core.slice.index.Slice.index
+          (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+          { «end» := mid }
+      let o1 ← lines.last_nl s1
+      let cut ←
+        match o1 with
+        | none => ok none
+        | some i2 => do
+                     let i3 ← i2 + 1#usize
+                     ok (some i3)
+      match cut with
+      | none => alloc.vec.Vec.push out t
+      | some c =>
+        let s2 ←
+          core.slice.index.Slice.index
+            (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+            { «end» := c }
+        let out1 ← lines.split_into s2 out
+        let s3 ←
+          core.slice.index.Slice.index
+            (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+            { start := c }
+        lines.split_into s3 out1
+    | some i2 =>
+      let i3 ← mid + i2
+      let i4 ← i3 + 1#usize
+      let i5 := Slice.len t
+      if i4 < i5
+      then
+        let c ← i3 + 1#usize
+        let s1 ←
+          core.slice.index.Slice.index
+            (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+            { «end» := c }
+        let out1 ← lines.split_into s1 out
+        let s2 ←
+          core.slice.index.Slice.index
+            (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+            { start := c }
+        lines.split_into s2 out1
+      else
+        let s1 ←
+          core.slice.index.Slice.index
+            (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+            { «end» := mid }
+        let o1 ← lines.last_nl s1
+        let cut ←
+          match o1 with
+          | none => ok none
+          | some i6 => do
+                       let i7 ← i6 + 1#usize
+                       ok (some i7)
+        match cut with
+        | none => alloc.vec.Vec.push out t
+        | some c =>
+          let s2 ←
+            core.slice.index.Slice.index
+              (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8) t
+              { «end» := c }
+          let out1 ← lines.split_into s2 out
+          let s3 ←
+            core.slice.index.Slice.index
+              (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) t
+              { start := c }
+          lines.split_into s3 out1
+partial_fixpoint
+
+/-- [difffold_myers_extract::lines::split_lines]:
+    Source: '../../src/lines.rs', lines 318:0-322:1
+    Visibility: public -/
+def lines.split_lines
+  (t : Slice Std.U8) : Result (alloc.vec.Vec (Slice Std.U8)) := do
+  lines.split_into t (alloc.vec.Vec.new (Slice Std.U8))
+
+/-- [difffold_myers_extract::lines::line_start]:
+    Source: '../../src/lines.rs', lines 386:0-391:1 -/
+def lines.line_start
+  (t : Slice Std.U8) (p : Std.Usize) : Result Std.Usize := do
+  let s ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeToUsizeSlice
+      Std.U8) t { «end» := p }
+  let o ← lines.last_nl s
+  match o with
+  | none => ok 0#usize
+  | some i => i + 1#usize
+
+/-- [difffold_myers_extract::lines::shrink_suffix]:
+    Source: '../../src/lines.rs', lines 394:0-399:1 -/
+def lines.shrink_suffix
+  (ro : Slice Std.U8) (q : Std.Usize) : Result Std.Usize := do
+  let i := Slice.len ro
+  let i1 ← i - q
+  let s ←
+    core.slice.index.Slice.index
+      (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) ro
+      { start := i1 }
+  let o ← lines.first_nl s
+  match o with
+  | none => ok 0#usize
+  | some k => let i2 ← q - k
+              i2 - 1#usize
+
+/-- [difffold_myers_extract::lines::suffix_on_line_start]:
+    Source: '../../src/lines.rs', lines 403:0-413:1 -/
+def lines.suffix_on_line_start
+  (ro : Slice Std.U8) (rn : Slice Std.U8) (q : Std.Usize) :
+  Result Std.Usize
+  := do
+  if q = 0#usize
+  then ok q
+  else
+    let i := Slice.len ro
+    if q < i
+    then
+      let i1 := Slice.len ro
+      let i2 ← i1 - q
+      let i3 ← i2 - 1#usize
+      let i4 ← Slice.index_usize ro i3
+      if i4 != 10#u8
+      then lines.shrink_suffix ro q
+      else
+        let i5 := Slice.len rn
+        if q < i5
+        then
+          let i6 := Slice.len rn
+          let i7 ← i6 - q
+          let i8 ← i7 - 1#usize
+          let i9 ← Slice.index_usize rn i8
+          if i9 != 10#u8
+          then lines.shrink_suffix ro q
+          else ok q
+        else ok q
+    else
+      let i1 := Slice.len rn
+      if q < i1
+      then
+        let i2 := Slice.len rn
+        let i3 ← i2 - q
+        let i4 ← i3 - 1#usize
+        let i5 ← Slice.index_usize rn i4
+        if i5 != 10#u8
+        then lines.shrink_suffix ro q
+        else ok q
+      else ok q
+
 /-- [difffold_myers_extract::lines::snake_back]:
-    Source: '../../src/lines.rs', lines 841:0-848:1 -/
+    Source: '../../src/lines.rs', lines 880:0-887:1 -/
 def lines.snake_back
   (a : Slice Std.U32) (b : Slice Std.U32) (x : Std.I32) (y : Std.I32) :
   Result Std.I32
@@ -176,7 +608,7 @@ def lines.snake_back
         ok (UScalar.hcast .I32 i14)
 
 /-- [difffold_myers_extract::lines::Search]
-    Source: '../../src/lines.rs', lines 481:0-491:1 -/
+    Source: '../../src/lines.rs', lines 520:0-530:1 -/
 structure lines.Search where
   a : Slice Std.U32
   b : Slice Std.U32
@@ -189,14 +621,14 @@ structure lines.Search where
   vb : Slice Std.I32
 
 /-- [difffold_myers_extract::lines::{difffold_myers_extract::lines::Search<'_0>}::ix]:
-    Source: '../../src/lines.rs', lines 494:4-496:5 -/
+    Source: '../../src/lines.rs', lines 533:4-535:5 -/
 def lines.Search.ix
   (self : lines.Search) (k : Std.I32) : Result Std.Usize := do
   let i ← self.off + k
   ok (IScalar.hcast .Usize i)
 
 /-- [difffold_myers_extract::lines::backward_one]:
-    Source: '../../src/lines.rs', lines 609:0-627:1 -/
+    Source: '../../src/lines.rs', lines 648:0-666:1 -/
 def lines.backward_one
   (s : lines.Search) (d : Std.I32) (k : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -264,7 +696,7 @@ def lines.backward_one
       ok (none, { s with vb := s1 }, back)
 
 /-- [difffold_myers_extract::lines::backward_seq]:
-    Source: '../../src/lines.rs', lines 599:0-607:1 -/
+    Source: '../../src/lines.rs', lines 638:0-646:1 -/
 def lines.backward_seq
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -315,11 +747,11 @@ def lines.backward_seq
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::DIAG_BLOCK]
-    Source: '../../src/lines.rs', lines 521:0-521:27 -/
+    Source: '../../src/lines.rs', lines 560:0-560:27 -/
 @[global_simps, irreducible] def lines.DIAG_BLOCK : Std.I32 := 64#i32
 
 /-- [difffold_myers_extract::lines::backward]:
-    Source: '../../src/lines.rs', lines 584:0-596:1 -/
+    Source: '../../src/lines.rs', lines 623:0-635:1 -/
 def lines.backward
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -383,7 +815,7 @@ def lines.backward
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::snake]:
-    Source: '../../src/lines.rs', lines 831:0-838:1 -/
+    Source: '../../src/lines.rs', lines 870:0-877:1 -/
 def lines.snake
   (a : Slice Std.U32) (b : Slice Std.U32) (x : Std.I32) (y : Std.I32) :
   Result Std.I32
@@ -419,7 +851,7 @@ def lines.snake
         ok (UScalar.hcast .I32 i8)
 
 /-- [difffold_myers_extract::lines::forward_one]:
-    Source: '../../src/lines.rs', lines 564:0-582:1 -/
+    Source: '../../src/lines.rs', lines 603:0-621:1 -/
 def lines.forward_one
   (s : lines.Search) (d : Std.I32) (k : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -485,7 +917,7 @@ def lines.forward_one
     ok (none, { s with vf := s1 }, back)
 
 /-- [difffold_myers_extract::lines::forward_seq]:
-    Source: '../../src/lines.rs', lines 554:0-562:1 -/
+    Source: '../../src/lines.rs', lines 593:0-601:1 -/
 def lines.forward_seq
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -536,7 +968,7 @@ def lines.forward_seq
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::forward]:
-    Source: '../../src/lines.rs', lines 539:0-551:1 -/
+    Source: '../../src/lines.rs', lines 578:0-590:1 -/
 def lines.forward
   (s : lines.Search) (d : Std.I32) (lo : Std.I32) (hi : Std.I32) :
   Result ((Option (Std.Usize × Std.Usize)) × lines.Search × (lines.Search
@@ -600,7 +1032,7 @@ def lines.forward
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::sweep]:
-    Source: '../../src/lines.rs', lines 524:0-534:1 -/
+    Source: '../../src/lines.rs', lines 563:0-573:1 -/
 def lines.sweep
   (s : lines.Search) (d : Std.I32) (max_d : Std.I32) :
   Result ((Std.Usize × Std.Usize) × lines.Search × (lines.Search →
@@ -703,7 +1135,7 @@ def lines.sweep
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::middle]:
-    Source: '../../src/lines.rs', lines 500:0-518:1 -/
+    Source: '../../src/lines.rs', lines 539:0-557:1 -/
 def lines.middle
   (a : Slice Std.U32) (b : Slice Std.U32) (vf : Slice Std.I32)
   (vb : Slice Std.I32) :
@@ -741,7 +1173,7 @@ def lines.middle
   ok (p, (sweep_back s).vf, (sweep_back s).vb)
 
 /-- [difffold_myers_extract::lines::solve]:
-    Source: '../../src/lines.rs', lines 450:0-478:1 -/
+    Source: '../../src/lines.rs', lines 489:0-517:1 -/
 def lines.solve
   (a : Slice Std.U32) (b : Slice Std.U32) (ao : Std.Usize) (bo : Std.Usize)
   (ra : Slice Bool) (rb : Slice Bool) (vf : Slice Std.I32) (vb : Slice Std.I32)
@@ -954,7 +1386,7 @@ def lines.solve
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::scatter_flags]:
-    Source: '../../src/lines.rs', lines 437:0-446:1 -/
+    Source: '../../src/lines.rs', lines 476:0-485:1 -/
 def lines.scatter_flags
   (r : Slice Bool) (pos : Slice Std.Usize) (out : Slice Bool) :
   Result (Slice Bool)
@@ -987,7 +1419,7 @@ def lines.scatter_flags
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::compact_ids]:
-    Source: '../../src/lines.rs', lines 418:0-434:1 -/
+    Source: '../../src/lines.rs', lines 457:0-473:1 -/
 def lines.compact_ids
   (xs : Slice Std.U32) (base : Std.Usize) (other : Slice Bool)
   (keep : alloc.vec.Vec Std.U32) (pos : alloc.vec.Vec Std.Usize)
@@ -1024,7 +1456,7 @@ def lines.compact_ids
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::mark_ids]:
-    Source: '../../src/lines.rs', lines 405:0-414:1 -/
+    Source: '../../src/lines.rs', lines 444:0-453:1 -/
 def lines.mark_ids
   (xs : Slice Std.U32) (flags : Slice Bool) : Result (Slice Bool) := do
   let n := Slice.len xs
@@ -1049,7 +1481,7 @@ def lines.mark_ids
 partial_fixpoint
 
 /-- [difffold_myers_extract::lines::diff_ids]:
-    Source: '../../src/lines.rs', lines 378:0-402:1
+    Source: '../../src/lines.rs', lines 417:0-441:1
     Visibility: public -/
 def lines.diff_ids
   (a : Slice Std.U32) (b : Slice Std.U32) (n_ids : Std.Usize) :
