@@ -63,6 +63,21 @@ theorem length_editOf (keep) (xs : List Nat) (b : Nat) (e : List Bool) :
   | nil => simp [editOf]
   | cons x xs ih => simp only [editOf]; rw [ih]; split <;> simp
 
+theorem mem_posOf (keep) (xs : List Nat) (b : Nat) : ∀ q ∈ posOf keep xs b, b ≤ q ∧ q < b + xs.length := by
+  induction xs generalizing b with
+  | nil => simp [posOf]
+  | cons x xs ih =>
+    intro q hq
+    simp only [posOf] at hq
+    split at hq
+    · rcases List.mem_cons.mp hq with h | h
+      · subst h; simp
+      · have := ih (b + 1) q h; simp; omega
+    · have := ih (b + 1) q hq; simp; omega
+
+theorem splice_full (l d : List Bool) (h : d.length = l.length) : splice l 0 d = d := by
+  unfold splice; simp [h]
+
 theorem length_posOf (keep) (xs : List Nat) (b : Nat) : (posOf keep xs b).length = (xs.filter keep).length := by
   induction xs generalizing b with
   | nil => simp [posOf]

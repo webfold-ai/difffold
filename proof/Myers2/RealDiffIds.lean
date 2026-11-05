@@ -123,6 +123,68 @@ theorem diff_ids_spec (a b : Slice U32) (n_ids : Usize) (A B : List Nat)
     as ⟨cb, pb, s11, d1, d2, d3⟩
   step as ⟨ra, hra, hral⟩
   step as ⟨rb, hrb, hrbl⟩
+  have hcav : vals ca.val = (vals am.val).filter (fun x => decide (x ∈ B1)) := by
+    rw [c1]; simp [vals]
+  have hcbv : vals cb.val = (vals bm.val).filter (fun x => decide (x ∈ A1)) := by
+    rw [d1]; simp [vals]
+  have hcaL : ca.val.length ≤ am.val.length := by
+    have := congrArg List.length hcav
+    rw [vals_len] at this
+    rw [this]; exact List.length_filter_le _ _ |>.trans (by simp [vals_len])
+  have hcbL : cb.val.length ≤ bm.val.length := by
+    have := congrArg List.length hcbv
+    rw [vals_len] at this
+    rw [this]; exact List.length_filter_le _ _ |>.trans (by simp [vals_len])
+  have hcalen : ca.len.val = ca.val.length := by simp [alloc.vec.Vec.len]
+  have hcblen : cb.len.val = cb.val.length := by simp [alloc.vec.Vec.len]
+  have hnc32 : core.clone.CloneI32.clone 0#i32 = ok 0#i32 := rfl
+  step as ⟨i10, hi10⟩
+  step as ⟨i11, hi11⟩
+  step as ⟨size, hsize⟩
+  step as ⟨vf, hvf, hvfl⟩
+  step as ⟨s14, back5, hdm5⟩
+  step as ⟨s15, back6, hdm6⟩
+  step as ⟨s16, b7, hdm7⟩
+  step as ⟨s17, b8, hdm8⟩
+  have hs14 : s14 = ra.slice := (Prod.mk.inj hdm5).1
+  have hs15 : s15 = rb.slice := (Prod.mk.inj hdm6).1
+  have hs16 : s16 = vf.slice := (Prod.mk.inj hdm7).1
+  have hs17 : s17 = vf.slice := (Prod.mk.inj hdm8).1
+  have hb5 : back5 = fun s => ({ slice := s } : alloc.vec.Vec Bool) := (Prod.mk.inj hdm5).2
+  have hb6 : back6 = fun s => ({ slice := s } : alloc.vec.Vec Bool) := (Prod.mk.inj hdm6).2
+  have hs14v : s14.val = List.replicate ca.val.length false := by
+    rw [hs14]; show ra.val = _; rw [hra, hcalen]
+  have hs15v : s15.val = List.replicate cb.val.length false := by
+    rw [hs15]; show rb.val = _; rw [hrb, hcblen]
+  have hsizev : size.val = 2 * (ca.val.length + cb.val.length) + 3 := by
+    rw [hsize, hi11, hi10, hcalen, hcblen]
+  have hs16l : s16.val.length = 2 * (ca.val.length + cb.val.length) + 3 := by
+    rw [hs16]; show vf.val.length = _; rw [hvf]; simp [hsizev]
+  have hs17l : s17.val.length = 2 * (ca.val.length + cb.val.length) + 3 := by
+    rw [hs17]; show vf.val.length = _; rw [hvf]; simp [hsizev]
+  have hderCa : (alloc.vec.Vec.deref ca).val = ca.val := by simp [alloc.vec.Vec.deref, alloc.vec.Vec.val]
+  have hderCb : (alloc.vec.Vec.deref cb).val = cb.val := by simp [alloc.vec.Vec.deref, alloc.vec.Vec.val]
+  have hcalN : (vals ca.val).length = ca.val.length := vals_len _
+  have hcbN : (vals cb.val).length = cb.val.length := vals_len _
+  have hNM2 : (vals ca.val).length + (vals cb.val).length ≤ NMAX := by
+    have : NMAX = 268435456 := by decide
+    rw [this, hcalN, hcbN]; omega
+  step with (solve_spec _ (alloc.vec.Vec.deref ca) (alloc.vec.Vec.deref cb) (vals ca.val) (vals cb.val)
+    0#usize 0#usize s14 s15 s16 s17 rfl (by rw [hderCa]) (by rw [hderCb]) hNM2
+    (by rw [hs14v]; simp; omega) (by rw [hs15v]; simp; omega)
+    (by intro j hj; rw [hs14v]; simp [List.getElem?_replicate]; omega)
+    (by intro j hj; rw [hs15v]; simp [List.getElem?_replicate]; omega)
+    (by rw [hs16l, hcalN, hcbN]) (by rw [hs17l, hcalN, hcbN])) as ⟨s18, s19, vf2, vb2, hsol⟩
+  obtain ⟨da, di, hS, hra', hrb', _, _⟩ := hsol
+  have hdl := Myers.Solve.lens hS
+  have h0u : (0#usize).val = 0 := rfl
+  rw [h0u] at hra' hrb'
+  have hs18 : s18.val = da := by
+    rw [hra', hs14v, Myers.splice_full _ _ (by simp [hdl.1, hcalN])]
+  have hs19 : s19.val = di := by
+    rw [hrb', hs15v, Myers.splice_full _ _ (by simp [hdl.2, hcbN])]
+  step as ⟨s22, back9, hdm9⟩
+  step as ⟨s26, back10, hdm10⟩
   trace_state
   sorry
 
