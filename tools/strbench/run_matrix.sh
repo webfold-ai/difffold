@@ -16,7 +16,7 @@ ERR="$OUT.stderr"
 
 LENS=${STRB_LENS:-"16 100 1000 10000 100000"}
 ALPHS="2 4 256 sparse"
-TOOLS="edlib wfa rapidfuzz"
+TOOLS="edlib wfa rapidfuzz difffold"
 BOUNDED_REGIMES="d<k d==k d==k+1 d>>k tiny-prefix-suffix unrelated"
 EXACT_REGIMES="tiny-prefix-suffix d=16 unrelated"
 KS="1 2 4 8 32 128"

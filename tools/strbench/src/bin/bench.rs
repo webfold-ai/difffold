@@ -1,7 +1,7 @@
 //! Runs one tool on one matrix cell and prints one TSV line.
 //!
 //! Usage:
-//! `bench --job exact|bounded --tool edlib|wfa|rapidfuzz --len N --alphabet 2|4|256|sparse
+//! `bench --job exact|bounded --tool edlib|wfa|rapidfuzz|difffold --len N --alphabet 2|4|256|sparse
 //!        --regime <name> [--k K] [--pairs P] [--reps R] [--seed S]`
 //!
 //! Each pair is checked against an independent oracle before timing. Pairs where the tool
@@ -12,8 +12,8 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use strbench::{
-    alphabet, edlib, edlib_bytes, make_pair, oracle_bounded, oracle_exact, random_seq, rapidfuzz,
-    wfa, wfa_bytes, Answer, Regime, Rng,
+    alphabet, difffold, edlib, edlib_bytes, make_pair, oracle_bounded, oracle_exact, random_seq,
+    rapidfuzz, wfa, wfa_bytes, Answer, Regime, Rng,
 };
 
 /// Work budget, in DP cells, for the exact-distance oracle before falling back to consensus.
@@ -24,6 +24,7 @@ enum Tool {
     Edlib,
     Wfa,
     RapidFuzz,
+    Difffold,
 }
 
 impl Tool {
@@ -32,6 +33,7 @@ impl Tool {
             "edlib" => Tool::Edlib,
             "wfa" => Tool::Wfa,
             "rapidfuzz" => Tool::RapidFuzz,
+            "difffold" => Tool::Difffold,
             other => panic!("unknown tool {other}"),
         }
     }
@@ -40,6 +42,7 @@ impl Tool {
             Tool::Edlib => "edlib",
             Tool::Wfa => "wfa",
             Tool::RapidFuzz => "rapidfuzz",
+            Tool::Difffold => "difffold",
         }
     }
 }
@@ -140,6 +143,7 @@ fn call(tool: Tool, p: &Pair, k: Option<usize>) -> Answer {
             wfa(a, b, k)
         }
         Tool::RapidFuzz => rapidfuzz(&p.a, &p.b, k),
+        Tool::Difffold => difffold(&p.a, &p.b, k),
     }
 }
 
@@ -277,13 +281,13 @@ fn main() {
     let supported = match o.tool {
         Tool::Edlib => pairs.iter().all(|p| p.edlib.is_some()),
         Tool::Wfa => pairs.iter().all(|p| p.wfa.is_some()),
-        Tool::RapidFuzz => true,
+        Tool::RapidFuzz | Tool::Difffold => true,
     };
     if !supported {
         let why = match o.tool {
 			Tool::Edlib => "unsupported: symbols must be below 256 (byte strings)",
 			Tool::Wfa => "unsupported: WFA2-lib reserves '!' and '?' as end sentinels, so only 253 byte symbols are usable",
-			Tool::RapidFuzz => unreachable!(),
+			Tool::RapidFuzz | Tool::Difffold => unreachable!(),
 		};
         skip(&o, "unsupported", why);
     }

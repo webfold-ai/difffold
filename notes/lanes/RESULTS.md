@@ -4,6 +4,9 @@ Machine: shared cloud VM, single run unless stated. Corpus: OmniDiff's `src/test
 before/after pairs; Java, Go, C, Rust, Python, JS/TS, JSON, XML and others). Tags follow
 `drafts/PAPER_STYLE.md`: measured, implemented, not run.
 
+Unit-cost Levenshtein against Edlib, RapidFuzz, WFA2-lib and the difffold kernel, on integer token
+sequences: [string baselines](STRING-BASELINES.md) (measured).
+
 ## Lane 1: lossless line text (exact objective)  [measured]
 In-process, raw bytes to edit script, median of 15 repetitions, 2,302 pairs.
 

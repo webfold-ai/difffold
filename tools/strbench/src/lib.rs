@@ -8,6 +8,8 @@
 //!   score-only computation. It also takes byte strings.
 //! * [`rapidfuzz`] wraps the `rapidfuzz` crate's Levenshtein distance with uniform
 //!   weights (1, 1, 1). It accepts any hashable slice, including sparse `u32` symbols.
+//! * [`difffold`] calls difffold's kernel from `src/levenshtein.rs`, compiled from the
+//!   repository. It accepts any `Eq` token type, so sparse `u32` ids are supported.
 //!
 //! The oracles here are independent of all three libraries. [`oracle_full`] is the
 //! two-row Wagner-Fischer dynamic program and [`oracle_bounded`] is a banded version
@@ -56,6 +58,24 @@ pub fn rapidfuzz(a: &[u32], b: &[u32], k: Option<usize>) -> Answer {
             let args = levenshtein::Args::default().score_cutoff(k);
             match levenshtein::distance_with_args(a, b, &args) {
                 Some(d) => Answer::Dist(d),
+                None => Answer::Exceeds,
+            }
+        }
+    }
+}
+
+/// The difffold kernel, included from the repository source so the harness times the same code.
+#[path = "../../../src/levenshtein.rs"]
+pub mod difffold_levenshtein;
+
+/// difffold exact distance, found by threshold doubling inside the kernel.
+pub fn difffold(a: &[u32], b: &[u32], k: Option<usize>) -> Answer {
+    match k {
+        None => Answer::Dist(difffold_levenshtein::levenshtein(a, b) as usize),
+        Some(k) => {
+            let limit = u32::try_from(k).expect("bound fits in u32");
+            match difffold_levenshtein::levenshtein_within_u32(a, b, limit) {
+                Some(d) => Answer::Dist(d as usize),
                 None => Answer::Exceeds,
             }
         }

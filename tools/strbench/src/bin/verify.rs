@@ -5,7 +5,8 @@
 use std::process::ExitCode;
 
 use strbench::{
-    alphabet, edlib, edlib_bytes, oracle_full, random_seq, rapidfuzz, wfa, wfa_bytes, Answer, Rng,
+    alphabet, difffold, edlib, edlib_bytes, oracle_full, random_seq, rapidfuzz, wfa, wfa_bytes,
+    Answer, Rng,
 };
 
 /// One adapter under test, called with an optional bound.
@@ -48,6 +49,21 @@ fn main() -> ExitCode {
         if rf != Answer::Dist(want) {
             failures += 1;
             eprintln!("rapidfuzz exact n={n} m={m} got={rf:?} want={want} a={a:?} b={b:?}");
+        }
+        let got = difffold(&a, &b, None);
+        checked += 1;
+        if got != Answer::Dist(want) {
+            failures += 1;
+            eprintln!("difffold exact n={n} m={m} got={got:?} want={want} a={a:?} b={b:?}");
+        }
+        for &k in &ks {
+            let want_b = expect_bounded(want, k);
+            let got = difffold(&a, &b, Some(k));
+            checked += 1;
+            if got != want_b {
+                failures += 1;
+                eprintln!("difffold k={k} n={n} m={m} got={got:?} want={want_b:?}");
+            }
         }
         for &k in &ks {
             let want_b = expect_bounded(want, k);

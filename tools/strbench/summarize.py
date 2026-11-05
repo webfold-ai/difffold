@@ -9,8 +9,8 @@ import csv
 import sys
 from collections import defaultdict
 
-TOOLS = ["edlib", "wfa", "rapidfuzz"]
-SHORT = {"edlib": "Edlib", "wfa": "WFA2", "rapidfuzz": "RapidFuzz"}
+TOOLS = ["edlib", "wfa", "rapidfuzz", "difffold"]
+SHORT = {"edlib": "Edlib", "wfa": "WFA2", "rapidfuzz": "RapidFuzz", "difffold": "difffold"}
 ALPHS = ["2", "4", "256", "sparse-u32"]
 
 
@@ -45,8 +45,8 @@ def main():
         grid[(r["job"], r["regime"], r["len"], r["alphabet"], r["k"])][r["tool"]] = r
 
     print("## Exact distance (job a)\n")
-    print("| regime | len | alphabet | winner (median us/pair, runner-up ratio) | Edlib | WFA2 | RapidFuzz |")
-    print("|---|---|---|---|---|---|---|")
+    print("| regime | len | alphabet | winner (median us/pair, runner-up ratio) | Edlib | WFA2 | RapidFuzz | difffold |")
+    print("|---|---|---|---|---|---|---|---|")
     exact_keys = sorted(
         {(k[1], k[2], k[3]) for k in grid if k[0] == "exact"},
         key=lambda x: (x[0], int(x[1]), x[2]),

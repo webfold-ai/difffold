@@ -1,8 +1,8 @@
 //! Checks the three library adapters and the bounded oracle against the full dynamic program.
 
 use strbench::{
-    alphabet, edlib, edlib_bytes, oracle_bounded, oracle_full, random_seq, rapidfuzz, wfa,
-    wfa_bytes, Answer, Rng,
+    alphabet, difffold, edlib, edlib_bytes, oracle_bounded, oracle_full, random_seq, rapidfuzz,
+    wfa, wfa_bytes, Answer, Rng,
 };
 
 fn expected(d: usize, k: usize) -> Answer {
@@ -64,6 +64,10 @@ fn adapters_match_full_dp_on_dense_and_sparse_symbols() {
                 expected(d, k),
                 "rapidfuzz k={k}"
             );
+        }
+        assert_eq!(difffold(&a, &b, None), Answer::Dist(d));
+        for k in [0usize, 1, 4, 32] {
+            assert_eq!(difffold(&a, &b, Some(k)), expected(d, k), "difffold k={k}");
         }
     }
 }
