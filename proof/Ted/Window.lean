@@ -837,4 +837,127 @@ theorem fill_rows_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : C
       exact ⟨h3, h8, h6, h9⟩
   · exact ⟨hp1, hp2, rfl, rfl, hR, hT, hFB, hTB, hFr⟩
 
+
+theorem cast_u32_usize (q : Std.Usize) (h : q.val < 2 ^ 32) : (UScalar.cast .U32 q).val = q.val := by
+  rw [UScalar.cast_val_eq]
+  simp only [UScalarTy.numBits]
+  exact Nat.mod_eq_of_lt h
+
+/-- The first row of the window table: the cell `(0, q)` holds `q`. -/
+theorem fill_row0_spec (t w lim_q : Std.Usize) (fd : Slice Std.U32) (q : Std.Usize) (T W : Nat)
+    (hq : q.val = 1) (ht : t.val = T) (hw : w.val = W) (hW : W = 2 * T + 1) (hlim : lim_q.val ≤ T)
+    (hlen : W ≤ fd.val.length) (hbig : W < 2 ^ 32) (hb : Ctx.FdB fd.val (T + 1)) :
+    ted.fill_window_loop0 fd t w lim_q q ⦃ r =>
+      r.1.val.length = fd.val.length ∧ Ctx.FdB r.1.val (T + 1) ∧
+      (∀ k, 1 ≤ k → k ≤ lim_q.val → rd r.1.val W T (T + 1) 0 k = k) ∧
+      (∀ x y, ¬ (x = 0 ∧ 1 ≤ y ∧ y ≤ lim_q.val) → rd r.1.val W T (T + 1) x y = rd fd.val W T (T + 1) x y) ⦄ := by
+  unfold ted.fill_window_loop0
+  apply loop.spec_decr_nat
+    (measure := fun s => lim_q.val + 1 - s.2.val)
+    (inv := fun s => 1 ≤ s.2.val ∧ s.2.val ≤ lim_q.val + 1 ∧ s.1.val.length = fd.val.length ∧
+      Ctx.FdB s.1.val (T + 1) ∧ (∀ k, 1 ≤ k → k < s.2.val → rd s.1.val W T (T + 1) 0 k = k) ∧
+      (∀ x y, ¬ (x = 0 ∧ 1 ≤ y ∧ y < s.2.val) → rd s.1.val W T (T + 1) x y = rd fd.val W T (T + 1) x y))
+  · intro s hs
+    obtain ⟨fd1, q1⟩ := s
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hs
+    dsimp only at h1 h2 h3 h4 h5 h6 ⊢
+    unfold ted.fill_window_loop0.body
+    by_cases hqq : q1 ≤ lim_q
+    · rw [if_pos hqq]
+      have hq1 : q1.val ≤ lim_q.val := hqq
+      have hband : InBand T 0 q1.val := by unfold InBand; omega
+      have hlt := bandIdx_lt W T 0 q1.val hW hband
+      have hbi : bandIdx W T 0 q1.val = q1.val + T := by unfold bandIdx; omega
+      have hwt : w.val = 2 * t.val + 1 := by rw [hw, ht]; exact hW
+      have hq32 : q1.val < 2 ^ 32 := by omega
+      have hidx : bandIdx W T 0 q1.val < fd1.val.length := by rw [h3]; omega
+      step as ⟨i, hi⟩
+      step as ⟨i1, hi1⟩
+      step as ⟨s, hs⟩
+      step as ⟨q2, hq2⟩
+      have hi1v : i1.val = q1.val := by rw [hi1]; exact cast_u32_usize q1 hq32
+      have hiv : i.val = bandIdx W T 0 q1.val := by rw [hi, hw, ht]
+      have hsv : s.val = fd1.val.set (bandIdx W T 0 q1.val) i1 := by
+        rw [hs, Slice.set_val_eq, hiv]
+      refine ⟨by omega, by omega, ?_, ?_, ?_, ?_, by omega⟩
+      · rw [hsv]; simp [h3]
+      · rw [hsv]; exact Ctx.FdB_set h4 _ _ (by omega)
+      · intro k hk1 hk2
+        by_cases e : k = q1.val
+        · subst e; rw [hsv, rd_set_eq _ _ _ _ _ _ _ hband hidx, hi1v]
+        · rw [hsv, rd_set_ne _ _ _ _ _ _ _ _ _ hW hband (fun h => e h.2.symm)]
+          exact h5 k hk1 (by omega)
+      · intro x y hn
+        rw [hsv, rd_set_ne _ _ _ _ _ _ _ _ _ hW hband (fun h => hn ⟨h.1.symm, by omega, by omega⟩)]
+        exact h6 x y (fun h => hn ⟨h.1, h.2.1, by omega⟩)
+    · rw [if_neg hqq]
+      simp only [WP.spec_ok]
+      have : q1.val = lim_q.val + 1 := by have : ¬ q1.val ≤ lim_q.val := hqq; omega
+      rw [this] at h5 h6
+      refine ⟨h3, h4, fun k hk1 hk2 => h5 k hk1 (by omega), fun x y hn => h6 x y (by intro h; exact hn ⟨h.1, h.2.1, by omega⟩)⟩
+  · refine ⟨by show 1 ≤ q.val; omega, by show q.val ≤ lim_q.val + 1; omega, rfl, hb, ?_, ?_⟩
+    · intro k hk1 hk2; exfalso; have : k < q.val := hk2; omega
+    · intro x y _; rfl
+
+/-- The first column of the window table: the cell `(p, 0)` holds `p`. -/
+theorem fill_col0_spec (t w lim_p : Std.Usize) (fd : Slice Std.U32) (q : Std.Usize) (T W : Nat)
+    (hq : q.val = 1) (ht : t.val = T) (hw : w.val = W) (hW : W = 2 * T + 1) (hlim : lim_p.val ≤ T)
+    (hlen : (lim_p.val + 1) * W ≤ fd.val.length) (hbig : (lim_p.val + 1) * W < 2 ^ 32) (hb : Ctx.FdB fd.val (T + 1)) :
+    ted.fill_window_loop1 fd t w lim_p q ⦃ r =>
+      r.val.length = fd.val.length ∧ Ctx.FdB r.val (T + 1) ∧
+      (∀ k, 1 ≤ k → k ≤ lim_p.val → rd r.val W T (T + 1) k 0 = k) ∧
+      (∀ x y, ¬ (y = 0 ∧ 1 ≤ x ∧ x ≤ lim_p.val) → rd r.val W T (T + 1) x y = rd fd.val W T (T + 1) x y) ⦄ := by
+  unfold ted.fill_window_loop1
+  apply loop.spec_decr_nat
+    (measure := fun s => lim_p.val + 1 - s.2.val)
+    (inv := fun s => 1 ≤ s.2.val ∧ s.2.val ≤ lim_p.val + 1 ∧ s.1.val.length = fd.val.length ∧
+      Ctx.FdB s.1.val (T + 1) ∧ (∀ k, 1 ≤ k → k < s.2.val → rd s.1.val W T (T + 1) k 0 = k) ∧
+      (∀ x y, ¬ (y = 0 ∧ 1 ≤ x ∧ x < s.2.val) → rd s.1.val W T (T + 1) x y = rd fd.val W T (T + 1) x y))
+  · intro s hs
+    obtain ⟨fd1, q1⟩ := s
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hs
+    dsimp only at h1 h2 h3 h4 h5 h6 ⊢
+    unfold ted.fill_window_loop1.body
+    by_cases hqq : q1 ≤ lim_p
+    · rw [if_pos hqq]
+      have hq1 : q1.val ≤ lim_p.val := hqq
+      have hband : InBand T q1.val 0 := by unfold InBand; omega
+      have hlt := bandIdx_lt W T q1.val 0 hW hband
+      have hmul : (q1.val + 1) * W ≤ (lim_p.val + 1) * W := Nat.mul_le_mul_right _ (by omega)
+      have hwt : w.val = 2 * t.val + 1 := by rw [hw, ht]; exact hW
+      have hq32 : q1.val < 2 ^ 32 := by
+        have := Nat.le_mul_of_pos_right (lim_p.val + 1) (show 0 < W by omega)
+        omega
+      have hidx : bandIdx W T q1.val 0 < fd1.val.length := by rw [h3]; omega
+      have hexp : (q1.val + 1) * W = q1.val * W + W := by ring
+      have htot : q1.val * W + (0 + T - q1.val) < 2 ^ 32 := by
+        have := hlt; unfold bandIdx at this; omega
+      step as ⟨i, hi⟩
+      have hiv : i.val = bandIdx W T q1.val 0 := by rw [hi, hw, ht]
+      step as ⟨i1, hi1⟩
+      step as ⟨s, hs⟩
+      step as ⟨q2, hq2⟩
+      have hi1v : i1.val = q1.val := by rw [hi1]; exact cast_u32_usize q1 hq32
+      have hsv : s.val = fd1.val.set (bandIdx W T q1.val 0) i1 := by
+        rw [hs, Slice.set_val_eq, hiv]
+      refine ⟨by omega, by omega, ?_, ?_, ?_, ?_, by omega⟩
+      · rw [hsv]; simp [h3]
+      · rw [hsv]; exact Ctx.FdB_set h4 _ _ (by omega)
+      · intro k hk1 hk2
+        by_cases e : k = q1.val
+        · subst e; rw [hsv, rd_set_eq _ _ _ _ _ _ _ hband hidx, hi1v]
+        · rw [hsv, rd_set_ne _ _ _ _ _ _ _ _ _ hW hband (fun h => e h.1.symm)]
+          exact h5 k hk1 (by omega)
+      · intro x y hn
+        rw [hsv, rd_set_ne _ _ _ _ _ _ _ _ _ hW hband (fun h => hn ⟨h.2.symm, by omega, by omega⟩)]
+        exact h6 x y (fun h => hn ⟨h.1, h.2.1, by omega⟩)
+    · rw [if_neg hqq]
+      simp only [WP.spec_ok]
+      have : q1.val = lim_p.val + 1 := by have : ¬ q1.val ≤ lim_p.val := hqq; omega
+      rw [this] at h5 h6
+      refine ⟨h3, h4, fun k hk1 hk2 => h5 k hk1 (by omega), fun x y hn => h6 x y (by intro h; exact hn ⟨h.1, h.2.1, by omega⟩)⟩
+  · refine ⟨by show 1 ≤ q.val; omega, by show q.val ≤ lim_p.val + 1; omega, rfl, hb, ?_, ?_⟩
+    · intro k hk1 hk2; exfalso; have : k < q.val := hk2; omega
+    · intro x y _; rfl
+
 end difffold_lines_extract
