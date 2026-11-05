@@ -118,4 +118,15 @@ theorem solsOf_exists {la lb : Nat → Nat} {ren : Nat → Nat → Nat} (hA : Wf
       (fun u h1 h2 => hA.2 w.1 u h1 h2) (fun u h1 h2 => hB.2 w.2 u h1 h2) rfl
     exact ⟨MS ++ M, SolsOf.snoc hMS ⟨hv, hr, hc⟩⟩
 
+theorem ssum_append (la lb : Nat → Nat) (L : List (Nat × Nat)) (w : Nat × Nat) :
+    ssum la lb (L ++ [w]) = ssum la lb L + ((w.1 - la w.1 + 1) + (w.2 - lb w.2 + 1)) := by
+  unfold ssum
+  simp [List.map_append, List.sum_append]
+
+theorem ssum_ge (la lb : Nat → Nat) (L : List (Nat × Nat)) : 2 * L.length ≤ ssum la lb L := by
+  unfold ssum
+  induction L with
+  | nil => simp
+  | cons w r ih => simp only [List.map_cons, List.sum_cons, List.length_cons]; omega
+
 end difffold_lines_extract

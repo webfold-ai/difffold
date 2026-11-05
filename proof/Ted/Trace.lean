@@ -207,7 +207,8 @@ theorem push_slot_spec (stack_i stack_j : alloc.vec.Vec Std.Usize) (top x y : St
       r.1.length = r.2.length ∧ top.val + 1 ≤ r.1.length ∧
       (∀ k < top.val, r.1.val[k]! = stack_i.val[k]! ∧ r.2.val[k]! = stack_j.val[k]!) ∧
       (r.1.val[top.val]!).val = x.val ∧ (r.2.val[top.val]!).val = y.val ∧
-      (stack_i.length ≤ r.1.length ∧ r.1.length ≤ stack_i.length + 1) ⦄ := by
+      (stack_i.length ≤ r.1.length ∧ r.1.length ≤ stack_i.length + 1) ∧
+      (stack_i.length < r.1.length → top.val = stack_i.length) ⦄ := by
   unfold ted.push_slot
   have hlen := alloc.vec.Vec.len_val stack_i
   have hl' : stack_i.val.length = stack_j.val.length := hl
@@ -220,7 +221,7 @@ theorem push_slot_spec (stack_i stack_j : alloc.vec.Vec Std.Usize) (top x y : St
     step as ⟨sj, hsj⟩
     have e1 : si.val = stack_i.val ++ [x] := hsi
     have e2 : sj.val = stack_j.val ++ [y] := hsj
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · show si.val.length = sj.val.length
       rw [e1, e2, List.length_append, List.length_append, List.length_singleton, List.length_singleton]; omega
     · show top.val + 1 ≤ si.val.length
@@ -234,8 +235,11 @@ theorem push_slot_spec (stack_i stack_j : alloc.vec.Vec Std.Usize) (top x y : St
       · rw [getG_eq _ _ (by rw [List.length_append]; simp; omega), getG_eq _ _ hk2, List.getElem_append_left hk2]
     · rw [e1, getG_snoc _ _ _ htop]
     · rw [e2, getG_snoc _ _ _ (by omega)]
-    · show stack_i.val.length ≤ si.val.length ∧ si.val.length ≤ stack_i.val.length + 1
+    · show stack_i.val.length ≤ si.val.length
       rw [e1, List.length_append, List.length_singleton]; omega
+    · show si.val.length ≤ stack_i.val.length + 1
+      rw [e1, List.length_append, List.length_singleton]
+    · intro _; exact htop
   · rw [if_neg h]
     have htop : top.val < stack_i.val.length := by
       have : top.val ≠ (alloc.vec.Vec.len stack_i).val := fun e => h (UScalar.eq_of_val_eq e)
@@ -245,7 +249,7 @@ theorem push_slot_spec (stack_i stack_j : alloc.vec.Vec Std.Usize) (top x y : St
     step as ⟨old2, imb2, ho2, himb2⟩
     have e1 : (imb x).val = stack_i.val.set top.val x := by rw [himb, alloc.vec.Vec.set_val_eq]
     have e2 : (imb2 y).val = stack_j.val.set top.val y := by rw [himb2, alloc.vec.Vec.set_val_eq]
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · show (imb x).val.length = (imb2 y).val.length
       rw [e1, e2, List.length_set, List.length_set]; exact hl'
     · show top.val + 1 ≤ (imb x).val.length
@@ -255,7 +259,13 @@ theorem push_slot_spec (stack_i stack_j : alloc.vec.Vec Std.Usize) (top x y : St
       exact ⟨getG_set_ne _ _ _ _ (by omega), getG_set_ne _ _ _ _ (by omega)⟩
     · rw [e1, getG_set_eq _ _ _ htop]
     · rw [e2, getG_set_eq _ _ _ (by omega)]
-    · show stack_i.val.length ≤ (imb x).val.length ∧ (imb x).val.length ≤ stack_i.val.length + 1
+    · show stack_i.val.length ≤ (imb x).val.length
+      rw [e1, List.length_set]
+    · show (imb x).val.length ≤ stack_i.val.length + 1
       rw [e1, List.length_set]; omega
+    · intro hlt
+      have hlt' : stack_i.val.length < (imb x).val.length := hlt
+      rw [e1, List.length_set] at hlt'
+      omega
 
 end difffold_lines_extract
