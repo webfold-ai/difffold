@@ -141,6 +141,21 @@ fn nl_mask(w: u64) -> u64 {
     !(((x & LOW7) + LOW7) | x | LOW7)
 }
 
+/// Number of set marks of a `nl_mask` word: its bits are 0 or 1 at bit 7 of each byte, so the product
+/// sums the eight marks into the top byte.
+fn newline_count(m: u64) -> usize {
+    ((m >> 7).wrapping_mul(0x0101_0101_0101_0101) >> 56) as usize
+}
+
+/// Index of the lowest nonzero byte of a nonzero word, by shifting a byte at a time.
+fn lowest_byte(m: u64, k: usize) -> usize {
+    if m & 0xFF != 0 || k >= 7 {
+        k
+    } else {
+        lowest_byte(m >> 8, k + 1)
+    }
+}
+
 /// Load up to eight bytes as a word; missing high bytes are zero, which never equals a newline.
 fn word(t: &[u8]) -> u64 {
     match t.len() {
@@ -155,7 +170,7 @@ fn count_block(t: &[u8]) -> usize {
     if t.is_empty() {
         0
     } else {
-        nl_mask(word(t)).count_ones() as usize + count_block(&t[t.len().min(8)..])
+        newline_count(nl_mask(word(t))) + count_block(&t[t.len().min(8)..])
     }
 }
 
@@ -208,7 +223,7 @@ fn first_in_block(t: &[u8], at: usize) -> Option<usize> {
     } else {
         let m = nl_mask(word(&t[at..]));
         if m != 0 {
-            Some(at + (m.trailing_zeros() / 8) as usize)
+            Some(at + lowest_byte(m, 0))
         } else {
             first_in_block(t, at + 8)
         }
@@ -220,7 +235,13 @@ fn first_nl(t: &[u8]) -> Option<usize> {
     if t.len() <= 64 {
         first_in_block(t, 0)
     } else {
-        first_nl(&t[..t.len() / 2]).or_else(|| first_nl(&t[t.len() / 2..]).map(|i| i + t.len() / 2))
+        match first_nl(&t[..t.len() / 2]) {
+            Some(i) => Some(i),
+            None => match first_nl(&t[t.len() / 2..]) {
+                Some(i) => Some(i + t.len() / 2),
+                None => None,
+            },
+        }
     }
 }
 
