@@ -31,7 +31,7 @@ theorem forward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.len
   · rename_i hc
     simp only [Aeneas.Std.WP.spec_ok]
     rw [gt_iff_lt, IScalar.lt_equiv] at hc
-    refine ⟨SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro j _; rfl
@@ -48,7 +48,7 @@ theorem forward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.len
       rw [IScalar.le_equiv, DIAG_val] at hsm
       step with (forward_seq_spec A B dn hdle (hi.val - lo.val).toNat.succ s d lo hi hd (by omega) (by
           intro _; exact ⟨hl1, hl2, hh⟩) hinv hf hb) as ⟨o, s1, bk, hp⟩
-      exact hp
+      exact ⟨fun t => ⟨(hp.1 t).1, (hp.1 t).2⟩, hp.2⟩
     · rename_i hbig
       rw [IScalar.le_equiv, DIAG_val] at hbig
       step as ⟨i1, hi1⟩
@@ -70,7 +70,7 @@ theorem forward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.len
         fun _ => ⟨hl1, hl2, by omega⟩
       step with (ih ((mid.val - lo.val).toNat + 1) (by omega) s d lo mid hd (by omega) hrl hinv hf hb)
         as ⟨o, s1, bk, hp1⟩
-      obtain ⟨hsh1, hvb1, hlen1, hp1'⟩ := hp1
+      obtain ⟨hbid1, hsh1, hvb1, hlen1, hp1'⟩ := hp1
       rcases hp1' with ⟨hno, hnf, hw, hfr⟩ | ⟨k, p, q, hk, hso, hfh, hpv, hqv, hmin⟩
       · subst hno
         simp only []
@@ -88,10 +88,10 @@ theorem forward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.len
         have hi4v : i4.val = mid.val + 2 := hi4
         step with (ih ((hi.val - (mid.val + 2)).toNat + 1) (by omega) s1 d i4 hi hd (by omega)
           (by intro _; exact ⟨by omega, by omega, hh⟩) hinv1 hf1 hb1) as ⟨o2, s2, bk2, hp2⟩
-        obtain ⟨hsh2, hvb2, hlen2, hp2'⟩ := hp2
+        obtain ⟨hbid2, hsh2, hvb2, hlen2, hp2'⟩ := hp2
         have hoff1 : s1.off.val = s.off.val := by rw [hin1]
         rw [hoff1, hi4v] at hp2'
-        refine ⟨hsh1.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
+        refine ⟨fun t => ⟨by show (bk _).vf = t.vf; rw [(hbid1 _).1]; exact (hbid2 t).1, by show (bk _).vb = t.vb; rw [(hbid1 _).2]; exact (hbid2 t).2⟩, hsh1.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
         rcases hp2' with ⟨h0, h1, h2, h3⟩ | ⟨k, p, q, hk, h0, h1, h2, h3, h4⟩
         · left
           refine ⟨h0, ?_, ?_, ?_⟩
@@ -120,7 +120,7 @@ theorem forward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.len
             · exact h4 k' hk'' hlt⟩
       · subst hso
         simp only [Aeneas.Std.WP.spec_ok]
-        refine ⟨hsh1, hvb1, hlen1, Or.inr ⟨k, p, q, inr_left hk (by omega), rfl, hfh, hpv, hqv, ?_⟩⟩
+        refine ⟨fun t => ⟨(hbid1 t).1, (hbid1 t).2⟩, hsh1, hvb1, hlen1, Or.inr ⟨k, p, q, inr_left hk (by omega), rfl, hfh, hpv, hqv, ?_⟩⟩
         intro k' hk' hlt
         apply hmin k' _ hlt
         obtain ⟨a, b, c⟩ := hk'
@@ -143,7 +143,7 @@ theorem backward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.le
   · rename_i hc
     simp only [Aeneas.Std.WP.spec_ok]
     rw [gt_iff_lt, IScalar.lt_equiv] at hc
-    refine ⟨SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro j _; rfl
@@ -160,7 +160,7 @@ theorem backward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.le
       rw [IScalar.le_equiv, DIAG_val] at hsm
       step with (backward_seq_spec A B dn hdle (hi.val - lo.val).toNat.succ s d lo hi hd (by omega) (by
           intro _; exact ⟨hl1, hl2, hh⟩) hinv hfd hb) as ⟨o, s1, bk, hp⟩
-      exact hp
+      exact ⟨fun t => ⟨(hp.1 t).1, (hp.1 t).2⟩, hp.2⟩
     · rename_i hbig
       rw [IScalar.le_equiv, DIAG_val] at hbig
       step as ⟨i1, hi1⟩
@@ -182,7 +182,7 @@ theorem backward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.le
         fun _ => ⟨hl1, hl2, by omega⟩
       step with (ih ((mid.val - lo.val).toNat + 1) (by omega) s d lo mid hd (by omega) hrl hinv hfd hb)
         as ⟨o, s1, bk, hp1⟩
-      obtain ⟨hsh1, hvb1, hlen1, hp1'⟩ := hp1
+      obtain ⟨hbid1, hsh1, hvb1, hlen1, hp1'⟩ := hp1
       rcases hp1' with ⟨hno, hnf, hw, hfr⟩ | ⟨k, p, q, hk, hso, hfh, hpv, hqv, hmin⟩
       · subst hno
         simp only []
@@ -201,10 +201,10 @@ theorem backward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.le
         have hi4v : i4.val = mid.val + 2 := hi4
         step with (ih ((hi.val - (mid.val + 2)).toNat + 1) (by omega) s1 d i4 hi hd (by omega)
           (by intro _; exact ⟨by omega, by omega, hh⟩) hinv1 hf1 hb1) as ⟨o2, s2, bk2, hp2⟩
-        obtain ⟨hsh2, hvb2, hlen2, hp2'⟩ := hp2
+        obtain ⟨hbid2, hsh2, hvb2, hlen2, hp2'⟩ := hp2
         have hoff1 : s1.off.val = s.off.val := by rw [hin1]
         rw [hoff1, hi4v] at hp2'
-        refine ⟨hsh1.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
+        refine ⟨fun t => ⟨by show (bk _).vf = t.vf; rw [(hbid1 _).1]; exact (hbid2 t).1, by show (bk _).vb = t.vb; rw [(hbid1 _).2]; exact (hbid2 t).2⟩, hsh1.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
         rcases hp2' with ⟨h0, h1, h2, h3⟩ | ⟨k, p, q, hk, h0, h1, h2, h3, h4⟩
         · left
           refine ⟨h0, ?_, ?_, ?_⟩
@@ -233,7 +233,7 @@ theorem backward_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B.le
             · exact h4 k' hk'' hlt⟩
       · subst hso
         simp only [Aeneas.Std.WP.spec_ok]
-        refine ⟨hsh1, hvb1, hlen1, Or.inr ⟨k, p, q, inr_left hk (by omega), rfl, hfh, hpv, hqv, ?_⟩⟩
+        refine ⟨fun t => ⟨(hbid1 t).1, (hbid1 t).2⟩, hsh1, hvb1, hlen1, Or.inr ⟨k, p, q, inr_left hk (by omega), rfl, hfh, hpv, hqv, ?_⟩⟩
         intro k' hk' hlt
         apply hmin k' _ hlt
         obtain ⟨a, b, c⟩ := hk'

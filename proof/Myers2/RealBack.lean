@@ -7,6 +7,7 @@ attribute [step] difffold_myers_extract.snake_back_spec
 
 /-- `backward_one`: sets `vb[off + k]` and reports the overlap with the forward values of the same round. -/
 def BwdPost (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int) (r : Option (Usize × Usize) × lines.Search × (lines.Search → lines.Search)) : Prop :=
+  BackId r.2.2 ∧
   (∃ ik x, ik.val = (s.off.val + k).toNat ∧ x.val = (Myers.Bk A B dn k : Int) ∧ r.2.1 = { s with vb := s.vb.set ik x }) ∧
   ((r.1 = none ∧ ¬ Myers.bhit A B dn k) ∨
    (∃ p q : Usize, r.1 = some (p, q) ∧ Myers.bhit A B dn k ∧
@@ -76,7 +77,7 @@ theorem backward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : In
   · rename_i hso
     have hpar : ((A.length : Int) - B.length) % 2 = 1 := hodd'.mp hso
     simp only [Aeneas.Std.WP.spec_ok]
-    refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
     rintro ⟨h1, _, _, _⟩
     exact h1 hpar
   · rename_i hso
@@ -112,7 +113,7 @@ theorem backward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : In
           step as ⟨i8, hi8⟩
           step as ⟨i9, hi9⟩
           try simp only [Aeneas.Std.WP.spec_ok]
-          refine ⟨hframe, Or.inr ⟨i7, i9, rfl, ⟨hpar, ?_, ?_, ?_⟩, ?_, ?_⟩⟩
+          refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inr ⟨i7, i9, rfl, ⟨hpar, ?_, ?_, ?_⟩, ?_, ?_⟩⟩
           · push_cast at *; omega
           · push_cast at *; omega
           · have : (Myers.F A B dn ((A.length : Int) - B.length - k) : Int) = i4.val := by
@@ -127,20 +128,20 @@ theorem backward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : In
         · rename_i hc3
           rw [ge_iff_le, IScalar.le_equiv] at hc3
           simp only [Aeneas.Std.WP.spec_ok]
-          refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+          refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
           rintro ⟨_, _, _, h4⟩
           have : (Myers.F A B dn ((A.length : Int) - B.length - k) : Int) = i4.val := by
             rw [hi4, ← hkfv]
           push_cast at *; omega
       · rename_i hc2
         simp only [Aeneas.Std.WP.spec_ok]
-        refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+        refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
         rintro ⟨_, _, h3, _⟩
         rw [IScalar.le_equiv] at hc2
         omega
     · rename_i hc1
       simp only [Aeneas.Std.WP.spec_ok]
-      refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+      refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
       rintro ⟨_, h2, _, _⟩
       rw [ge_iff_le, IScalar.le_equiv] at hc1
       omega

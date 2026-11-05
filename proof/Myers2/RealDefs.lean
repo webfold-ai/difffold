@@ -6,6 +6,9 @@ import Bound
 open Aeneas Aeneas.Std Result ControlFlow
 namespace difffold_myers_extract
 
+/-- A `back` function of the extraction only rewrites the two scratch arrays by the identity. -/
+def BackId (b : lines.Search → lines.Search) : Prop := ∀ t, (b t).vf = t.vf ∧ (b t).vb = t.vb
+
 /-- Precondition on the sizes of the two lists: keeps every `i32` quantity of the search far from overflow. -/
 def NMAX : Nat := 2 ^ 28
 

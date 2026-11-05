@@ -4,6 +4,7 @@ namespace difffold_myers_extract
 
 /-- `forward_one`: sets `vf[off + k]` to the furthest-reaching value and reports the overlap. -/
 def FwdPost (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int) (r : Option (Usize × Usize) × lines.Search × (lines.Search → lines.Search)) : Prop :=
+  BackId r.2.2 ∧
   (∃ ik x, ik.val = (s.off.val + k).toNat ∧ x.val = (Myers.F A B dn k : Int) ∧ r.2.1 = { s with vf := s.vf.set ik x }) ∧
   ((r.1 = none ∧ ¬ Myers.fhit A B dn k) ∨
    (∃ p q : Usize, r.1 = some (p, q) ∧ Myers.fhit A B dn k ∧ (p.val : Int) = (Myers.F A B dn k : Int) ∧
@@ -104,7 +105,7 @@ theorem forward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int
           have e6 := hus x hxn
           have e7 := hus y hyn
           try simp only [Aeneas.Std.WP.spec_ok]
-          refine ⟨hframe, Or.inr ⟨i6, i7, rfl, ⟨hpar, ?_, ?_, ?_⟩, ?_, ?_⟩⟩
+          refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inr ⟨i6, i7, rfl, ⟨hpar, ?_, ?_, ?_⟩, ?_, ?_⟩⟩
           · push_cast at *; omega
           · push_cast at *; omega
           · have : (Myers.Bk A B (d' + 1 - 1) ((A.length : Int) - B.length - k) : Int) = i4.val := by
@@ -115,26 +116,26 @@ theorem forward_one_spec (s : lines.Search) (A B : List Nat) (dn : Nat) (k : Int
         · rename_i hc3
           rw [ge_iff_le, IScalar.le_equiv] at hc3
           simp only [Aeneas.Std.WP.spec_ok]
-          refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+          refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
           rintro ⟨_, _, _, h4⟩
           have : (Myers.Bk A B (d' + 1 - 1) ((A.length : Int) - B.length - k) : Int) = i4.val := by
             rw [hi4, Nat.add_sub_cancel, ← hkbv]
           push_cast at *; omega
       · rename_i hc2
         simp only [Aeneas.Std.WP.spec_ok]
-        refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+        refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
         rintro ⟨_, _, h3, _⟩
         rw [IScalar.lt_equiv] at hc2
         omega
     · rename_i hc1
       simp only [Aeneas.Std.WP.spec_ok]
-      refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+      refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
       rintro ⟨_, h2, _, _⟩
       rw [gt_iff_lt, IScalar.lt_equiv] at hc1
       omega
   · rename_i hso
     simp only [Aeneas.Std.WP.spec_ok]
-    refine ⟨hframe, Or.inl ⟨rfl, ?_⟩⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, hframe, Or.inl ⟨rfl, ?_⟩⟩
     rintro ⟨h1, _, _, _⟩
     exact hso (hodd'.mpr h1)
 

@@ -9,6 +9,7 @@ theorem inr_dom {d : Nat} {k : Int} : InR (-(d : Int)) d k ↔ Myers.Dom d k := 
 /-- What `sweep` returns, in terms of the model sweep. -/
 def SweepPost (s : lines.Search) (A B : List Nat) (f dn : Nat)
     (r : (Usize × Usize) × lines.Search × (lines.Search → lines.Search)) : Prop :=
+  BackId r.2.2 ∧
   (∀ pt, Myers.sweep A B f dn = some pt → 0 ≤ pt.1 → 0 ≤ pt.2 →
       (r.1.1.val : Int) = pt.1 ∧ (r.1.2.val : Int) = pt.2) ∧
   (Myers.sweep A B f dn = none → r.1.1.val = 0 ∧ r.1.2.val = 0) ∧
@@ -30,7 +31,7 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
     simp only [Aeneas.Std.WP.spec_ok, SweepPost]
     have : (max_d.val + 1 - d.val).toNat = 0 := by omega
     rw [this]
-    refine ⟨by simp [Myers.sweep], by intro _; exact ⟨rfl, rfl⟩, SameShape.refl _, by simp⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, by simp [Myers.sweep], by intro _; exact ⟨rfl, rfl⟩, SameShape.refl _, by simp⟩
   | succ N ih =>
     intro s d max_d dn hd hd0 hN hm hinv hf hb
     rw [lines.sweep.eq_1]
@@ -40,7 +41,7 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
       rw [gt_iff_lt, IScalar.lt_equiv] at hc
       have : (max_d.val + 1 - d.val).toNat = 0 := by omega
       rw [this]
-      refine ⟨by simp [Myers.sweep], by intro _; exact ⟨rfl, rfl⟩, SameShape.refl _, by simp⟩
+      refine ⟨fun t => ⟨rfl, rfl⟩, by simp [Myers.sweep], by intro _; exact ⟨rfl, rfl⟩, SameShape.refl _, by simp⟩
     · rename_i hc
       rw [gt_iff_lt, IScalar.lt_equiv] at hc
       have hImax : (I32.max : Int) = 2147483647 := by scalar_tac
@@ -55,7 +56,7 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
         fun _ => ⟨by omega, by omega, by omega⟩
       step with (forward_spec A B dn hdle (2 * dn + 1) s d i d hd (by omega) hrr hinv hf hb)
         as ⟨o, s1, bk, hp⟩
-      obtain ⟨hsh1, hvb1, hlen1, hp'⟩ := hp
+      obtain ⟨hbid1, hsh1, hvb1, hlen1, hp'⟩ := hp
       rw [hiv] at hp'
       rcases hp' with ⟨hno, hnf, hw, hfr⟩ | ⟨k, p, q, hk, hso, hfh, hpv, hqv, hmin⟩
       · subst hno
@@ -72,7 +73,7 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
           exact hw k' ((hdomR k').mpr hk')
         step with (backward_spec A B dn hdle (2 * dn + 1) s1 d i d hd (by omega) hrr hinv1 hfd1 hb1)
           as ⟨o1, s2, bk2, hq⟩
-        obtain ⟨hsh2, hvf2, hlen2, hq'⟩ := hq
+        obtain ⟨hbid2, hsh2, hvf2, hlen2, hq'⟩ := hq
         rw [hiv] at hq'
         rcases hq' with ⟨hno1, hnb, hw2, hfr2⟩ | ⟨k, p, q, hk, hso, hbh, hpv, hqv, hmin⟩
         · subst hno1
@@ -97,13 +98,14 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
             exact this
           step with (ih s2 i1 max_d (dn + 1) (by omega) (by omega) (by omega) hm hinv2 hf2 hb2)
             as ⟨r1, s3, bk3, hz⟩
-          obtain ⟨hz1, hz2, hz3, hz4, hz5⟩ := hz
+          obtain ⟨hz0, hz1, hz2, hz3, hz4, hz5⟩ := hz
           have hf3 : (max_d.val + 1 - i1.val).toNat = (max_d.val + 1 - (d.val + 1)).toNat := by rw [hi1v]
           rw [hf3] at hz1 hz2
           have hmodel : Myers.sweep A B ((max_d.val + 1 - d.val).toNat) dn =
               Myers.sweep A B ((max_d.val + 1 - (d.val + 1)).toNat) (dn + 1) := by
             rw [hfuel]; simp only [Myers.sweep, hfn, hbn]
-          refine ⟨?_, ?_, hsh1.trans (hsh2.trans hz3), ?_, ?_⟩
+          refine ⟨fun t => ⟨by show (bk _).vf = t.vf; rw [(hbid1 _).1, (hbid2 _).1]; exact (hz0 t).1,
+            by show (bk _).vb = t.vb; rw [(hbid1 _).2, (hbid2 _).2]; exact (hz0 t).2⟩, ?_, ?_, hsh1.trans (hsh2.trans hz3), ?_, ?_⟩
           · intro pt hpt; rw [hmodel] at hpt; exact hz1 pt hpt
           · intro hnone; rw [hmodel] at hnone; exact hz2 hnone
           · rw [hz4, hvf2, hlen1]
@@ -115,7 +117,8 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
               (fun k' hk' hlt => hmin k' ((hdomR k').mpr hk') hlt)
           have hmodel : Myers.sweep A B ((max_d.val + 1 - d.val).toNat) dn = some (Myers.bpt A B dn k) := by
             rw [hfuel]; simp only [Myers.sweep, hfn, hbf]
-          refine ⟨?_, ?_, hsh1.trans hsh2, ?_, ?_⟩
+          refine ⟨fun t => ⟨by show (bk _).vf = t.vf; rw [(hbid1 _).1]; exact (hbid2 t).1,
+            by show (bk _).vb = t.vb; rw [(hbid1 _).2]; exact (hbid2 t).2⟩, ?_, ?_, hsh1.trans hsh2, ?_, ?_⟩
           · intro pt hpt h1 h2
             rw [hmodel] at hpt
             have := Option.some.inj hpt
@@ -131,7 +134,7 @@ theorem sweep_spec (A B : List Nat) (hNM : A.length + B.length ≤ 268435456) :
             (fun k' hk' hlt => hmin k' ((hdomR k').mpr hk') hlt)
         have hmodel : Myers.sweep A B ((max_d.val + 1 - d.val).toNat) dn = some (Myers.fpt A B dn k) := by
           rw [hfuel]; simp only [Myers.sweep, hff]
-        refine ⟨?_, ?_, hsh1, hlen1, ?_⟩
+        refine ⟨fun t => ⟨(hbid1 t).1, (hbid1 t).2⟩, ?_, ?_, hsh1, hlen1, ?_⟩
         · intro pt hpt h1 h2
           rw [hmodel] at hpt
           have := Option.some.inj hpt

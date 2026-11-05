@@ -20,4 +20,18 @@ theorem and_not1 (i : I32) (h : 0 ≤ i.val) : (i &&& (~~~(1#i32))).val = i.val 
   rw [e]
   split at h <;> split <;> omega
 
+
+theorem and_one (i : I32) : (i &&& (1#i32)).val = i.val % 2 := by
+  have hbv : (i &&& (1#i32)).bv = i.bv &&& 1#32 := by rw [IScalar.bv_and]; rfl
+  have h1 : (i &&& (1#i32)).val = (i.bv &&& 1#32).toInt := by rw [← hbv]; rfl
+  rw [h1]
+  have hi : i.val = i.bv.toInt := rfl
+  rw [hi]
+  have hx := i.bv.isLt
+  have e : (i.bv &&& 1#32).toNat = i.bv.toNat % 2 := by
+    rw [BitVec.toNat_and]; simp [Nat.and_one_is_mod]
+  simp only [BitVec.toInt_eq_toNat_cond]
+  rw [e]
+  split <;> split <;> omega
+
 end difffold_myers_extract

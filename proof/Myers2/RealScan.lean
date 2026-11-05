@@ -55,7 +55,7 @@ theorem rdy_set (v : Slice I32) (off : Int) (G : Nat → Int → Nat) (dn : Nat)
 /-- Result of scanning the diagonals `lo, lo + 2, ..., hi` of the forward half-round. -/
 def FwdScanPost (s : lines.Search) (A B : List Nat) (dn : Nat) (lo hi : Int)
     (r : Option (Usize × Usize) × lines.Search × (lines.Search → lines.Search)) : Prop :=
-  SameShape s r.2.1 ∧ r.2.1.vb = s.vb ∧ r.2.1.vf.val.length = s.vf.val.length ∧
+  BackId r.2.2 ∧ SameShape s r.2.1 ∧ r.2.1.vb = s.vb ∧ r.2.1.vf.val.length = s.vf.val.length ∧
   ((r.1 = none ∧ (∀ k, InR lo hi k → ¬ Myers.fhit A B dn k) ∧
      (∀ k, InR lo hi k → ∃ e, r.2.1.vf.val[(s.off.val + k).toNat]? = some e ∧ e.val = (Myers.F A B dn k : Int)) ∧
      (∀ j, (∀ k, InR lo hi k → j ≠ (s.off.val + k).toNat) → r.2.1.vf.val[j]? = s.vf.val[j]?)) ∨
@@ -76,7 +76,7 @@ theorem forward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B
     have : lo > hi := by rw [gt_iff_lt, IScalar.lt_equiv]; omega
     rw [if_pos this]
     simp only [Aeneas.Std.WP.spec_ok]
-    refine ⟨SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro j _; rfl
@@ -87,7 +87,7 @@ theorem forward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B
     · rename_i hc
       simp only [Aeneas.Std.WP.spec_ok]
       rw [gt_iff_lt, IScalar.lt_equiv] at hc
-      refine ⟨SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
+      refine ⟨fun t => ⟨rfl, rfl⟩, SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
       · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
       · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
       · intro j _; rfl
@@ -96,7 +96,7 @@ theorem forward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B
       obtain ⟨hl1, hl2, hh⟩ := hr (by omega)
       have hdom : Myers.Dom dn lo.val := ⟨hl1, by omega, hl2⟩
       step with (forward_one_spec s A B dn lo.val d lo hd rfl hdom hdle hinv hf hb) as ⟨o, s1, bk, hpost⟩
-      obtain ⟨⟨ik, x, hik, hx, hs1⟩, hp2'⟩ := hpost
+      obtain ⟨hbid1, ⟨ik, x, hik, hx, hs1⟩, hp2'⟩ := hpost
       have hs1' : s1 = { s with vf := s.vf.set ik x } := hs1
       have hoffv : (dn : Int) + 1 ≤ s.off.val := by
         obtain ⟨_, _, _, _, _, _, hoff, _⟩ := hinv; omega
@@ -131,10 +131,10 @@ theorem forward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B
         rw [← hin1] at hb1 hf1
         step with (ih s1 d i2 hi hd (by omega) (by intro hle; refine ⟨by omega, by omega, by omega⟩)
           hinv1 hf1 hb1) as ⟨o1, s2, bk2, hq⟩
-        obtain ⟨hsh2, hvb2, hlen2, hq2⟩ := hq
+        obtain ⟨hbid2, hsh2, hvb2, hlen2, hq2⟩ := hq
         have hoff1 : s1.off.val = s.off.val := by rw [hin1]
         rw [hoff1] at hq2
-        refine ⟨hshape.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
+        refine ⟨fun t => ⟨by show (bk _).vf = t.vf; rw [(hbid1 _).1]; exact (hbid2 t).1, by show (bk _).vb = t.vb; rw [(hbid1 _).2]; exact (hbid2 t).2⟩, hshape.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
         rcases hq2 with ⟨h0, h1, h2, h3⟩ | ⟨k, p, q, hk, h0, h1, h2, h3, h4⟩
         · left
           refine ⟨h0, ?_, ?_, ?_⟩
@@ -165,7 +165,7 @@ theorem forward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B
           · exact h4 k' ⟨by obtain ⟨a, b, c⟩ := hk'; omega, hk'.2.1, by obtain ⟨a, b, c⟩ := hk'; omega⟩ hlt
       · subst hso
         simp only [Aeneas.Std.WP.spec_ok]
-        refine ⟨hshape, hvb1, hlen1, Or.inr ⟨lo.val, p, q, ⟨le_refl _, by omega, by omega⟩, rfl, hfh, hpv, hqv, ?_⟩⟩
+        refine ⟨fun t => ⟨(hbid1 t).1, (hbid1 t).2⟩, hshape, hvb1, hlen1, Or.inr ⟨lo.val, p, q, ⟨le_refl _, by omega, by omega⟩, rfl, hfh, hpv, hqv, ?_⟩⟩
         intro k' hk' hlt
         obtain ⟨a, b, c⟩ := hk'
         omega
@@ -174,7 +174,7 @@ theorem forward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + B
 /-- Result of scanning the diagonals `lo, lo + 2, ..., hi` of the backward half-round. -/
 def BwdScanPost (s : lines.Search) (A B : List Nat) (dn : Nat) (lo hi : Int)
     (r : Option (Usize × Usize) × lines.Search × (lines.Search → lines.Search)) : Prop :=
-  SameShape s r.2.1 ∧ r.2.1.vf = s.vf ∧ r.2.1.vb.val.length = s.vb.val.length ∧
+  BackId r.2.2 ∧ SameShape s r.2.1 ∧ r.2.1.vf = s.vf ∧ r.2.1.vb.val.length = s.vb.val.length ∧
   ((r.1 = none ∧ (∀ k, InR lo hi k → ¬ Myers.bhit A B dn k) ∧
      (∀ k, InR lo hi k → ∃ e, r.2.1.vb.val[(s.off.val + k).toNat]? = some e ∧ e.val = (Myers.Bk A B dn k : Int)) ∧
      (∀ j, (∀ k, InR lo hi k → j ≠ (s.off.val + k).toNat) → r.2.1.vb.val[j]? = s.vb.val[j]?)) ∨
@@ -197,7 +197,7 @@ theorem backward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + 
     have : lo > hi := by rw [gt_iff_lt, IScalar.lt_equiv]; omega
     rw [if_pos this]
     simp only [Aeneas.Std.WP.spec_ok]
-    refine ⟨SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
+    refine ⟨fun t => ⟨rfl, rfl⟩, SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
     · intro j _; rfl
@@ -208,7 +208,7 @@ theorem backward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + 
     · rename_i hc
       simp only [Aeneas.Std.WP.spec_ok]
       rw [gt_iff_lt, IScalar.lt_equiv] at hc
-      refine ⟨SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
+      refine ⟨fun t => ⟨rfl, rfl⟩, SameShape.refl _, rfl, rfl, Or.inl ⟨rfl, ?_, ?_, ?_⟩⟩
       · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
       · intro k hk; obtain ⟨h1, h2, _⟩ := hk; omega
       · intro j _; rfl
@@ -217,7 +217,7 @@ theorem backward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + 
       obtain ⟨hl1, hl2, hh⟩ := hr (by omega)
       have hdom : Myers.Dom dn lo.val := ⟨hl1, by omega, hl2⟩
       step with (backward_one_spec s A B dn lo.val d lo hd rfl hdom hdle hinv hfd hb) as ⟨o, s1, bk, hpost⟩
-      obtain ⟨⟨ik, x, hik, hx, hs1⟩, hp2'⟩ := hpost
+      obtain ⟨hbid1, ⟨ik, x, hik, hx, hs1⟩, hp2'⟩ := hpost
       have hs1' : s1 = { s with vb := s.vb.set ik x } := hs1
       have hoffv : (dn : Int) + 1 ≤ s.off.val := by
         obtain ⟨_, _, _, _, _, _, hoff, _⟩ := hinv; omega
@@ -253,10 +253,10 @@ theorem backward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + 
         rw [← hin1] at hb1 hf1
         step with (ih s1 d i2 hi hd (by omega) (by intro hle; refine ⟨by omega, by omega, by omega⟩)
           hinv1 hf1 hb1) as ⟨o1, s2, bk2, hq⟩
-        obtain ⟨hsh2, hvb2, hlen2, hq2⟩ := hq
+        obtain ⟨hbid2, hsh2, hvb2, hlen2, hq2⟩ := hq
         have hoff1 : s1.off.val = s.off.val := by rw [hin1]
         rw [hoff1] at hq2
-        refine ⟨hshape.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
+        refine ⟨fun t => ⟨by show (bk _).vf = t.vf; rw [(hbid1 _).1]; exact (hbid2 t).1, by show (bk _).vb = t.vb; rw [(hbid1 _).2]; exact (hbid2 t).2⟩, hshape.trans hsh2, by rw [hvb2, hvb1], by rw [hlen2, hlen1], ?_⟩
         rcases hq2 with ⟨h0, h1, h2, h3⟩ | ⟨k, p, q, hk, h0, h1, h2, h3, h4⟩
         · left
           refine ⟨h0, ?_, ?_, ?_⟩
@@ -287,7 +287,7 @@ theorem backward_seq_spec (A B : List Nat) (dn : Nat) (hdle : dn ≤ A.length + 
           · exact h4 k' ⟨by obtain ⟨a, b, c⟩ := hk'; omega, hk'.2.1, by obtain ⟨a, b, c⟩ := hk'; omega⟩ hlt
       · subst hso
         simp only [Aeneas.Std.WP.spec_ok]
-        refine ⟨hshape, hvb1, hlen1, Or.inr ⟨lo.val, p, q, ⟨le_refl _, by omega, by omega⟩, rfl, hfh, hpv, hqv, ?_⟩⟩
+        refine ⟨fun t => ⟨(hbid1 t).1, (hbid1 t).2⟩, hshape, hvb1, hlen1, Or.inr ⟨lo.val, p, q, ⟨le_refl _, by omega, by omega⟩, rfl, hfh, hpv, hqv, ?_⟩⟩
         intro k' hk' hlt
         obtain ⟨a, b, c⟩ := hk'
         omega
