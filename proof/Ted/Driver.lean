@@ -189,6 +189,7 @@ theorem within_inner_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
     (hTB : Ctx.FdB td.val C.inf) (hFB : Ctx.FdB fd.val C.inf)
     (hG : C.GInv td.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia ib.val)) :
     ted.within_td_loop0_loop0 a.label a.lml a.keyroots a.kids a.kind b tau st t td fd i0 li ib ⦃ r =>
+      r.1 = b.label ∧ r.2.1 = b.lml ∧ r.2.2.1 = b.keyroots ∧ r.2.2.2.1 = b.kids ∧ r.2.2.2.2.1 = b.kind ∧
       r.2.2.2.2.2.2.1.val.length = td.val.length ∧ r.2.2.2.2.2.2.2.val.length = fd.val.length ∧
       Ctx.FdB r.2.2.2.2.2.2.1.val C.inf ∧ Ctx.FdB r.2.2.2.2.2.2.2.val C.inf ∧
       C.GInv r.2.2.2.2.2.2.1.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia (vals b.keyroots.val).length) ⦄ := by
@@ -285,7 +286,7 @@ theorem within_inner_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe 
         omega
       simp only [WP.spec_ok]
       rw [hib1] at h6
-      exact ⟨h2, h3, h4, h5, h6⟩
+      exact ⟨trivial, trivial, trivial, trivial, trivial, h2, h3, h4, h5, h6⟩
   · exact ⟨hib, rfl, rfl, hTB, hFB, hG⟩
 
 end difffold_lines_extract
