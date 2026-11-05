@@ -28,10 +28,14 @@ fn main() {
     println!("cargo:rerun-if-env-changed=STRBENCH_EXT");
     println!("cargo:rerun-if-changed=csrc/shim.cpp");
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rustc-check-cfg=cfg(strbench_no_externals)");
 
-    let ext = PathBuf::from(env::var("STRBENCH_EXT").expect(
-        "set STRBENCH_EXT to the directory containing the edlib/ and WFA2-lib/ source trees",
-    ));
+    // Without the external sources, Edlib and WFA2-lib are not built. The bench reports their rows as
+    // `not-built`, and the RapidFuzz and difffold rows are unaffected.
+    let Some(ext) = env::var_os("STRBENCH_EXT").map(PathBuf::from) else {
+        println!("cargo:rustc-cfg=strbench_no_externals");
+        return;
+    };
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
     let cc = env::var("CC").unwrap_or_else(|_| "cc".to_string());
     let cxx = env::var("CXX").unwrap_or_else(|_| "c++".to_string());

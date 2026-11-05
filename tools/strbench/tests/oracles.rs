@@ -46,13 +46,19 @@ fn adapters_match_full_dp_on_dense_and_sparse_symbols() {
         let b = random_seq(&mut rng, m, &symbols);
         let d = oracle_full(&a, &b);
         assert_eq!(rapidfuzz(&a, &b, None), Answer::Dist(d));
-        if let (Some(e8a), Some(e8b)) = (edlib_bytes(&a), edlib_bytes(&b)) {
+        if let (false, Some(e8a), Some(e8b)) = (
+            cfg!(strbench_no_externals),
+            edlib_bytes(&a),
+            edlib_bytes(&b),
+        ) {
             assert_eq!(edlib(&e8a, &e8b, None), Answer::Dist(d));
             for k in [0usize, 1, 4, 32] {
                 assert_eq!(edlib(&e8a, &e8b, Some(k)), expected(d, k), "edlib k={k}");
             }
         }
-        if let (Some(wa), Some(wb)) = (wfa_bytes(&a), wfa_bytes(&b)) {
+        if let (false, Some(wa), Some(wb)) =
+            (cfg!(strbench_no_externals), wfa_bytes(&a), wfa_bytes(&b))
+        {
             assert_eq!(wfa(&wa, &wb, None), Answer::Dist(d));
             for k in [0usize, 1, 4, 32] {
                 assert_eq!(wfa(&wa, &wb, Some(k)), expected(d, k), "wfa k={k}");

@@ -14,12 +14,13 @@ OUT=$2
 JOB=${3:-all}
 ERR="$OUT.stderr"
 
+# Every list can be narrowed through the environment, for example to re-run a subset of the matrix.
 LENS=${STRB_LENS:-"16 100 1000 10000 100000"}
-ALPHS="2 4 256 sparse"
-TOOLS="edlib wfa rapidfuzz difffold"
-BOUNDED_REGIMES="d<k d==k d==k+1 d>>k tiny-prefix-suffix unrelated"
-EXACT_REGIMES="tiny-prefix-suffix d=16 unrelated"
-KS="1 2 4 8 32 128"
+ALPHS=${STRB_ALPHS:-"2 4 256 sparse"}
+TOOLS=${STRB_TOOLS:-"edlib wfa rapidfuzz difffold"}
+BOUNDED_REGIMES=${STRB_BOUNDED_REGIMES:-"d<k d==k d==k+1 d>>k tiny-prefix-suffix unrelated"}
+EXACT_REGIMES=${STRB_EXACT_REGIMES:-"tiny-prefix-suffix d=16 unrelated"}
+KS=${STRB_KS:-"1 2 4 8 32 128"}
 
 printf 'job\ttool\tlen\talphabet\tregime\tk\tdesigned_d\tpairs\tgood_pairs\tstatus\toracle\trealized_d_median\tmismatches\tmin_us_per_pair\tmed_us_per_pair\tmax_us_per_pair\tnote\tload1_at_start\n' > "$OUT"
 : > "$ERR"

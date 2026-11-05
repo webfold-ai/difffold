@@ -1,0 +1,73 @@
+job	tool	len	alphabet	regime	k	designed_d	pairs	good_pairs	status	oracle	realized_d_median	mismatches	min_us_per_pair	med_us_per_pair	max_us_per_pair	note	load1_at_start
+exact	rapidfuzz	1000	2	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	1	0	1.582	1.652	2.408		2.17
+exact	difffold-v2	1000	2	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	1	0	0.314	0.320	0.546		2.17
+exact	rapidfuzz	1000	2	d=16	-	16	5	5	ok	oracle-band	14	0	42.532	66.654	91.848		2.17
+exact	difffold-v2	1000	2	d=16	-	16	5	5	ok	oracle-band	14	0	3.452	3.735	5.576		2.17
+exact	rapidfuzz	1000	2	unrelated	-	-	5	5	ok	oracle-band	293	0	50.018	52.013	58.161		2.17
+exact	difffold-v2	1000	2	unrelated	-	-	5	5	ok	oracle-band	293	0	200.980	207.988	1815.601		2.17
+exact	rapidfuzz	1000	4	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	2	0	3.213	3.950	1610.473		2.17
+exact	difffold-v2	1000	4	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	2	0	0.529	0.536	0.681		2.17
+exact	rapidfuzz	1000	4	d=16	-	16	5	5	ok	oracle-band	15	0	65.868	72.028	1681.226		2.17
+exact	difffold-v2	1000	4	d=16	-	16	5	5	ok	oracle-band	15	0	3.775	3.874	7.135		2.15
+exact	rapidfuzz	1000	4	unrelated	-	-	5	5	ok	oracle-band	524	0	51.772	54.128	862.492		2.15
+exact	difffold-v2	1000	4	unrelated	-	-	5	5	ok	oracle-band	524	0	344.266	364.722	1937.723		2.15
+exact	rapidfuzz	1000	256	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	2	0	2.713	2.770	3.428		2.15
+exact	difffold-v2	1000	256	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	2	0	0.502	0.508	0.650		2.15
+exact	rapidfuzz	1000	256	d=16	-	16	5	5	ok	oracle-band	16	0	42.008	43.407	54.442		2.15
+exact	difffold-v2	1000	256	d=16	-	16	5	5	ok	oracle-band	16	0	3.956	3.964	4.173		2.15
+exact	rapidfuzz	1000	256	unrelated	-	-	5	5	ok	oracle-band	988	0	50.385	51.022	2457.473		2.15
+exact	difffold-v2	1000	256	unrelated	-	-	5	5	ok	oracle-band	988	0	1676.511	1846.506	3366.402		2.15
+exact	rapidfuzz	1000	sparse-u32	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	2	0	3.238	3.270	4.293		2.15
+exact	difffold-v2	1000	sparse-u32	tiny-prefix-suffix	-	2	5	5	ok	oracle-band	2	0	0.546	0.557	0.713		2.15
+exact	rapidfuzz	1000	sparse-u32	d=16	-	16	5	5	ok	oracle-band	16	0	149.350	155.961	1765.510		2.15
+exact	difffold-v2	1000	sparse-u32	d=16	-	16	5	5	ok	oracle-band	16	0	4.321	6.197	6.772		2.15
+exact	rapidfuzz	1000	sparse-u32	unrelated	-	-	5	5	ok	oracle-band	1000	0	174.483	182.715	1800.225		2.15
+exact	difffold-v2	1000	sparse-u32	unrelated	-	-	5	5	ok	oracle-band	1000	0	3696.626	4690.802	5533.333		2.15
+exact	rapidfuzz	10000	2	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	101.373	112.097	6790.849		2.15
+exact	difffold-v2	10000	2	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	3.617	3.672	3.893		2.15
+exact	rapidfuzz	10000	2	d=16	-	16	3	3	ok	oracle-band	14	0	5846.223	7880.246	11286.328		2.15
+exact	difffold-v2	10000	2	d=16	-	16	3	3	ok	oracle-band	14	0	10.810	11.981	13.676		2.15
+exact	rapidfuzz	10000	2	unrelated	-	-	3	3	ok	oracle-band	2905	0	9114.175	10531.165	12860.070		2.15
+exact	difffold-v2	10000	2	unrelated	-	-	3	3	ok	oracle-band	2905	0	23699.209	29632.868	41762.062		2.14
+exact	rapidfuzz	10000	4	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	147.785	167.522	178.575		2.13
+exact	difffold-v2	10000	4	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	4.757	4.877	4.990		2.13
+exact	rapidfuzz	10000	4	d=16	-	16	3	3	ok	oracle-band	15	0	5527.687	7462.587	8710.033		2.13
+exact	difffold-v2	10000	4	d=16	-	16	3	3	ok	oracle-band	15	0	11.978	12.259	13.406		2.13
+exact	rapidfuzz	10000	4	unrelated	-	-	3	3	ok	oracle-band	5191	0	10512.888	10713.516	13330.010		2.13
+exact	difffold-v2	10000	4	unrelated	-	-	3	3	ok	oracle-band	5191	0	38055.455	39845.769	40698.365		2.12
+exact	rapidfuzz	10000	256	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	79.772	84.457	5433.684		2.11
+exact	difffold-v2	10000	256	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	3.857	3.927	5.146		2.11
+exact	rapidfuzz	10000	256	d=16	-	16	3	3	ok	oracle-band	16	0	6250.765	7881.897	9740.222		2.11
+exact	difffold-v2	10000	256	d=16	-	16	3	3	ok	oracle-band	16	0	6.944	6.958	7.345		2.11
+exact	rapidfuzz	10000	256	unrelated	-	-	3	3	ok	oracle-band	9870	0	8075.893	8645.461	11064.107		2.11
+exact	difffold-v2	10000	256	unrelated	-	-	3	3	ok	oracle-band	9870	0	70003.704	74039.933	128340.650		2.10
+exact	rapidfuzz	10000	sparse-u32	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	210.744	211.616	5575.316		2.08
+exact	difffold-v2	10000	sparse-u32	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	3.723	3.763	3.917		2.08
+exact	rapidfuzz	10000	sparse-u32	d=16	-	16	3	3	ok	oracle-band	16	0	28765.401	37800.932	40022.132		2.08
+exact	difffold-v2	10000	sparse-u32	d=16	-	16	3	3	ok	oracle-band	16	0	9.446	10.401	10.965		2.08
+exact	rapidfuzz	10000	sparse-u32	unrelated	-	-	3	3	ok	oracle-band	9994	0	29854.175	36783.028	42331.445		2.08
+exact	difffold-v2	10000	sparse-u32	unrelated	-	-	3	3	ok	oracle-band	9994	0	301756.936	383028.721	467581.657		2.08
+exact	rapidfuzz	100000	2	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	7701.003	7812.631	9972.313		2.06
+exact	difffold-v2	100000	2	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	31.134	36.423	4070.451		2.06
+exact	rapidfuzz	100000	2	d=16	-	16	3	3	ok	oracle-band	13	0	877921.052	973708.543	1110125.736		2.06
+exact	difffold-v2	100000	2	d=16	-	16	3	3	ok	oracle-band	13	0	48.734	50.302	1412.462		2.04
+exact	rapidfuzz	100000	2	unrelated	-	-	3	3	ok	consensus-rapidfuzz	28756	0	1124081.227	1201914.634	1350663.483		2.04
+exact	difffold-v2	100000	2	unrelated	-	-	3	0	timeout	-	-	-	-	-	-	exceeded 60 s wall-clock limit	2.06
+exact	rapidfuzz	100000	4	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	15750.243	19017.398	20537.649		2.06
+exact	difffold-v2	100000	4	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	33.554	35.152	44.022		2.06
+exact	rapidfuzz	100000	4	d=16	-	16	3	3	ok	oracle-band	14	0	865349.891	888168.334	942853.093		2.06
+exact	difffold-v2	100000	4	d=16	-	16	3	3	ok	oracle-band	14	0	58.615	72.414	1405.549		2.04
+exact	rapidfuzz	100000	4	unrelated	-	-	3	3	ok	consensus-rapidfuzz	51679	0	1047822.519	1101465.093	1207470.666		2.04
+exact	difffold-v2	100000	4	unrelated	-	-	3	0	timeout	-	-	-	-	-	-	exceeded 60 s wall-clock limit	2.02
+exact	rapidfuzz	100000	256	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	3477.020	4724.490	6177.741		2.25
+exact	difffold-v2	100000	256	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	34.301	36.876	47.074		2.25
+exact	rapidfuzz	100000	256	d=16	-	16	3	3	ok	oracle-band	16	0	871423.638	891055.108	993776.589		2.25
+exact	difffold-v2	100000	256	d=16	-	16	3	3	ok	oracle-band	16	0	48.212	49.741	56.112		2.16
+exact	rapidfuzz	100000	256	unrelated	-	-	3	3	ok	consensus-rapidfuzz	98592	0	857665.792	912378.225	1023549.864		2.16
+exact	difffold-v2	100000	256	unrelated	-	-	3	0	timeout	-	-	-	-	-	-	exceeded 60 s wall-clock limit	2.16
+exact	rapidfuzz	100000	sparse-u32	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	16594.206	17698.275	19470.553		2.17
+exact	difffold-v2	100000	sparse-u32	tiny-prefix-suffix	-	2	3	3	ok	oracle-band	2	0	34.506	39.209	145.652		2.17
+exact	rapidfuzz	100000	sparse-u32	d=16	-	16	3	0	timeout	-	-	-	-	-	-	exceeded 60 s wall-clock limit	2.17
+exact	difffold-v2	100000	sparse-u32	d=16	-	16	3	3	ok	oracle-band	16	0	71.503	77.603	1475.926		2.06
+exact	rapidfuzz	100000	sparse-u32	unrelated	-	-	3	0	timeout	-	-	-	-	-	-	exceeded 60 s wall-clock limit	2.06
+exact	difffold-v2	100000	sparse-u32	unrelated	-	-	3	0	timeout	-	-	-	-	-	-	exceeded 60 s wall-clock limit	2.02

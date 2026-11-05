@@ -19,6 +19,7 @@ use std::cmp::min;
 
 use rapidfuzz::distance::levenshtein;
 
+#[cfg(not(strbench_no_externals))]
 mod ffi {
     extern "C" {
         pub fn sb_edlib(a: *const u8, an: usize, b: *const u8, bn: usize, k: i64) -> i64;
@@ -34,6 +35,7 @@ pub enum Answer {
 }
 
 /// Exact distance with no bound.
+#[cfg(not(strbench_no_externals))]
 pub fn edlib(a: &[u8], b: &[u8], k: Option<usize>) -> Answer {
     let bound = k.map_or(-1, |k| i64::try_from(k).expect("bound fits in i64"));
     // SAFETY: slices are valid for their lengths for the duration of the call, and the
@@ -43,11 +45,25 @@ pub fn edlib(a: &[u8], b: &[u8], k: Option<usize>) -> Answer {
 }
 
 /// WFA2-lib in edit mode, score only, heuristics off. `k` caps the wavefront steps.
+#[cfg(not(strbench_no_externals))]
 pub fn wfa(a: &[u8], b: &[u8], k: Option<usize>) -> Answer {
     let bound = k.map_or(-1, |k| i64::try_from(k).expect("bound fits in i64"));
     // SAFETY: as in `edlib`.
     let r = unsafe { ffi::sb_wfa(a.as_ptr(), a.len(), b.as_ptr(), b.len(), bound) };
     decode("wfa", r)
+}
+
+/// Stub used when the external sources are absent. The bench never calls it, since it reports the
+/// tool as `not-built` first.
+#[cfg(strbench_no_externals)]
+pub fn edlib(_a: &[u8], _b: &[u8], _k: Option<usize>) -> Answer {
+    panic!("edlib is not built in this run (STRBENCH_EXT was not set)")
+}
+
+/// Stub used when the external sources are absent. See [`edlib`].
+#[cfg(strbench_no_externals)]
+pub fn wfa(_a: &[u8], _b: &[u8], _k: Option<usize>) -> Answer {
+    panic!("wfa is not built in this run (STRBENCH_EXT was not set)")
 }
 
 /// RapidFuzz Levenshtein distance with uniform weights.
@@ -114,6 +130,7 @@ pub fn wfa_bytes(symbols: &[u32]) -> Option<Vec<u8>> {
         .collect()
 }
 
+#[cfg(not(strbench_no_externals))]
 fn decode(tool: &str, r: i64) -> Answer {
     match r {
         -1 => Answer::Exceeds,
