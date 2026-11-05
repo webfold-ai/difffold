@@ -586,7 +586,7 @@ theorem intern_seeded_spec (a b : Slice (Slice U8)) (seed : U64) (hN : a.val.len
   step as ⟨p, hp⟩
   rename_i hd1
   have hpv : p.val = ia.val := by
-    have := congrArg Prod.fst hd1; simp [alloc.vec.Vec.deref_mut] at this; rw [← this]; rfl
+    have := congrArg Prod.fst hd1; simp [alloc.vec.Vec.deref_mut] at this; rw [this]; rfl
   have hal : a.val.length = a.len.val := by simp [Slice.len]
   have hbl : b.val.length = b.len.val := by simp [Slice.len]
   have hnx0 : (alloc.vec.Vec.with_capacity U32 total).val = [] := by
@@ -602,19 +602,59 @@ theorem intern_seeded_spec (a b : Slice (Slice U8)) (seed : U64) (hN : a.val.len
     · intro i s h; simp at h
     · intro k r h; simp at h
     · intro i j r h; simp at h
-  have hplen : p.val.length = a.val.length := by rw [hpv, hia1]; simp [hal]
+  have hplen : p.val.length = a.val.length := by rw [hpv, hia1]; rw [List.length_replicate]; exact hal.symm
   step with (intern_all_spec seed a.val.length a 0#usize head _ _ p rfl hTI
-    (by rw [hrp0]; simpa using by omega) (by simp; omega)) as ⟨reps1, head1, nxt1, s1, P1⟩
+    (by rw [hrp0]; show 0 + a.val.length ≤ 2 ^ 28; omega)
+    (by have : (0#usize).val = 0 := rfl; omega)) as ⟨reps1, head1, nxt1, s1, P1⟩
   obtain ⟨ids1, hl1', hol1, ho1l, ho1o, hT1, hhl1, hp1, hrl1, hid1, hcv1⟩ := P1
   step as ⟨p2, hp2⟩
   rename_i hd2
   have hp2v : p2.val = ib.val := by
-    have := congrArg Prod.fst hd2; simp [alloc.vec.Vec.deref_mut] at this; rw [← this]; rfl
-  have hplen2 : p2.val.length = b.val.length := by rw [hp2v, hib1]; simp [hbl]
+    have := congrArg Prod.fst hd2; simp [alloc.vec.Vec.deref_mut] at this; rw [this]; rfl
+  have hplen2 : p2.val.length = b.val.length := by rw [hp2v, hib1]; rw [List.length_replicate]; exact hbl.symm
   have hr1 : reps1.val.length ≤ a.val.length := by rw [hrp0] at hrl1; simpa using hrl1
   step with (intern_all_spec seed b.val.length b 0#usize head1 nxt1 reps1 p2 rfl hT1
-    (by omega) (by simp; omega)) as ⟨reps2, head2, nxt2, s3, P2⟩
+    (by omega) (by have : (0#usize).val = 0 := rfl; omega)) as ⟨reps2, head2, nxt2, s3, P2⟩
   obtain ⟨ids2, hl2', hol2, ho2l, ho2o, hT2, hhl2, hp2', hrl2, hid2, hcv2⟩ := P2
-  sorry
+  have h0 : (0#usize).val = 0 := rfl
+  have hhp : ∀ s, (hp s).val = s.val := by
+    intro s; have := congrArg Prod.snd hd1; simp [alloc.vec.Vec.deref_mut] at this; rw [this]; rfl
+  have hhp2 : ∀ s, (hp2 s).val = s.val := by
+    intro s; have := congrArg Prod.snd hd2; simp [alloc.vec.Vec.deref_mut] at this; rw [this]; rfl
+  rw [hrp0] at hcv1 hrl1
+  have hs1 : s1.val = ids1 := vec_ext_of_ids _ _ (by omega) (fun j x hx => by have := ho1o j x hx; simpa [h0] using this)
+  have hs3 : s3.val = ids2 := vec_ext_of_ids _ _ (by omega) (fun j x hx => by have := ho2o j x hx; simpa [h0] using this)
+  rw [hhp, hhp2, hs1, hs3]
+  have hpl1 := hp2'.length_le
+  have hpre : ∀ (j : Nat) x, (ids1[j]? = some x → reps2.val[x.val]? = a.val[j]?) := by
+    intro j x hx
+    obtain ⟨_, h2⟩ := hid1 j x hx
+    obtain ⟨t, ht⟩ := hp2'
+    rw [← ht, List.getElem?_append_left (by simpa using ‹_›)] 
+    exact h2
+  have hdn : ∀ (k : Nat), k < reps2.val.length → ∃ x ∈ ids1 ++ ids2, x.val = k := by
+    intro k hk
+    by_cases hk1 : k < reps1.val.length
+    · obtain ⟨x, hx, hxk⟩ := hcv1 k (by simp) hk1
+      exact ⟨x, List.mem_append_left _ hx, hxk⟩
+    · obtain ⟨x, hx, hxk⟩ := hcv2 k (by omega) hk
+      exact ⟨x, List.mem_append_right _ hx, hxk⟩
+  have hn : ((reps2.len : Usize)).val = reps2.val.length := by simp
+  rw [hn]
+  have hmem : ∀ (ids : List U32) (x : U32), x ∈ ids → ∃ j : Nat, ids[j]? = some x := by
+    intro ids x hx; exact List.mem_iff_getElem?.mp hx
+  refine ⟨by simp; omega, by simp; omega, ?_, ?_, ?_, ?_, ?_, hdn⟩
+  · intro x hx
+    obtain ⟨j, hj⟩ := hmem _ _ hx
+    have := (hid1 j x hj).1
+    omega
+  · intro x hx
+    obtain ⟨j, hj⟩ := hmem _ _ hx
+    exact (hid2 j x hj).1
+  · exact (ids_exact reps2.val (fun i j r => hT2.hds i j r) ids1 ids1 a.val a.val (by omega) (by omega) hpre hpre)
+  · exact (ids_exact reps2.val (fun i j r => hT2.hds i j r) ids1 ids2 a.val b.val (by omega) (by omega) hpre
+      (fun j x hx => (hid2 j x hx).2))
+  · exact (ids_exact reps2.val (fun i j r => hT2.hds i j r) ids2 ids2 b.val b.val (by omega) (by omega)
+      (fun j x hx => (hid2 j x hx).2) (fun j x hx => (hid2 j x hx).2))
 
 end difffold_myers_extract
