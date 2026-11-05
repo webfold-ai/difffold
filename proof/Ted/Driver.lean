@@ -163,4 +163,129 @@ theorem skip_step (C : Ctx) {KA KB : List Nat} {ia ib i0 j0 : Nat} (hsB : KB.Pai
 
 end Ctx
 
+
+theorem Ctx.Link.win {C : Ctx} {a b : ted.PostTree} (hK : C.Link a b) (i0 j0 : Nat) : (C.win i0 j0).Link a b :=
+  ⟨hK.n1, hK.n2, hK.n3, hK.m1, hK.m2, hK.m3, hK.la_eq, hK.lb_eq, hK.ren_eq, hK.nbig, hK.mbig, hK.wbig, hK.tbig⟩
+
+/-- The facts the driver needs about the two trees and their keyroot lists. -/
+structure Ctx.Keys (C : Ctx) (a b : ted.PostTree) : Prop where
+  hA : WfL C.la
+  hB : WfL C.lb
+  sA : (vals a.keyroots.val).Pairwise (· < ·)
+  sB : (vals b.keyroots.val).Pairwise (· < ·)
+  mA : ∀ x, 1 ≤ x → x ≤ C.n → krf C.la C.n x ∈ vals a.keyroots.val
+  mB : ∀ y, 1 ≤ y → y ≤ C.m → krf C.lb C.m y ∈ vals b.keyroots.val
+  kA : ∀ v ∈ vals a.keyroots.val, Ctx.IsKr C.la C.n v
+  kB : ∀ v ∈ vals b.keyroots.val, Ctx.IsKr C.lb C.m v
+
+/-- The loop over the keyroots of the second tree for a fixed keyroot `i0` of the first. -/
+theorem within_inner_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C.Keys a b)
+    (hw : C.w = 2 * C.t + 1) (tau : Std.U32) (t : Std.Usize) (ia : Nat)
+    (hia : ia < (vals a.keyroots.val).length) (i0 li : Std.Usize) (st : ted.Stats)
+    (td fd : alloc.vec.Vec Std.U32) (ib : Std.Usize)
+    (htau : tau.val = C.t) (ht : t.val = C.t) (hi0 : (vals a.keyroots.val)[ia] = i0.val)
+    (hli : li.val = C.la i0.val) (hib : ib.val ≤ (vals b.keyroots.val).length)
+    (htdlen : (C.n + 1) * C.w ≤ td.val.length) (hfdlen : (C.n + 1) * C.w ≤ fd.val.length)
+    (hTB : Ctx.FdB td.val C.inf) (hFB : Ctx.FdB fd.val C.inf)
+    (hG : C.GInv td.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia ib.val)) :
+    ted.within_td_loop0_loop0 a.label a.lml a.keyroots a.kids a.kind b tau st t td fd i0 li ib ⦃ r =>
+      r.2.2.2.2.2.2.1.val.length = td.val.length ∧ r.2.2.2.2.2.2.2.val.length = fd.val.length ∧
+      Ctx.FdB r.2.2.2.2.2.2.1.val C.inf ∧ Ctx.FdB r.2.2.2.2.2.2.2.val C.inf ∧
+      C.GInv r.2.2.2.2.2.2.1.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia (vals b.keyroots.val).length) ⦄ := by
+  unfold ted.within_td_loop0_loop0
+  apply loop.spec_decr_nat
+    (measure := fun s => (vals b.keyroots.val).length - s.2.2.2.val)
+    (inv := fun s => s.2.2.2.val ≤ (vals b.keyroots.val).length ∧ s.2.1.val.length = td.val.length ∧
+      s.2.2.1.val.length = fd.val.length ∧ Ctx.FdB s.2.1.val C.inf ∧ Ctx.FdB s.2.2.1.val C.inf ∧
+      C.GInv s.2.1.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) ia s.2.2.2.val))
+  · intro s hs
+    obtain ⟨st1, td1, fd1, ib1⟩ := s
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hs
+    dsimp only at h1 h2 h3 h4 h5 h6 ⊢
+    unfold ted.within_td_loop0_loop0.body
+    have hlenv : (alloc.vec.Vec.len b.keyroots).val = (vals b.keyroots.val).length := by
+      rw [alloc.vec.Vec.len_val, vals_length]
+    by_cases hq : ib1 < alloc.vec.Vec.len b.keyroots
+    · simp only [if_pos hq]
+      have hibl : ib1.val < (vals b.keyroots.val).length := by
+        have : ib1.val < (alloc.vec.Vec.len b.keyroots).val := hq
+        omega
+      have hkb : ib1.val < b.keyroots.val.length := by rw [vals_length] at hibl; exact hibl
+      step as ⟨i1, hi1⟩
+      have hJ : (UScalar.cast .Usize i1).val = (vals b.keyroots.val)[ib1.val]'hibl := by
+        rw [U32.cast_Usize_val_eq, hi1, vals_getElem _ _ hkb]
+      generalize hj0g : UScalar.cast .Usize i1 = j0 at hJ
+      simp only [lift, bind_tc_ok]
+      have hJmem : (vals b.keyroots.val)[ib1.val]'hibl ∈ vals b.keyroots.val := List.getElem_mem hibl
+      have hkJ := hKe.kB _ hJmem
+      have hJ1 : 1 ≤ j0.val := by rw [hJ]; exact hkJ.1
+      have hJm : j0.val ≤ C.m := by rw [hJ]; exact hkJ.2.1
+      step as ⟨i2, hi2⟩
+      have hi2b : i2.val < b.lml.val.length := by have : b.lml.val.length = C.m := hK.m2; omega
+      step as ⟨i3, hi3⟩
+      have hljv : (UScalar.cast .Usize i3).val = C.lb j0.val := by
+        have e : j0.val - 1 = i2.val := by omega
+        have h := hK.lb_eq j0.val hJ1 hJm
+        rw [e] at h
+        rw [U32.cast_Usize_val_eq, hi3, ← getU_eq _ _ hi2b, ← h]
+      generalize hljg : UScalar.cast .Usize i3 = lj at hljv
+      step as ⟨i4, hi4⟩
+      have h2t : 2 * t.val < 2 ^ 32 := by have := hK.tbig; omega
+      step as ⟨i5, hi5⟩
+      have hi4v : i4.val = adf (C.la i0.val) (C.lb j0.val) := by
+        rw [hi4, hli, hljv]; unfold adf; split <;> omega
+      have hi5v : i5.val = 2 * C.t := by omega
+      have hj0eq : (vals b.keyroots.val)[ib1.val]'hibl = j0.val := hJ.symm
+      split
+      · rename_i hs
+        have hskip : 2 * C.t < adf (C.la i0.val) (C.lb j0.val) := by
+          have : i5.val < i4.val := hs
+          omega
+        step as ⟨ib2, hib2⟩
+        have hG' := Ctx.skip_step C (KA := vals a.keyroots.val) (KB := vals b.keyroots.val) hKe.sB hia hibl hi0 hj0eq
+          (td := td1.val) hskip h6
+        refine ⟨by omega, h2, h3, h4, h5, ?_, by omega⟩
+        rw [hib2]; exact hG'
+      · rename_i hs
+        simp only [lift, bind_tc_ok, alloc.vec.Vec.deref_mut]
+        have hia1 : 1 ≤ i0.val := (hKe.kA _ (by rw [← hi0]; exact List.getElem_mem hia)).1
+        have hia2 : i0.val ≤ C.n := (hKe.kA _ (by rw [← hi0]; exact List.getElem_mem hia)).2.1
+        have hkI : Ctx.IsKr C.la C.n i0.val := hKe.kA _ (by rw [← hi0]; exact List.getElem_mem hia)
+        have hkJ' : Ctx.IsKr C.lb C.m j0.val := by rw [hJ]; exact hkJ
+        have hGood := Ctx.win_good C hKe.hA hKe.hB hia1 hia2 hJ1 hJm
+        have hli1 : 1 ≤ C.la i0.val := (hKe.hA.1 _ hia1).1
+        have hlj1 : 1 ≤ C.lb j0.val := (hKe.hB.1 _ hJ1).1
+        have hsi : (C.win i0.val j0.val).si ≤ C.n := by
+          have := (hKe.hA.1 _ hia1).2
+          simp only [Ctx.win, Ctx.si]; omega
+        have hmw : ((C.win i0.val j0.val).si + 1) * C.w ≤ (C.n + 1) * C.w := Nat.mul_le_mul_right _ (by omega)
+        have hTin : (C.win i0.val j0.val).TdInv td1.val 1 1 := by
+          intro x y hx1 hxn hy1 hym
+          have := h6 x y hx1 hxn hy1 hym
+          refine ⟨this.1, fun hd hb => this.2 ?_ hb⟩
+          exact Ctx.done_wb C hKe.hA hKe.hB hKe.sA hKe.sB hKe.mA hKe.mB hia hibl hi0 hj0eq hkI hkJ' hJm hx1 hxn hy1 hym hd
+        step with fill_window_spec (C.win i0.val j0.val) hGood a b (hK.win _ _) hw hli1 hlj1 td1.slice fd1.slice
+          { cells := st1.cells, windows := core.num.U64.wrapping_add st1.windows 1#u64, skipped := st1.skipped,
+            attempts := st1.attempts, mirrored := st1.mirrored } i0 j0 tau rfl rfl htau
+          (by have := Nat.le_trans hmw hfdlen; rw [← h3] at this; exact this) (by have := htdlen; rw [← h2] at this; exact this) h5 h4 hTin as ⟨r, hr1, hr2, hr3, hr4, hr5, hr6⟩
+        obtain ⟨s2, s3, st2⟩ := r
+        dsimp only at hr1 hr2 hr3 hr4 hr5 hr6
+        have hnew := Ctx.inv_step C hKe.hA hKe.hB (KA := vals a.keyroots.val) (KB := vals b.keyroots.val)
+          hKe.sA hKe.sB hia hibl hi0 hj0eq hkI hkJ' (td := td1.val) (td' := s2.val) hr4 hr3 h6
+        step as ⟨ib2, hib2⟩
+        refine ⟨by omega, ?_, ?_, ?_, ?_, ?_, by omega⟩
+        · show s2.val.length = td.val.length; rw [hr1]; exact h2
+        · show s3.val.length = fd.val.length; rw [hr5]; exact h3
+        · show Ctx.FdB s2.val C.inf; exact hr2
+        · show Ctx.FdB s3.val C.inf; exact hr6
+        · show C.GInv s2.val _; rw [hib2]; exact hnew
+    · simp only [if_neg hq]
+      have hib1 : ib1.val = (vals b.keyroots.val).length := by
+        have : ¬ ib1.val < (alloc.vec.Vec.len b.keyroots).val := hq
+        omega
+      simp only [WP.spec_ok]
+      rw [hib1] at h6
+      exact ⟨h2, h3, h4, h5, h6⟩
+  · exact ⟨hib, rfl, rfl, hTB, hFB, hG⟩
+
 end difffold_lines_extract

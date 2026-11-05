@@ -301,11 +301,52 @@ theorem solve_spec :
         rw [hxv, hyv] at hS1' hS2'
         refine ⟨_, _, Myers.Solve.split hT hA1ne hB1ne hmid' hnt hS1' hS2', ?_, ?_, ?_, ?_⟩
         · show ra2.val = _
-          rw [hra2, hra1, ← hd1', hi5, hao1v'] 
-          sorry
-        · sorry
-        · sorry
-        · sorry
-      sorry
+          have hlen12 : (d1 ++ d2).length = A1.length := by
+            have := hd2.1; simp at this ⊢; omega
+          rw [hra2, hra1, show i5.val = ao1.val + d1.length by omega,
+            Myers.splice_splice ra.val d1 d2 ao1.val (by omega), hao1v',
+            splice_trim_all ra.val (d1 ++ d2) ao.val p.length sf.length (by omega) (by
+              intro j hj; exact hfa j (by omega))]
+        · show rb2.val = _
+          have hlen12 : (e1 ++ e2).length = B1.length := by
+            have := hd2.2; simp at this ⊢; omega
+          rw [hrb2, hrb1, show i6.val = bo1.val + e1.length by omega,
+            Myers.splice_splice rb.val e1 e2 bo1.val (by omega), hbo1v',
+            splice_trim_all rb.val (e1 ++ e2) bo.val p.length sf.length (by omega) (by
+              intro j hj; exact hfb j (by omega))]
+        · show vf3.val.length = _
+          omega
+        · show vb3.val.length = _
+          omega
+      have lenA1 : (Slice.len a1).val = A1.length := by simp [Slice.len]; omega
+      have lenB1 : (Slice.len b1).val = B1.length := by simp [Slice.len]; omega
+      have hnt0' : ¬(x.val = 0 ∧ y.val = 0) := by omega
+      have hntn' : ¬(x.val = A1.length ∧ y.val = B1.length) := by omega
+      show Aeneas.Std.WP.spec (if x = 0#usize then _ else _) _
+      split
+      · rename_i h1
+        have e1 := congrArg UScalar.val h1
+        split
+        · rename_i h2
+          have e2 := congrArg UScalar.val h2
+          exfalso; simp at e1 e2; omega
+        · split
+          · rename_i h3
+            have e3 := congrArg UScalar.val h3
+            split
+            · rename_i h4
+              have e4 := congrArg UScalar.val h4
+              exfalso; omega
+            · exact hrec
+          · exact hrec
+      · split
+        · rename_i h3
+          have e3 := congrArg UScalar.val h3
+          split
+          · rename_i h4
+            have e4 := congrArg UScalar.val h4
+            exfalso; omega
+          · exact hrec
+        · exact hrec
 
 end difffold_myers_extract
