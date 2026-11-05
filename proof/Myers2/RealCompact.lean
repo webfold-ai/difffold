@@ -83,6 +83,8 @@ theorem mark_ids_spec : ∀ (N : Nat) (xs : Slice U32) (flags : Slice Bool), xs.
 
 def uvals (l : List Usize) : List Nat := l.map (fun u => u.val)
 
+theorem uvals_len' (l : List Usize) : (uvals l).length = l.length := by simp [uvals]
+
 theorem scatter_flags_spec : ∀ (N : Nat) (r : Slice Bool) (pos : Slice Usize) (out : Slice Bool),
     r.val.length = N → pos.val.length = N → (∀ p ∈ uvals pos.val, p < out.val.length) →
     lines.scatter_flags r pos out ⦃ o => o.val = Myers.scatterOf r.val (uvals pos.val) out.val ⦄ := by

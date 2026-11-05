@@ -2,7 +2,15 @@ import DifffoldReal
 open Aeneas Aeneas.Std Result ControlFlow
 namespace difffold_myers_extract
 
-theorem bv_and_not1 (x : BitVec 32) : x &&& ~~~(1#32) = (x >>> 1) <<< 1 := by bv_decide
+theorem bv_and_not1 (x : BitVec 32) : x &&& ~~~(1#32) = (x >>> 1) <<< 1 := by
+  apply BitVec.eq_of_getElem_eq
+  intro i hi
+  simp only [BitVec.getElem_and, BitVec.getElem_not, BitVec.getElem_ushiftRight, BitVec.getElem_shiftLeft]
+  rcases Nat.eq_zero_or_pos i with h | h
+  · subst h; simp
+  · have hi1 : i - 1 + 1 < 32 := by omega
+    simp [show ¬ i = 0 by omega]
+    rw [show 1 + (i - 1) = i by omega, BitVec.getLsbD_eq_getElem hi]
 
 theorem and_not1 (i : I32) (h : 0 ≤ i.val) : (i &&& (~~~(1#i32))).val = i.val - i.val % 2 := by
   have hbv : (i &&& (~~~(1#i32))).bv = (i.bv >>> 1) <<< 1 := by

@@ -184,8 +184,88 @@ theorem diff_ids_spec (a b : Slice U32) (n_ids : Usize) (A B : List Nat)
   have hs19 : s19.val = di := by
     rw [hrb', hs15v, Myers.splice_full _ _ (by simp [hdl.2, hcbN])]
   step as ⟨s22, back9, hdm9⟩
+  have hs22 : s22 = s8 := by
+    have := (Prod.mk.inj hdm9).1
+    rw [this, hb3]
+  have hb9 : back9 = fun s => ({ slice := s } : alloc.vec.Vec Bool) := by
+    exact (Prod.mk.inj hdm9).2
+  have hs8l : s8.val.length = a.val.length := by rw [c3, Myers.length_editOf, hs7v]; simp
+  have hpa : uvals pa.val = Myers.posOf (fun x => decide (x ∈ B1)) (vals am.val) pre.val := by
+    rw [c2]; simp [uvals]
+  have hder5 : (alloc.vec.Vec.deref (back5 s18)) = s18 := by
+    rw [hb5]; show alloc.vec.Vec.deref ⟨s18⟩ = s18
+    unfold alloc.vec.Vec.deref; rw [Slice.eq_iff]; simp [alloc.vec.Vec.val]
+  have hderpa : (alloc.vec.Vec.deref pa).val = pa.val := by simp [alloc.vec.Vec.deref, alloc.vec.Vec.val]
+  have hpal : pa.val.length = da.length := by
+    have h1 := congrArg List.length hpa
+    rw [uvals_len', Myers.length_posOf] at h1
+    rw [h1, hdl.1, hcalN]
+    have := congrArg List.length hcav
+    rw [vals_len] at this; omega
+  have hbnd : ∀ q ∈ uvals (alloc.vec.Vec.deref pa).val, q < s22.val.length := by
+    intro q hq
+    rw [hderpa, hpa] at hq
+    have := Myers.mem_posOf _ _ _ q hq
+    rw [hs22, hs8l]; simp [vals_len] at this; omega
+  step with (scatter_flags_spec da.length (alloc.vec.Vec.deref (back5 s18)) (alloc.vec.Vec.deref pa) s22
+    (by rw [hder5, hs18]) (by rw [hderpa, hpal]) hbnd) as ⟨s23, hs23⟩
   step as ⟨s26, back10, hdm10⟩
-  trace_state
-  sorry
+  have hs26 : s26 = s11 := by
+    have := (Prod.mk.inj hdm10).1
+    rw [this, hb4]
+  have hb10 : back10 = fun s => ({ slice := s } : alloc.vec.Vec Bool) := (Prod.mk.inj hdm10).2
+  have hs11l : s11.val.length = b.val.length := by rw [d3, Myers.length_editOf, hs10v]; simp
+  have hpb : uvals pb.val = Myers.posOf (fun x => decide (x ∈ A1)) (vals bm.val) pre.val := by
+    rw [d2]; simp [uvals]
+  have hder6 : (alloc.vec.Vec.deref (back6 s19)) = s19 := by
+    rw [hb6]; show alloc.vec.Vec.deref ⟨s19⟩ = s19
+    unfold alloc.vec.Vec.deref; rw [Slice.eq_iff]; simp [alloc.vec.Vec.val]
+  have hderpb : (alloc.vec.Vec.deref pb).val = pb.val := by simp [alloc.vec.Vec.deref, alloc.vec.Vec.val]
+  have hpbl : pb.val.length = di.length := by
+    have h1 := congrArg List.length hpb
+    rw [uvals_len', Myers.length_posOf] at h1
+    rw [h1, hdl.2, hcbN]
+    have := congrArg List.length hcbv
+    rw [vals_len] at this; omega
+  have hbnd2 : ∀ q ∈ uvals (alloc.vec.Vec.deref pb).val, q < s26.val.length := by
+    intro q hq
+    rw [hderpb, hpb] at hq
+    have := Myers.mem_posOf _ _ _ q hq
+    rw [hs26, hs11l]; simp [vals_len] at this; omega
+  step with (scatter_flags_spec di.length (alloc.vec.Vec.deref (back6 s19)) (alloc.vec.Vec.deref pb) s26
+    (by rw [hder6, hs19]) (by rw [hderpb, hpbl]) hbnd2) as ⟨s27, hs27⟩
+  have hApl : A.length = p.length + A1.length + sf.length := by
+    have := congrArg List.length hT.1; simp at this; omega
+  have hBpl : B.length = p.length + B1.length + sf.length := by
+    have := congrArg List.length hT.2.1; simp at this; omega
+  have hfA : da.length = (A1.filter (fun x => decide (x ∈ B1))).length := by
+    rw [hdl.1, hcav, hA1]
+  have hfB : di.length = (B1.filter (fun x => decide (x ∈ A1))).length := by
+    rw [hdl.2, hcbv, hB1]
+  have hS' : Myers.Solve Myers.mid (A1.filter (fun x => decide (x ∈ B1))) (B1.filter (fun x => decide (x ∈ A1))) da di := by
+    simpa only [hcav, hcbv, hA1, hB1] using hS
+  have hOpt0 := Myers.filter_optimal (Myers.solve_optimal Myers.mid_spec hS')
+  have hOpt1 := Myers.opt_trim (p := p) (s := sf) hOpt0
+  rw [← hT.1, ← hT.2.1] at hOpt1
+  have hcs1 := Myers.compact_scatter (fun x => decide (x ∈ B1)) A1 (List.replicate p.length false)
+    (List.replicate sf.length false) da hfA
+  have hcs2 := Myers.compact_scatter (fun x => decide (x ∈ A1)) B1 (List.replicate p.length false)
+    (List.replicate sf.length false) di hfB
+  simp only [List.length_replicate] at hcs1 hcs2
+  have hpl' := hpl
+  rw [hpl] at hcs1 hcs2
+  have hrepA : List.replicate a.val.length false =
+      List.replicate p.length false ++ List.replicate A1.length false ++ List.replicate sf.length false := by
+    rw [hal, hApl, List.replicate_add, List.replicate_add]
+  have hrepB : List.replicate b.val.length false =
+      List.replicate p.length false ++ List.replicate B1.length false ++ List.replicate sf.length false := by
+    rw [hbl, hBpl, List.replicate_add, List.replicate_add]
+  refine ⟨_, _, hOpt1, ?_, ?_⟩
+  · rw [hb9]; show s23.val = _
+    rw [hs23, hder5, hs18, hderpa, hpa, hs22, c3, hs7v, hrepA, hA1, hpl]
+    exact hcs1
+  · rw [hb10]; show s27.val = _
+    rw [hs27, hder6, hs19, hderpb, hpb, hs26, d3, hs10v, hrepB, hB1, hpl]
+    exact hcs2
 
 end difffold_myers_extract

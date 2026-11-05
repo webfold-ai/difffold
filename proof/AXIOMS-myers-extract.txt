@@ -1,9 +1,14 @@
-'difffold_myers_extract.solve_spec' depends on axioms: [propext,
-'difffold_myers_extract.middle_spec' depends on axioms: [propext,
-'difffold_myers_extract.sweep_spec' depends on axioms: [propext,
-'difffold_myers_extract.forward_spec' depends on axioms: [propext,
-'difffold_myers_extract.backward_spec' depends on axioms: [propext,
+
+'difffold_myers_extract.solve_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.middle_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.sweep_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.forward_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.backward_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
 'difffold_myers_extract.forward_one_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
 'difffold_myers_extract.backward_one_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
 'difffold_myers_extract.snake_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
 'difffold_myers_extract.snake_back_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.diff_ids_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.mark_ids_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.compact_ids_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'difffold_myers_extract.scatter_flags_spec' depends on axioms: [propext, Classical.choice, Quot.sound]real	1m6.053suser	1m18.535ssys	0m13.476s
