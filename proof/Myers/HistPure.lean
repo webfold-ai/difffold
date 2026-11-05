@@ -19,6 +19,16 @@ theorem sg_three {α : Type} (l : List α) (lo m1 m2 hi : Nat) (h1 : lo ≤ m1) 
     sg l lo hi = sg l lo m1 ++ sg l m1 m2 ++ sg l m2 hi := by
   rw [sg_split l lo m2 hi (by omega) h3, sg_split l lo m1 m2 h1 h2]
 
+theorem sg_drop {α : Type} (l : List α) (lo hi k : Nat) (hk : k ≤ hi - lo) :
+    (sg l lo hi).drop k = sg l (lo + k) hi := by
+  unfold sg
+  rw [List.drop_take, List.drop_drop, show hi - lo - k = hi - (lo + k) by omega]
+
+theorem sg_take {α : Type} (l : List α) (lo hi k : Nat) (hk : k ≤ hi - lo) :
+    (sg l lo hi).take k = sg l lo (lo + k) := by
+  unfold sg
+  rw [List.take_take, show min k (hi - lo) = k by omega, show lo + k - lo = k by omega]
+
 /-- A script for the segments `A`, `B` and the arrays after the write. -/
 def HPost (A B : List Nat) (alo blo : Nat) (D I D' I' : List Bool) : Prop :=
   ∃ da di, Valid A B da di ∧ D' = splice D alo da ∧ I' = splice I blo di
