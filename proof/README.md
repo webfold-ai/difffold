@@ -147,6 +147,69 @@ mirroring (`mirror_expand` uses closures and recursion over child lists, not ext
 predicate on the child lists; `Keys` (sorted keyroots, exactly the last node per leftmost leaf) follows from `from_kids_spec` but the
 translation lemma is not written. The size limits (fewer than `2^14` nodes) come from Aeneas modelling `usize` as 32 or 64 bits.
 
+## Line search (`src/lines.rs`)
+
+Two layers. **Layer 1 (`Myers/*.lean`, plain Lean 4.31.0, no Mathlib)** is a Lean model of the algorithm with
+its optimality theorem. **Layer 2 (`Myers2/Real*.lean`, over Aeneas)** proves that the Aeneas translation of the
+real `src/lines.rs` search refines that model. Both layers have zero `sorry` and use only `propext`,
+`Classical.choice`, `Quot.sound` (`AXIOMS-myers.txt`, `AXIOMS-myers-extract.txt`). An earlier `bv_decide` proof of one bit lemma pulled in a native-code axiom; it is now a kernel proof and the audit shows the three only.
+
+Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline Bound Glue TrimSpec Splice SolveLen CpreChar AxiomAudit`
+then `AENEAS_HOME=... ./extract-real.sh` and `LEAN_WS=... ./check-real.sh RealCommon RealSnake RealDefs RealX0 RealFwd
+RealSnakeBack RealBack RealScan RealBits RealHalve RealSweep RealMiddle RealSolve` (oleans in `build-myers/`).
+
+### Layer 1: the model (proved)
+
+| obligation | theorems (file) |
+|---|---|
+| `lcs`, sublist characterisation | `lcs_le`, `lcs_ex` (Lcs) |
+| (a) trimming equal ends | `lcs_prefix`, `lcs_suffix`, `lcs_trim` (Lcs), `opt_trim` (Script) |
+| (b) dropping ids absent from the other side | `lcs_filter`, `kept_expand`, `filter_optimal` (Script) |
+| (c) script soundness and optimality | `cost_eq`, `cost_ge`, `optimal_iff`, `exists_optimal`, `optimal_min` (Script) |
+| (d) divide step, model of `solve` | `optimal_append` (Script), `solve_optimal`, `solve_total` (Solve) |
+| (e) furthest-reaching recurrence | `F_sound` (Reach), `compl_all` (Compl), `F_le` (Bound) |
+| (e) middle snake, both parities | `path_point`, `exists_hit`, `sweep_sound`, `sweep_some`, `fhit_good`, `bhit_good`, `two_le`, `midPt_spec`, `mid_spec` (Path, Mid, Good) |
+| pipeline | `line_search_optimal`, `line_search_cost` (Pipeline) |
+
+### Layer 2: the real extracted code refines the model (proved)
+
+The real `src/lines.rs` is included by `#[path]` (`extract-myers/lib.rs`); Aeneas translates it with no copies
+(`gen/lean-real/DifffoldReal.lean`, `gen/RECEIPT-real.txt`). `src/lines.rs` was refactored without changing
+behaviour (`or_else` as `match`, `snake`/`snake_back` take the two slices). Under the precondition
+`|A| + |B| <= 2^28` (so no `i32` overflow; the `i32` side goals are discharged in the proofs):
+
+| extracted function | theorem | states |
+|---|---|---|
+| `common_prefix`, `common_suffix` | `common_prefix_u32`, `common_suffix_u32` (RealCommon) | length, equal ends, maximality |
+| `snake`, `snake_back` | `snake_spec` (RealSnake), `snake_back_spec` (RealSnakeBack) | equals the model run length, with size bounds |
+| `forward_one` | `forward_one_spec` (RealFwd, RealX0) | writes `vf[off+k] = F A B d k`, reports the model overlap, reads only what round `d` is entitled to |
+| `backward_one` | `backward_one_spec` (RealBack) | the same for `vb` with the reversed lists; reported point is `(n - Bk, m - (Bk - k))` when nonnegative |
+| `forward_seq`, `backward_seq` | `forward_seq_spec`, `backward_seq_spec` (RealScan) | scan of `lo, lo+2, .., hi`: first hit, written entries, untouched entries |
+| `forward`, `backward` | `forward_spec`, `backward_spec` (RealHalve) | the halving visits the same diagonals, leftmost hit wins |
+| `sweep` | `sweep_spec` (RealSweep) | returns exactly the model `Myers.sweep` result (arrays hold `F` at every round, indices in bounds) |
+| `middle` | `middle_spec` (RealMiddle) | returns the model `midPt`, scratch arrays keep their sizes |
+| `mark_ids`, `compact_ids`, `scatter_flags` | `mark_ids_spec`, `compact_ids_spec`, `scatter_flags_spec` (RealCompact) | equal their sequential models (`markOf`, `posOf`/`editOf`, `scatterOf` of `Compact.lean`) |
+| `diff_ids` | `diff_ids_spec` (RealDiffIds) | for ids below `n_ids` and `|A|+|B| <= 2^28`, returns flags with `Myers.Optimal A B da di`, a minimal edit script, through prefix/suffix cut, one-sided id compaction, the real `solve`, and scatter back |
+| `solve` | `solve_spec` (RealSolve) | the flag arrays receive the flags of `Myers.Solve Myers.mid`, hence (by `solve_optimal`, `mid_spec`) a minimal edit script |
+
+`Myers.Solve Myers.mid` is optimal by `solve_optimal`, so the real `solve` writes a minimal script into the
+segment it is given.
+
+### Not yet done (open, nothing here is claimed proved)
+
+- `diff_text_with`: the byte-level cut (`line_start`, `suffix_on_line_start`, `count_lines`, `split_lines`,
+  `first_nl`/`last_nl` with `trailing_zeros`, `count_ones`), final-newline handling, and the application of the
+  script to the texts.
+- `intern`: uses `std::collections::HashMap` with a keyed hasher; Aeneas has no model of it. Planned replacement:
+  an open-addressing interner with real byte equality on probe, then a proof that equal ids mean equal lines.
+- `Algo::Histogram` (`hist`, `find_anchor`, `walk_chain`, `index_a`): soundness (valid script) not started;
+  optimality is not claimed for it.
+- Performance check of the refactors with `linebench` has not been re-run.
+
+Earlier, smaller extraction of closure-free copies (`extract/myers_core.rs`, `Myers2/CommonCopy.lean`,
+`Myers2/SnakeSpec.lean`, `tests/myers_core.rs`) is superseded by the real-source extraction above and kept only as
+a record.
+
 ## What is not proved
 
 - `replay_sound`: that `apply` rebuilds the after-tree from a script `edit` produced.
