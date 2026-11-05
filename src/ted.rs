@@ -378,6 +378,7 @@ fn umin(x: usize, y: usize) -> usize {
 
 /// `|x - y|`.
 #[inline]
+#[allow(clippy::manual_abs_diff)] // Explicit branches keep the function extractable by Aeneas.
 fn adiff(x: usize, y: usize) -> usize {
     if x >= y {
         x - y
@@ -388,6 +389,7 @@ fn adiff(x: usize, y: usize) -> usize {
 
 /// The smaller of two `u32`.
 #[inline]
+#[allow(clippy::needless_bool)] // Kept as an explicit branch for Aeneas extraction.
 fn eq32(x: u32, y: u32) -> bool {
     if x == y {
         true
@@ -473,6 +475,7 @@ fn within_td(a: &PostTree, b: &PostTree, tau: u32, st: &mut Stats) -> (Option<u3
 
 /// Fill the forest-distance table of the window `(i0, j0)` and record the subtree distances of its
 /// left-path pairs in `td`.
+#[allow(clippy::too_many_arguments)] // Flat arguments keep the function extractable by Aeneas.
 fn fill_window(
     a: &PostTree,
     b: &PostTree,
@@ -702,7 +705,21 @@ fn traceback(a: &PostTree, b: &PostTree, cost: u32, prefer_match: bool) -> Vec<u
             let lx = a.lml[x - 1] as usize;
             let ly = b.lml[y - 1] as usize;
             let leaf_case = is_leaf_case(p, q, lx, ly, li, lj);
-            let diag_ok = diag_test(a, b, &fd, &td, w, t, inf, (li, lj), (p, q), (x, y), (lx, ly), leaf_case, v);
+            let diag_ok = diag_test(
+                a,
+                b,
+                &fd,
+                &td,
+                w,
+                t,
+                inf,
+                (li, lj),
+                (p, q),
+                (x, y),
+                (lx, ly),
+                leaf_case,
+                v,
+            );
             let del_ok = del_test(&fd, w, t, inf, (p, q), v);
             let ins_ok = ins_test(&fd, w, t, inf, (p, q), v);
             let go_diag = choose_diag(prefer_match, diag_ok, del_ok, ins_ok);

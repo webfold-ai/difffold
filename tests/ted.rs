@@ -326,7 +326,10 @@ fn the_checker_accepts_exactly_the_legal_mappings() {
     let (mut yes, mut no) = (0, 0);
     for round in 0..20000 {
         let (mut ba, mut bb) = (1 + (r.next() % 8) as i32, 1 + (r.next() % 8) as i32);
-        let (a, b) = (random_tree(&mut r, &mut ba, 2), random_tree(&mut r, &mut bb, 2));
+        let (a, b) = (
+            random_tree(&mut r, &mut ba, 2),
+            random_tree(&mut r, &mut bb, 2),
+        );
         let (pa, pb) = (post(&a), post(&b));
         let k = (r.next() % 5) as usize;
         let pairs: Vec<(u32, u32)> = (0..k)
@@ -338,9 +341,17 @@ fn the_checker_accepts_exactly_the_legal_mappings() {
             })
             .collect();
         let ok = check_mapping(&pa, &pb, &pairs).is_ok();
-        assert_eq!(ok, legal(&pa, &pb, &pairs), "round {round}: {a:?} {b:?} {pairs:?}");
+        assert_eq!(
+            ok,
+            legal(&pa, &pb, &pairs),
+            "round {round}: {a:?} {b:?} {pairs:?}"
+        );
         let replayed = replay_script(&pa, &pb, &pairs);
-        assert_eq!(replayed.is_ok(), ok, "round {round}: replay {a:?} {b:?} {pairs:?}");
+        assert_eq!(
+            replayed.is_ok(),
+            ok,
+            "round {round}: replay {a:?} {b:?} {pairs:?}"
+        );
         if ok {
             assert_eq!(replayed.unwrap(), check_mapping(&pa, &pb, &pairs).unwrap());
         }

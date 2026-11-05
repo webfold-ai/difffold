@@ -194,6 +194,7 @@ fn first_in_block(t: &[u8], at: usize) -> Option<usize> {
 }
 
 /// Index of the first newline, by halving down to word blocks.
+#[allow(clippy::manual_map)] // Explicit `match` keeps the function extractable by Aeneas.
 fn first_nl(t: &[u8]) -> Option<usize> {
     if t.len() <= 64 {
         first_in_block(t, 0)
@@ -252,6 +253,7 @@ fn split_seq<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
 
 /// Split into lines, each keeping its terminator, by cutting the text at a newline near the middle
 /// until chunks are short, then splitting each chunk sequentially.
+#[allow(clippy::manual_map)] // Explicit `match` keeps the function extractable by Aeneas.
 fn split_into<'a>(t: &'a [u8], out: &mut Vec<&'a [u8]>) {
     if t.len() <= SEQ_CHUNK {
         split_seq(t, out);
@@ -339,6 +341,7 @@ fn intern_all<'a>(
 }
 
 /// The id of line `l`, adding it with the next free id if no earlier line equals it.
+#[allow(clippy::ptr_arg)] // Uniform `&mut Vec` arguments keep the table state extractable.
 fn intern_line<'a>(
     head: &mut Vec<u32>,
     nxt: &mut Vec<u32>,
@@ -457,6 +460,7 @@ fn shrink_suffix(ro: &[u8], q: usize) -> usize {
 
 /// Shrink the common suffix length `q` until the suffix starts a line in both texts. The suffix
 /// bytes are equal in both texts, so the first newline inside the suffix has the same offset in each.
+#[allow(clippy::if_same_then_else)] // Separate arms keep each side check explicit.
 fn suffix_on_line_start(ro: &[u8], rn: &[u8], q: usize) -> usize {
     if q == 0 {
         q
@@ -511,7 +515,14 @@ fn mark_ids(xs: &[u32], flags: &mut [bool]) {
 
 /// Split `xs` (whose first element sits at position `base`) into the ids that occur on the other side,
 /// pushed with their positions, and the certain edits, flagged in `edit`.
-fn compact_ids(xs: &[u32], base: usize, other: &[bool], keep: &mut Vec<u32>, pos: &mut Vec<usize>, edit: &mut [bool]) {
+fn compact_ids(
+    xs: &[u32],
+    base: usize,
+    other: &[bool],
+    keep: &mut Vec<u32>,
+    pos: &mut Vec<usize>,
+    edit: &mut [bool],
+) {
     match xs.len() {
         0 => {}
         1 => {
@@ -791,7 +802,14 @@ pub fn diff_histogram_ids(a: &[u32], b: &[u32], n_ids: usize) -> LineDiff {
     }
 }
 
-fn hist(a: &[u32], b: &[u32], h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize), depth: u32) {
+fn hist(
+    a: &[u32],
+    b: &[u32],
+    h: &mut Hist,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+    depth: u32,
+) {
     let p = common_prefix(&a[alo..ahi], &b[blo..bhi]);
     let (alo, blo) = (alo + p, blo + p);
     let sfx = common_suffix(&a[alo..ahi], &b[blo..bhi]);
@@ -824,7 +842,13 @@ fn hist(a: &[u32], b: &[u32], h: &mut Hist, (alo, ahi): (usize, usize), (blo, bh
 }
 
 /// Solve a range with the minimal search.
-fn hist_fallback(a: &[u32], b: &[u32], h: &mut Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize)) {
+fn hist_fallback(
+    a: &[u32],
+    b: &[u32],
+    h: &mut Hist,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+) {
     solve(
         &a[alo..ahi],
         &b[blo..bhi],
@@ -874,7 +898,13 @@ fn any_common(b: &[u32], h: &Hist, blo: usize, bhi: usize) -> bool {
 
 /// The rarest common line of `b[blo..bhi]` that occurs at most `HIST_LIMIT` times in the old range,
 /// extended to the longest equal run around it.
-fn find_anchor(a: &[u32], b: &[u32], h: &Hist, (alo, ahi): (usize, usize), (blo, bhi): (usize, usize)) -> Option<Anchor> {
+fn find_anchor(
+    a: &[u32],
+    b: &[u32],
+    h: &Hist,
+    (alo, ahi): (usize, usize),
+    (blo, bhi): (usize, usize),
+) -> Option<Anchor> {
     let mut best: Option<Anchor> = None;
     let mut j = blo;
     while j < bhi {
