@@ -257,6 +257,7 @@ theorem solve_spec :
           (by simp; omega) hs3A hs4B (by simp; omega) (by simp; omega) (by simp; omega) hfaA hfbB
           (by simp; omega) (by simp; omega)) as ⟨ra1, rb1, vf2, vb2, hr1⟩
         obtain ⟨d1, e1, hS1, hra1, hrb1, hl1, hl2⟩ := hr1
+        dsimp only at hra1 hrb1 hl1 hl2
         have hd1 := (Myers.Solve.lens hS1)
         have he1' := hd1.2
         have hd1' := hd1.1
@@ -283,14 +284,22 @@ theorem solve_spec :
           rw [hrb1, Myers.splice_getElem? _ _ _ (by omega), if_neg (by simp at hj; omega), if_neg (by omega)]
           have := hfb (p.length + y.val + j) (by simp at hj; omega)
           rw [show bo.val + (p.length + y.val + j) = i6.val + j by omega] at this; exact this
-        step with (ih (A1.length - x.val + (B1.length - y.val)) (by omega) s5 s6 (A1.drop x.val) (B1.drop y.val)
+        have hvf2 : 2 * ((A1.drop x.val).length + (B1.drop y.val).length) + 3 ≤ vf2.val.length := by
+          simp; omega
+        refine Aeneas.Std.WP.spec_mono (ih (A1.length - x.val + (B1.length - y.val)) (by omega) s5 s6
+          (A1.drop x.val) (B1.drop y.val)
           i5 i6 ra1 rb1 vf2 vb2 (by simp) hs5A hs6B (by simp; omega) (by simp; omega) (by simp; omega) hfa2 hfb2
-          (by simp; omega) (by simp; omega)) as ⟨ra2, rb2, vf3, vb3, hr2⟩
+          (by simp; omega) (by simp; omega)) ?_
+        rintro ⟨ra2, rb2, vf3, vb3⟩ hr2
         obtain ⟨d2, e2, hS2, hra2, hrb2, hl3, hl4⟩ := hr2
+        dsimp only at hra2 hrb2 hl3 hl4
         have hd2 := (Myers.Solve.lens hS2)
         simp only [List.length_drop] at hd2
         unfold SolvePost
-        refine ⟨_, _, Myers.Solve.split hT hA1ne hB1ne hmid' hnt hS1 hS2, ?_, ?_, ?_, ?_⟩
+        have hS1' := hS1
+        have hS2' := hS2
+        rw [hxv, hyv] at hS1' hS2'
+        refine ⟨_, _, Myers.Solve.split hT hA1ne hB1ne hmid' hnt hS1' hS2', ?_, ?_, ?_, ?_⟩
         · show ra2.val = _
           rw [hra2, hra1, ← hd1', hi5, hao1v'] 
           sorry

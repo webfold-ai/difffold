@@ -47,8 +47,8 @@ theorem krf_congr (la : Nat → Nat) (n x y : Nat) (hx : x ≤ n) (hy : y ≤ n)
 
 /-- If `x` lies inside the subtree interval of `u` (`la u <= x <= u`) but has another leftmost leaf, its
 keyroot comes before `u`. -/
-theorem kr_lt (la : Nat → Nat) (n : Nat) (hle : ∀ u, la u ≤ u) (hlam : ∀ u v, la u ≤ v → v ≤ u → la u ≤ la v) {x u : Nat}
-    (hu : u ≤ n) (hxu : x ≤ u) (hx1 : la u ≤ x) (hne : la x ≠ la u) : krf la n x < u := by
+theorem kr_lt (la : Nat → Nat) (n : Nat) (hle : ∀ u, 1 ≤ u → la u ≤ u) (hlam : ∀ u v, la u ≤ v → v ≤ u → la u ≤ la v) {x u : Nat}
+    (hxpos : 1 ≤ x) (hu : u ≤ n) (hxu : x ≤ u) (hx1 : la u ≤ x) (hne : la x ≠ la u) : krf la n x < u := by
   have hx : x ≤ n := by omega
   obtain ⟨a1, a2, a3, a4⟩ := krf_spec la n x hx
   have hgt : la u < la x := by have := hlam u x hx1 hxu; omega
@@ -58,7 +58,7 @@ theorem kr_lt (la : Nat → Nat) (n : Nat) (hle : ∀ u, la u ≤ u) (hlam : ∀
     exact absurd h.symm hne
   · by_cases e2 : u < krf la n x
     · -- u lies inside the subtree of the keyroot
-      have := hlam (krf la n x) u (by rw [a3]; have := hle x; omega) (by omega)
+      have := hlam (krf la n x) u (by rw [a3]; have := hle x hxpos; omega) (by omega)
       rw [a3] at this
       omega
     · omega
