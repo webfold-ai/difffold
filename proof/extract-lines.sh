@@ -7,7 +7,7 @@
 #   extract-lines/lib.rs  includes the real src/lines.rs by #[path];
 #   extract/lines_core.rs is the one copy (first_nl and last_nl without closures, see its header);
 #   src/ted.rs is included unchanged by #[path]; the roots are from_kids (via root_from_kids), label_lower_bound,
-#   fill_window and within_td. The functions reachable from them are written in the subset stock Aeneas handles.
+#   fill_window, within_td, ted_oriented, ted_stats, check_core, replay_core and ted_mapping_with. The functions reachable from them are written in the subset stock Aeneas handles.
 set -euo pipefail
 cd "$(dirname "$0")"
 : "${AENEAS_HOME:?set AENEAS_HOME}"

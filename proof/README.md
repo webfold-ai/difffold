@@ -113,7 +113,7 @@ Compiled with Lean 4.31.0 in this session; `check-kernel.sh`, `check-lines.sh` a
 | admissibility of the bound | `ad_le_B` (for any grid whose pair costs respect the size bound, `|R_a(i) - R_b(j)| <= B(i, j)`), `RS_eq_sumU`, `hK_admissible` (with `ra`, `rb` the suffix sums that `suffix_sums_spec` proves the extracted `suffix_sums` returns) | checked |
 | `src/kernel.rs` | `fill_correct`: `fill_optimal` with the heuristic discharged. Remaining hypotheses: `ra`, `rb` are the suffix sums of `sa`, `sb`; the oracle's pair cost respects the size bound; size limits below 2^27; `tau` at least the bound at the origin | checked |
 | what `fill_correct` does **not** cover | that the grid is the child-list alignment of two nodes and that the oracle's `pair_cost` is the recursive distance (properties of `diff.rs`); the Myers line search; TED | **not done** |
-| `src/ted.rs` (real file, `#[path]`) | Extracted by `extract-lines.sh` with roots `PostTree::from_kids`, `label_lower_bound`, `fill_window`, `within_td`; no hand copy remains. `src/ted.rs` was refactored non-semantically so those functions use only constructs stock Aeneas translates (while loops, `if`-based min/max/abs_diff helpers, counting instead of `sort_unstable`, `wrapping_add` counters). `gen/lean-ted/DifffoldTed.lean` has no axiom and elaborates (`check-ted.sh`). `ted_oriented`, `mirror`, `ted_mapping`, `check_mapping`, `replay_script` are not extracted yet. | extracted, elaborates |
+| `src/ted.rs` (real file, `#[path]`) | Extracted by `extract-lines.sh` with roots `PostTree::from_kids`, `label_lower_bound`, `fill_window`, `within_td`, `ted_oriented`, `ted_stats` (with `mirror`, `depths`, `preorder`), `check_core` (behind `check_mapping`), `replay_core` (behind `replay_script`) and `ted_mapping_with` (with `traceback`); no hand copy remains. `src/ted.rs` was refactored non-semantically so those functions use only constructs stock Aeneas translates (while loops, `if`-based helpers, counting instead of `sort_unstable`, no early `return` inside loops, no closures in the traceback, `Vec::new` plus `push` instead of `vec![n]`). `gen/lean-ted/DifffoldTed.lean` has no axiom and elaborates (`check-ted.sh`). | extracted, elaborates |
 
 ### TED theorems over the extracted code (`Ted/*.lean`, `check-ted.sh`, zero `sorry`, standard axioms only)
 
@@ -137,12 +137,18 @@ Hypotheses of the driver theorem (all stated, none assumed silently): `WfL` of b
 single root (`lml n = 1`), keyroot lists that are sorted and exactly the last node per leftmost leaf (`from_kids_spec` gives this), fewer than
 `2^14` nodes per tree and `tau <= n + m` so that no `usize` addition overflows on a 32-bit platform.
 
-**Not done** (reported honestly): `ted_stats` (the left/right path choice) with `mirror` and the invariance of the distance under
-mirroring (`mirror_expand` uses closures and recursion over child lists, not extracted), `ted_mapping` (the traceback),
-`check_mapping` and `replay_script` (they use `HashMap`, `splice`, `mem::take`) are neither extracted nor proved. `WfL` of the
-`lml` array that `from_kids` builds (subtrees are nested intervals) is assumed as a hypothesis, not derived from a validity
-predicate on the child lists; `Keys` (sorted keyroots, exactly the last node per leftmost leaf) follows from `from_kids_spec` but the
-translation lemma is not written. The size limits (fewer than `2^14` nodes) come from Aeneas modelling `usize` as 32 or 64 bits.
+| `Ted.D_mirror`, `mirror_spec`, `depths_spec`, `ted_stats_spec` | mirroring both trees leaves `D` unchanged (valid mappings are characterised by preorder instead of postorder plus the ancestor relation, and the mirror index is `n + 1 - pre`); the extracted `mirror` returns a well formed tree whose child lists are the reversed ones; `ted_stats` returns `TED a b` whichever side it picks | `MirrorD`, `Mirror`, `Mirror2`, `Stats` |
+| `from_kids_wf` | for valid child lists (`KidsValid`: children smaller than the node, ascending, ending with `j - 1`, tiling leftmost leaves, last node is the root) `from_kids` returns a `PT.Wf` tree: `WfL`, the root, the parent relation and the keyroots are derived, not assumed | `Kids`, `KidsWf`, `Par`, `Wf` |
+| `ted_oriented_wf` | `ted_oriented` returns `TED a b` for any `PT.Wf` pair with fewer than `2^14` nodes per tree | `Wf` |
+| `check_core_spec` | the core of `check_mapping` (a linear scan of the pairs for range and one to one, then a post order and a pre order pass) returns `Cost c` exactly when the pairs are a legal Tai mapping (`Rng` and `Valid`), and then `c` is the mapping cost | `Check` |
+| `replay_core_spec` | the core of `replay_script` succeeds exactly for legal mappings and counts the script operations that the mapping cost prescribes. The replay works on a flat model of the working forest (alive flags and prefix counts of subtree sizes), because an ordered forest in postorder is determined by the node order plus the subtree sizes; the theorem is about that model, not about a separately modelled `Vec`/`HashMap` script editor | `Replay` |
+| `walk_spec`, `outer_spec`, `traceback_spec` | the traceback of `ted_mapping_with`: every pop of the stack rebuilds the window table, the inner walk keeps a universal invariant over solutions of the pending sub-tasks (`TInv`), and when the stack is empty the recorded pairs are an optimal mapping of the whole forest (`Sol`: valid, in range, cost equal to `D`) | `TraceWalk`, `TraceOuter`, `TraceTop` |
+| `pairs_loop_spec`, `ted_mapping_with_spec` | `ted_mapping_with` returns `cost = TED a b` and pairs that are `Valid`, in range and of cost `TED a b` (so `ted_mapping` is a minimum cost mapping, for either tie-breaking preference) | `TraceMap` |
+| `real_trees_mapping` | end to end for two trees built by `from_kids` from valid child lists: both are `PT.Wf`, and the mapping returned by `ted_mapping_with` is legal and has cost `TED` | `Final` |
+
+Hypotheses of the end-to-end theorem: valid child lists, between 1 and `2^14 - 1` nodes per tree, labels below `2^31`. The size limits come from Aeneas modelling `usize` as 32 or 64 bits.
+
+**Not claimed.** The wrappers `check_mapping` and `replay_script` only turn the verdict of `check_core` / `replay_core` into a `Result` with an error string; the string formatting is not extracted. The replay theorem is about the flat model described above, not about an editor that mutates a `Vec` of nodes. The label lower bound, the keyroot work estimate and the choice between the two mirror orientations are proved to return the right value, not to be the cheapest choice.
 
 ## Line search (`src/lines.rs`)
 

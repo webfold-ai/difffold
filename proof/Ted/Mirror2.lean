@@ -382,12 +382,8 @@ theorem mirror_spec (a : ted.PostTree) (hW : PT.Wf a) (hn : a.label.length < 2 ^
     refine WP.spec_bind (from_kids_spec label1 (alloc.vec.Vec.deref kids1) (by omega)
       (by rw [hderef]; have : kids1.val.length = a.label.length := hkd1; omega) hvalid) ?_
     rintro pt ⟨hpl1, hplen, hlml, hsorted, hkrt, hkids, hkind⟩
-    unfold ted.PostTree.with_kinds
-    have hlenEq : alloc.vec.Vec.len kind = alloc.vec.Vec.len pt.label := by
-      apply UScalar.eq_of_val_eq
-      rw [alloc.vec.Vec.len_val, alloc.vec.Vec.len_val, hpl1]
-      exact hk1'.trans hl1'.symm
-    simp only [hlenEq, ↓reduceIte, WP.spec_ok]
+    unfold ted.PostTree.set_kinds
+    simp only [WP.spec_ok]
     have hkv' : (↑pt.kids : List (alloc.vec.Vec Std.U32)) = kids1.val := by rw [hkids, hderef]
     have hmw := mirror_wf a { label := pt.label, lml := pt.lml, keyroots := pt.keyroots, kids := pt.kids, kind := kind }
       hW hn pos1.val hP (by show pt.label.length = _; rw [hpl1]; exact hl1')

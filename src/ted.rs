@@ -75,8 +75,13 @@ impl PostTree {
 
     /// Attach node kinds (one per node, in postorder). With kinds, relabelling across kinds costs 2.
     #[must_use]
-    pub fn with_kinds(mut self, kind: Vec<u32>) -> Self {
+    pub fn with_kinds(self, kind: Vec<u32>) -> Self {
         assert_eq!(kind.len(), self.label.len(), "one kind per node");
+        self.set_kinds(kind)
+    }
+
+    /// Replace the kinds without checking their number. Callers guarantee one kind per node.
+    fn set_kinds(mut self, kind: Vec<u32>) -> Self {
         self.kind = kind;
         self
     }
@@ -119,7 +124,7 @@ impl PostTree {
             kids[y] = ks;
             x += 1;
         }
-        PostTree::from_kids(label, &kids).with_kinds(kind)
+        PostTree::from_kids(label, &kids).set_kinds(kind)
     }
 
     /// Work estimate of the left-path decomposition against `other`: the product of the keyroot subtree sizes.

@@ -9,6 +9,8 @@ import Truth
 import Window
 import Driver
 import Oriented
+import Final
+import Replay
 open difffold_lines_extract
 #print axioms from_kids_spec
 #print axioms label_lower_bound_spec
@@ -31,3 +33,18 @@ open difffold_lines_extract
 #print axioms ted_oriented_loop_spec
 #print axioms ted_oriented_spec
 #print axioms ted_eq_min_mapping
+#print axioms Ted.D_mirror
+#print axioms mirror_spec
+#print axioms depths_spec
+#print axioms preorder_spec
+#print axioms ted_stats_spec
+#print axioms ted_oriented_wf
+#print axioms from_kids_wf
+#print axioms check_core_spec
+#print axioms replay_core_spec
+#print axioms walk_spec
+#print axioms outer_spec
+#print axioms traceback_spec
+#print axioms pairs_loop_spec
+#print axioms ted_mapping_with_spec
+#print axioms real_trees_mapping
