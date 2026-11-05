@@ -121,47 +121,76 @@ fn trim<'a, T: Eq>(a: &'a [T], b: &'a [T]) -> (&'a [T], &'a [T]) {
 ///
 /// Row `i` holds `D[i][j]` for `j` in `[i - k, i + k]`, stored at index `c = j - i + k` in a buffer of
 /// width `2k + 1`. Two rows are kept, so the memory is `O(k)`. Every stored value is capped at `k + 1`,
-/// which stands for "more than `k`". Cells outside the band or the matrix hold the cap.
+/// which stands for "more than `k`". Cells outside the band or the matrix hold the cap. Each row is
+/// filled only over the columns `j` in `[0, m]`, so the inner loop has no range checks; the cells
+/// outside that range are written with the cap.
 fn band<T: Eq>(a: &[T], b: &[T], k: usize) -> Option<usize> {
+    match band_rows(a, b, k, usize::MAX) {
+        Band::Exact(d) => d,
+        Band::Unfinished => unreachable!("an unbounded band always finishes"),
+    }
+}
+
+/// The result of a band run that may stop early.
+enum Band {
+    /// The band finished. The distance is `Some(d)` if it is at most `k`.
+    Exact(Option<usize>),
+    /// The row budget ran out before the band finished.
+    Unfinished,
+}
+
+/// The band with at most `row_budget` rows. Dissimilar inputs usually empty the band after a few
+/// rows, so a small budget often settles them.
+fn band_rows<T: Eq>(a: &[T], b: &[T], k: usize, row_budget: usize) -> Band {
     let (n, m) = (a.len(), b.len());
     debug_assert!(n >= 1 && m >= 1 && n.abs_diff(m) <= k && k <= n.max(m));
     let w = 2 * k + 1;
     let cap = k + 1;
-    let mut prev = vec![cap; w];
-    let mut cur = vec![cap; w];
+    // One extra sentinel cell at index `w` stays at the cap, so `prev[c + 1]` never needs a check.
+    let mut prev = vec![cap; w + 1];
+    let mut cur = vec![cap; w + 1];
     // Row 0: `D[0][j] = j`, stored at `c = j + k` for `j` in `[0, min(k, m)]`.
-    for (c, cell) in prev.iter_mut().enumerate().skip(k) {
-        let j = c - k;
-        if j <= m {
-            *cell = j.min(cap);
-        }
+    for j in 0..=k.min(m) {
+        prev[j + k] = j;
     }
     for i in 1..=n {
+        if i > row_budget {
+            return Band::Unfinished;
+        }
         let ai = &a[i - 1];
+        // Columns with `0 <= j <= m` sit at `c` in `[lo, hi]`, where `j = i + c - k`.
+        let lo = k.saturating_sub(i);
+        let hi = (m + k - i).min(w - 1);
+        cur[..lo].fill(cap);
         let mut row_min = cap;
-        for c in 0..w {
-            let v = match (i + c).checked_sub(k) {
-                Some(0) => i.min(cap),
-                Some(j) if j <= m => {
-                    let sub = prev[c] + usize::from(*ai != b[j - 1]);
-                    let up = prev.get(c + 1).map_or(cap, |&x| x + 1);
-                    let left = if c >= 1 { cur[c - 1] + 1 } else { cap };
-                    sub.min(up).min(left).min(cap)
-                }
-                _ => cap,
-            };
+        let mut start = lo;
+        if i <= k {
+            // `j = 0`: the first column of the matrix, `D[i][0] = i`.
+            cur[lo] = i.min(cap);
+            row_min = cur[lo];
+            start = lo + 1;
+        }
+        // `left` carries `D[i][j - 1] + 1`. Before the band it is the cap, since that cell is out.
+        let mut left = if start == 0 { cap } else { cur[start - 1] + 1 };
+        for c in start..=hi {
+            let j = i + c - k;
+            let sub = prev[c] + usize::from(*ai != b[j - 1]);
+            let up = prev[c + 1] + 1;
+            let v = sub.min(up).min(left).min(cap);
             cur[c] = v;
+            left = v + 1;
             row_min = row_min.min(v);
         }
+        cur[hi + 1..=w].fill(cap);
         if row_min >= cap {
             // Every path through this row costs more than `k`, and costs never decrease along a path.
-            return None;
+            return Band::Exact(None);
         }
         std::mem::swap(&mut prev, &mut cur);
     }
     // After the last swap `prev` is row `n`; `j = m` sits at `c = m + k - n`.
     let d = prev[m + k - n];
-    (d <= k).then_some(d)
+    Band::Exact((d <= k).then_some(d))
 }
 
 /// Bounded search on `usize` thresholds: `Some(d)` if the distance `d` is at most `k`.
@@ -183,10 +212,18 @@ fn within_usize<T: Eq>(a: &[T], b: &[T], k: usize) -> Option<usize> {
     let width = 2 * k + 1;
     let blocks = p.len().div_ceil(WORD_BITS);
     // Each class beyond the band width would make the linear class scan cost more than the band.
+    if !bit_parallel_pays(blocks, 0, width) {
+        return band(a, b, k);
+    }
     let max_classes = (MAX_MASK_WORDS / blocks).saturating_sub(1).min(width);
     if let Some((cls, reps)) = classify_scan(p, max_classes) {
         let classes = reps.len();
-        if bit_parallel_pays(blocks, classes, width) {
+        let lookup = classes.saturating_mul(LOOKUP_COST);
+        if bit_parallel_pays(blocks, lookup, width) {
+            let rows = probe_rows(t.len(), blocks, lookup, width);
+            if let Band::Exact(d) = band_rows(a, b, k, rows) {
+                return d;
+            }
             let masks = Masks::new(&cls, classes);
             let class = |x: &T| reps.iter().position(|&r| p[r] == *x).unwrap_or(classes);
             return run_kernel(&masks, p.len(), t, class, k);
@@ -195,20 +232,37 @@ fn within_usize<T: Eq>(a: &[T], b: &[T], k: usize) -> Option<usize> {
     band(a, b, k)
 }
 
-/// The cost model choosing the bit-parallel kernel over the band, per text token.
+/// Rows the band may spend before the bit-parallel kernel is preferred. The budget is a quarter of the
+/// bit-parallel work, so a probe that fails costs at most a quarter of the kernel it precedes.
+fn probe_rows(text_len: usize, blocks: usize, lookup_cost: usize, width: usize) -> usize {
+    let work = text_len.saturating_mul(
+        blocks
+            .saturating_mul(BLOCK_COST)
+            .saturating_add(lookup_cost),
+    );
+    (work / (4 * width * CELL_COST)).max(1)
+}
+
+/// The cost model choosing the bit-parallel kernel over the band, per text token, in quarter-cell units.
 ///
-/// The band spends about `width` cell updates per text token. The bit-parallel kernel spends about
-/// `BLOCK_COST` per 64-bit block and `LOOKUP_COST` per class compared during the generic class scan.
-fn bit_parallel_pays(blocks: usize, classes: usize, width: usize) -> bool {
-    let bit = blocks.saturating_mul(BLOCK_COST) + classes.saturating_mul(LOOKUP_COST);
-    bit < width
+/// The band spends `width` cell updates of `CELL_COST` units each. The bit-parallel kernel spends
+/// `BLOCK_COST` units per 64-bit block plus the `lookup_cost` of the class lookup.
+fn bit_parallel_pays(blocks: usize, lookup_cost: usize, width: usize) -> bool {
+    blocks
+        .saturating_mul(BLOCK_COST)
+        .saturating_add(lookup_cost)
+        < width.saturating_mul(CELL_COST)
 }
 
 const WORD_BITS: usize = 64;
-/// Cost of one 64-bit block step, in band cell updates.
+/// Cost of one band cell update, in quarter-cell units. Measured at about 4 ns per cell.
+const CELL_COST: usize = 4;
+/// Cost of one 64-bit block step. Measured at about 3 ns per block.
 const BLOCK_COST: usize = 3;
-/// Cost of one class comparison in the generic linear scan, in band cell updates.
+/// Cost of one class comparison in the generic linear scan. Measured at about 0.6 ns per comparison.
 const LOOKUP_COST: usize = 1;
+/// Cost of mapping one text token to its class on the integer-id path, dense or sorted.
+const U32_LOOKUP_COST: usize = 2;
 /// Bound on the match-mask table, in 64-bit words (16 MiB). The table holds `(classes + 1) * blocks`
 /// words, so its size is bounded by the pattern length squared over 64, never by the alphabet.
 const MAX_MASK_WORDS: usize = 1 << 21;
@@ -431,4 +485,56 @@ fn bit_parallel_entry<T: Eq>(a: &[T], b: &[T], k: usize) -> Option<u32> {
     let masks = Masks::new(&cls, reps.len());
     let class = |x: &T| reps.iter().position(|&r| p[r] == *x).unwrap_or(reps.len());
     run_kernel(&masks, p.len(), t, class, k).map(distance_to_u32)
+}
+
+/// Bounded search for integer token ids, with the contract of [`levenshtein_within`].
+///
+/// The classes are the distinct ids of the pattern. Each text token is mapped to its class by a dense
+/// table when the ids are small relative to the pattern, and by binary search otherwise. Both lookups
+/// are cheaper than the generic class scan, so this path stays bit-parallel for more limits.
+pub fn levenshtein_within_u32(a: &[u32], b: &[u32], limit: u32) -> Option<u32> {
+    let k = limit_to_usize(limit);
+    let (a, b) = trim(a, b);
+    if a.len().abs_diff(b.len()) > k {
+        return None;
+    }
+    if a.is_empty() || b.is_empty() {
+        return Some(distance_to_u32(a.len() + b.len()));
+    }
+    let (p, t) = if a.len() <= b.len() { (a, b) } else { (b, a) };
+    let k = k.min(t.len());
+    let width = 2 * k + 1;
+    let blocks = p.len().div_ceil(WORD_BITS);
+    if !bit_parallel_pays(blocks, U32_LOOKUP_COST, width) {
+        return band(a, b, k).map(distance_to_u32);
+    }
+    let rows = probe_rows(t.len(), blocks, U32_LOOKUP_COST, width);
+    if let Band::Exact(d) = band_rows(a, b, k, rows) {
+        return d.map(distance_to_u32);
+    }
+    let mut keys = p.to_vec();
+    keys.sort_unstable();
+    keys.dedup();
+    if keys.len() > (MAX_MASK_WORDS / blocks).saturating_sub(1) {
+        return band(a, b, k).map(distance_to_u32);
+    }
+    let classes = keys.len();
+    let cls: Vec<usize> = p
+        .iter()
+        .map(|x| keys.binary_search(x).expect("every pattern id is a key"))
+        .collect();
+    let masks = Masks::new(&cls, classes);
+    let max_key = keys[classes - 1];
+    let found = if (max_key as usize) < 4 * p.len() + 256 {
+        let mut table = vec![classes; max_key as usize + 1];
+        for (c, &key) in keys.iter().enumerate() {
+            table[key as usize] = c;
+        }
+        let class = |x: &u32| table.get(*x as usize).copied().unwrap_or(classes);
+        run_kernel(&masks, p.len(), t, class, k)
+    } else {
+        let class = |x: &u32| keys.binary_search(x).unwrap_or(classes);
+        run_kernel(&masks, p.len(), t, class, k)
+    };
+    found.map(distance_to_u32)
 }

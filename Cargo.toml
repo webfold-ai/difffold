@@ -64,3 +64,8 @@ required-features = ["ts"]
 name = "ted_map"
 path = "src/bin/ted_map.rs"
 required-features = ["ts"]
+
+[[bin]]
+name = "lev_bench"
+path = "src/bin/lev_bench.rs"
+required-features = ["ts"]

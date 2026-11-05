@@ -4,7 +4,7 @@
 
 use difffold::levenshtein::{
     levenshtein, levenshtein_full_dp, levenshtein_within, levenshtein_within_band,
-    levenshtein_within_myers_multi, levenshtein_within_myers_single,
+    levenshtein_within_myers_multi, levenshtein_within_myers_single, levenshtein_within_u32,
 };
 
 type Within = fn(&[u32], &[u32], u32) -> Option<u32>;
@@ -16,6 +16,7 @@ fn implementations() -> Vec<(&'static str, Within)> {
         ("myers_single", levenshtein_within_myers_single::<u32>),
         ("myers_multi", levenshtein_within_myers_multi::<u32>),
         ("dispatch", levenshtein_within::<u32>),
+        ("u32_path", levenshtein_within_u32),
     ]
 }
 
@@ -217,6 +218,30 @@ fn random_long_sequences_across_alphabets() {
             let limits = threshold_limits(d, longest);
             check_pair(&base, &other, &limits);
             check_pair(&other, &base, &limits);
+        }
+    }
+}
+
+#[test]
+fn single_word_pattern_against_long_text() {
+    // The single-word kernel serves a pattern of at most 64 tokens. Here the shorter side is that
+    // pattern and the longer side is a text of up to 3000 tokens, which exercises the long scan.
+    let mut rng = Rng(0x5146_1E0D_0064);
+    for &alpha in &[2usize, 4, 256, 0] {
+        for _ in 0..8 {
+            let pat_len = 1 + rng.below(64);
+            let pattern = random_seq(&mut rng, pat_len, alpha);
+            let text_len = 1 + rng.below(3000);
+            let text = if rng.below(2) == 0 {
+                random_seq(&mut rng, text_len, alpha)
+            } else {
+                let edits = rng.below(40);
+                mutate(&mut rng, &pattern, edits, alpha)
+            };
+            let d = levenshtein_full_dp(&pattern, &text);
+            let limits = threshold_limits(d, pattern.len().max(text.len()));
+            check_pair(&pattern, &text, &limits);
+            check_pair(&text, &pattern, &limits);
         }
     }
 }
