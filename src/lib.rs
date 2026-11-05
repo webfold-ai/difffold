@@ -22,6 +22,7 @@ pub mod lines;
 pub mod mapping;
 pub mod merge;
 pub mod ted;
+pub mod tedfilter;
 pub mod unified;
 
 pub use diff::{
