@@ -1,5 +1,5 @@
-charon:   0.1.254 (b104e24fea7d721b71e6c39fd70f26ff20bc0980)
-aeneas:   aeneas nightly-2026.09.09-505b6ca
+charon:   0.1.254
+aeneas:   aeneas nightly-2026.09.09
 rust:     nightly-2026-08-18
 lines.rs sha256:        654c2c945c8d52f5c724f37bb08792361df261578c761fdc36d1820c727a5dab
 lines_core.rs sha256:   4c733a0072a0d236baef919b127be09f0150d826c1ccb8c415d3d57407eb49c8

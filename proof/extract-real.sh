@@ -15,7 +15,7 @@ rm -rf gen/lean-real && mkdir -p gen/lean-real
 aeneas -backend lean -dest gen/lean-real -no-progress-bar gen/difffold_real.llbc
 mv gen/lean-real/*.lean gen/lean-real/DifffoldReal.lean 2>/dev/null || true
 {
-  echo "charon:   $(charon version)"; echo "aeneas:   $(aeneas -version)"
+  echo "charon:   $(charon version | sed "s/ (.*//")"; echo "aeneas:   $(aeneas -version | sed "s/-[0-9a-f]\{7\}$//")"
   echo "lines.rs sha256:   $(sha256sum ../src/lines.rs | cut -d' ' -f1)"
   echo "llbc sha256:       $(sha256sum gen/difffold_real.llbc | cut -d' ' -f1)"
   echo "DifffoldReal.lean: $(sha256sum gen/lean-real/DifffoldReal.lean | cut -d' ' -f1)"

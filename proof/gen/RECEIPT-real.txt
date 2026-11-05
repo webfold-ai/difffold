@@ -1,5 +1,5 @@
-charon:   0.1.254 (b104e24fea7d721b71e6c39fd70f26ff20bc0980)
-aeneas:   aeneas nightly-2026.09.09-505b6ca
+charon:   0.1.254
+aeneas:   aeneas nightly-2026.09.09
 lines.rs sha256:   70a24b408205805ca9750fe3619948c0d3eba558ca074067af53486b92fb8021
 llbc sha256:       0cccfd8dacd6672c33209de7f80fffefe573004c09dc4349ab18bdf871b438ea
 DifffoldReal.lean: b79bc5e6fd9f67e89eaf708e868dcd08dc61d826e4235b570be8952f8a9e16e6
