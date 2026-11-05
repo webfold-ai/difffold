@@ -325,4 +325,269 @@ theorem trans_push {a b : ted.PostTree} {T i j Sb : Nat} {td fd : alloc.vec.Vec 
     · exact absurd h2 hnotbase
     · omega
 
+theorem lt_push_aux (p q lx li ly lj x y : Nat) (h1 : lx ≤ x) (h2 : ly ≤ y) (h3 : x = li + p - 1)
+    (h4 : y = lj + q - 1) (hp : 1 ≤ p) (hq : 1 ≤ q) : (lx - li) + (ly - lj) < p + q := by omega
+
+theorem lt_leaf_aux (p q : Nat) (hp : 1 ≤ p) (hq : 1 ≤ q) : (p - 1) + (q - 1) < p + q := by omega
+
+theorem lt_del_aux (p q : Nat) (hp : 1 ≤ p) : (p - 1) + q < p + q := by omega
+
+theorem lt_ins_aux (p q : Nat) (hq : 1 ≤ q) : p + (q - 1) < p + q := by omega
+
+theorem bool_go_true (p d de i : Bool) (h : true = (p && d || !de && !i)) :
+    (p = true ∧ d = true) ∨ (de = false ∧ i = false) := by
+  cases p <;> cases d <;> cases de <;> cases i <;> simp at h ⊢
+
+theorem bool_go_false (p d de i : Bool) (h : false = (p && d || !de && !i)) (hd : de = false) : i = true := by
+  cases p <;> cases d <;> cases de <;> cases i <;> simp at h hd ⊢
+
+set_option maxHeartbeats 1600000 in
+/-- The inner loop of the traceback: one walk through a window table. -/
+theorem walk_spec (a b : ted.PostTree) (prefer_match : Bool) {T i j Sb : Nat} {td fd : alloc.vec.Vec Std.U32}
+    (W : WCtx a b T i j Sb td fd) (t w : Std.Usize) (inf : Std.U32) (li lj : Std.Usize)
+    (ht : t.val = T) (hw : w.val = 2 * T + 1) (hinf : inf.val = T + 1)
+    (hli : li.val = laOf a i) (hlj : lj.val = laOf b j)
+    (to_b stack_i stack_j : alloc.vec.Vec Std.Usize) (top p q : Std.Usize)
+    (hW : WInv a b T i j Sb to_b stack_i stack_j top.val p.val q.val) :
+    ted.traceback_loop0_loop0 a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind
+      prefer_match td t inf w to_b stack_i stack_j top li lj fd p q ⦃ r =>
+      WInv a b T i j Sb r.1 r.2.1 r.2.2.1 r.2.2.2.val 0 0 ⦄ := by
+  unfold ted.traceback_loop0_loop0
+  have hUM : 2 ^ 32 ≤ Std.Usize.max + 1 := by scalar_tac
+  have hA := W.tt.hA
+  have hB := W.tt.hB
+  have hG := W.good
+  have hli1 := W.li1
+  have hlj1 := W.lj1
+  have hile := W.li_le
+  have hjle := W.lj_le
+  have hi := W.win.hi
+  have hj := W.win.hj
+  have hna := W.tt.hna
+  have hnb := W.tt.hnb
+  have hTn := W.tt.hT
+  have hcA : Closed (laOf a) (laOf a i) i := Ctx.closed_win (Cw a b T i j) hG (x := i) (Nat.le_refl _)
+  have hcB : Closed (laOf b) (laOf b j) j := Ctx.closed_winB (Cw a b T i j) hG (y := j) (Nat.le_refl _)
+  have hF : ∀ p q, p ≤ (Cw a b T i j).si → q ≤ (Cw a b T i j).sj → (Cw a b T i j).OkF fd.val p q :=
+    fun p q hp hq => W.win.rows p q hp hq (Or.inl (by omega))
+  apply loop.spec_decr_nat
+    (measure := fun s => s.2.2.2.2.1.val + s.2.2.2.2.2.val)
+    (inv := fun s => WInv a b T i j Sb s.1 s.2.1 s.2.2.1 s.2.2.2.1.val s.2.2.2.2.1.val s.2.2.2.2.2.val)
+  · intro s hs
+    obtain ⟨to_b1, stack_i1, stack_j1, top1, p1, q1⟩ := s
+    dsimp only at hs ⊢
+    unfold ted.traceback_loop0_loop0.body
+    have hps := hs.pq.1
+    have hqs := hs.pq.2
+    have hsi : (Cw a b T i j).si = i - laOf a i + 1 := rfl
+    have hsj : (Cw a b T i j).sj = j - laOf b j + 1 := rfl
+    have hp1n : p1.val ≤ a.label.length := by omega
+    have hq1m : q1.val ≤ b.label.length := by omega
+    step as ⟨ipq, hipq⟩
+    by_cases hpos : ipq > 0#usize
+    · rw [if_pos hpos]
+      have hipq_pos : 0 < p1.val + q1.val := by have : 0 < ipq.val := hpos; omega
+      have hbigw : ∀ k, k ≤ a.label.length → (k + 1) * w.val < 2 ^ 32 := by
+        intro k hk
+        have h1 : (k + 1) * w.val ≤ 2 ^ 14 * 2 ^ 16 := Nat.mul_le_mul (by omega) (by omega)
+        omega
+      have hfdlen : ((Cw a b T i j).si + 1) * (2 * T + 1) ≤ fd.length := W.win.fdlen
+      have hlenp : (p1.val + 1) * w.val ≤ fd.val.length := by
+        rw [hw]
+        exact Nat.le_trans (Nat.mul_le_mul_right _ (by omega)) hfdlen
+      have hsF : ∀ v : alloc.vec.Vec Std.U32, (alloc.vec.Vec.deref v).val = v.val := fun v => by simp [alloc.vec.Vec.deref]
+      step with get_spec (alloc.vec.Vec.deref fd) w t inf p1 q1 (by omega) (by rw [hsF]; exact hlenp) (hbigw _ hp1n) as ⟨v10, hv10⟩
+      have hlig : 1 ≤ li.val := by omega
+      have hljg : 1 ≤ lj.val := by omega
+      have hlin : li.val ≤ a.label.length := by omega
+      have hljn : lj.val ≤ b.label.length := by omega
+      step as ⟨i1, hi1⟩
+      have hi1b : i1.val ≤ a.label.length + 1 := by rw [hi1]; omega
+      step as ⟨i2, hi2⟩
+      have hi2g : 1 ≤ i2.val := by omega
+      step as ⟨x, hx⟩
+      step as ⟨i3, hi3⟩
+      have hi3b : i3.val ≤ b.label.length + 1 := by rw [hi3]; omega
+      step as ⟨i4, hi4⟩
+      have hi4g : 1 ≤ i4.val := by omega
+      step as ⟨y, hy⟩
+      have hlml : a.lml.length = a.label.length := hA.n2
+      have hlmlb : b.lml.length = b.label.length := hB.n2
+      have hxv : x.val = laOf a i + max p1.val 1 - 1 := by omega
+      have hyv : y.val = laOf b j + max q1.val 1 - 1 := by omega
+      have hx1 : 1 ≤ x.val := by omega
+      have hy1 : 1 ≤ y.val := by omega
+      have hxi : x.val ≤ i := by omega
+      have hyj : y.val ≤ j := by omega
+      have hxl : laOf a i ≤ x.val := by omega
+      have hyl : laOf b j ≤ y.val := by omega
+      have hxn : x.val ≤ a.label.length := by omega
+      have hym : y.val ≤ b.label.length := by omega
+      step as ⟨i5, hi5⟩
+      step as ⟨i6, hi6⟩
+      step as ⟨lx, hlx⟩
+      step as ⟨i7, hi7⟩
+      step as ⟨i8, hi8⟩
+      step as ⟨ly, hly⟩
+      have hxeq : 1 ≤ p1.val → x.val = laOf a i + p1.val - 1 := by intro hp; omega
+      have hyeq : 1 ≤ q1.val → y.val = laOf b j + q1.val - 1 := by intro hq; omega
+      have hlml' : a.lml.val.length = a.label.length := hA.n2
+      have hlmlb' : b.lml.val.length = b.label.length := hB.n2
+      have hlxv : lx.val = laOf a x.val := by
+        rw [laOf_eq1 a _ hx1 hxn, hlx, U32.cast_Usize_val_eq, hi6, getG_eq _ _ (by omega)]
+        simp only [hi5]
+      have hlyv : ly.val = laOf b y.val := by
+        rw [laOf_eq1 b _ hy1 hym, hly, U32.cast_Usize_val_eq, hi8, getG_eq _ _ (by omega)]
+        simp only [hi7]
+      have hlx1 : laOf a i ≤ lx.val := by rw [hlxv]; exact hcA x.val hxl hxi
+      have hly1 : laOf b j ≤ ly.val := by rw [hlyv]; exact hcB y.val hyl hyj
+      have hlx2 : lx.val ≤ x.val := by rw [hlxv]; exact (hA.wfl.1 x.val hx1).2
+      have hly2 : ly.val ≤ y.val := by rw [hlyv]; exact (hB.wfl.1 y.val hy1).2
+      have hlxp : lx.val - li.val ≤ p1.val := by omega
+      have hlyq : ly.val - lj.val ≤ q1.val := by omega
+      have hrd : ∀ (L : List Std.U32) x y, rd L w.val t.val inf.val x y =
+          rd L (Cw a b T i j).w (Cw a b T i j).t (Cw a b T i j).inf x y := by
+        intro L x y; rw [hw, ht, hinf]; rfl
+      have hwt : w.val = 2 * t.val + 1 := by rw [hw, ht]
+      have hinfb : 2 * inf.val + 2 < 2 ^ 32 := by omega
+      have hlen2 : (lx.val - li.val + 1) * w.val ≤ (alloc.vec.Vec.deref fd).val.length := by
+        rw [hsF]; exact Nat.le_trans (Nat.mul_le_mul_right _ (by omega)) hlenp
+      have hlent : (x.val + 1) * w.val ≤ (alloc.vec.Vec.deref td).val.length := by
+        rw [hsF, hw]
+        exact Nat.le_trans (Nat.mul_le_mul_right _ (by omega)) W.win.tdlen
+      have hFB : Ctx.FdB (alloc.vec.Vec.deref fd).val inf.val := by rw [hsF, hinf]; exact W.win.fdB
+      have hTB : Ctx.FdB (alloc.vec.Vec.deref td).val inf.val := by rw [hsF, hinf]; exact W.win.tdB
+      have hlenp' : (p1.val + 1) * w.val ≤ (alloc.vec.Vec.deref fd).val.length := by rw [hsF]; exact hlenp
+      step with is_leaf_case_spec p1 q1 lx ly li lj as ⟨leaf_case, hleaf⟩
+      step with diag_test_spec a b (alloc.vec.Vec.deref fd) (alloc.vec.Vec.deref td) w t inf li lj p1 q1 x y lx ly
+        leaf_case v10 hwt hinfb hlenp' (hbigw _ hp1n) hlen2 (hbigw _ (by omega)) hlent (hbigw _ hxn) hFB hTB
+        ⟨hx1, hxn⟩ ⟨hy1, hym⟩ hA.n3 hB.n3 (by omega) (by omega) as ⟨diag_ok, hdiag⟩
+      step with del_test_spec (alloc.vec.Vec.deref fd) w t inf p1 q1 v10 hwt hlenp' (hbigw _ hp1n) (by omega) hFB
+        as ⟨del_ok, hdel⟩
+      step with ins_test_spec (alloc.vec.Vec.deref fd) w t inf p1 q1 v10 hwt hlenp' (hbigw _ hp1n) (by omega) hFB
+        as ⟨ins_ok, hins⟩
+      step with choose_diag_spec prefer_match diag_ok del_ok ins_ok as ⟨go_diag, hgo⟩
+      have hv : v10.val = rd fd.val (Cw a b T i j).w (Cw a b T i j).t (Cw a b T i j).inf p1.val q1.val := by
+        rw [hv10, hsF, hrd]
+      simp only [hsF, hrd] at hdiag hdel hins
+      by_cases hg : go_diag = true
+      · rw [if_pos hg]
+        have hall : 1 ≤ p1.val ∧ 1 ≤ q1.val ∧
+            ((laOf a (laOf a i + p1.val - 1) = laOf a i ∧ laOf b (laOf b j + q1.val - 1) = laOf b j) →
+              Dw (laOf a) (laOf b) (rcost a b) (laOf a i) (laOf b j) p1.val q1.val =
+                Dw (laOf a) (laOf b) (rcost a b) (laOf a i) (laOf b j) (p1.val - 1) (q1.val - 1) +
+                  rcost a b (laOf a i + p1.val - 1) (laOf b j + q1.val - 1)) ∧
+            (¬ (laOf a (laOf a i + p1.val - 1) = laOf a i ∧ laOf b (laOf b j + q1.val - 1) = laOf b j) →
+              Dw (laOf a) (laOf b) (rcost a b) (laOf a i) (laOf b j) p1.val q1.val =
+                Dw (laOf a) (laOf b) (rcost a b) (laOf a i) (laOf b j) (laOf a (laOf a i + p1.val - 1) - laOf a i)
+                  (laOf b (laOf b j + q1.val - 1) - laOf b j) +
+                TD (laOf a) (laOf b) (rcost a b) (laOf a i + p1.val - 1) (laOf b j + q1.val - 1)) := by
+          have hgd : (prefer_match = true ∧ diag_ok = true) ∨ (del_ok = false ∧ ins_ok = false) := by
+            rw [hg] at hgo
+            exact bool_go_true _ _ _ _ hgo
+          rcases hgd with ⟨_, hdg⟩ | ⟨hd0, hi0⟩
+          · obtain ⟨h1, h2, hL, hNL⟩ := hdiag.mp hdg
+            have h1' : 1 ≤ p1.val := h1
+            have h2' : 1 ≤ q1.val := h2
+            refine ⟨h1', h2', fun hlp => ?_, fun hnlp => ?_⟩
+            · have hlc : leaf_case = true := hleaf.mpr ⟨h1, h2, by rw [hlxv, hxeq h1', hlp.1, hli],
+                by rw [hlyv, hyeq h2', hlp.2, hlj]⟩
+              have hLc := (hL hlc).2
+              rw [hxeq h1', hyeq h2', hv] at hLc
+              exact (Cw a b T i j).leaf_sound hli1 hlj1 h1' h2' hs.pq.1 hs.pq.2 hlp.1 hlp.2 hF hs.budget rfl hLc
+            · have hlc : leaf_case = false := by
+                cases hlc' : leaf_case
+                · rfl
+                · exfalso
+                  obtain ⟨_, _, e3, e4⟩ := hleaf.mp hlc'
+                  apply hnlp
+                  exact ⟨by rw [← hxeq h1', ← hlxv, e3, hli], by rw [← hyeq h2', ← hlyv, e4, hlj]⟩
+              have hNc := hNL hlc
+              rw [hxeq h1', hyeq h2', hv] at hNc
+              have hT := (W.win.tdinv x.val y.val hx1 hxn hy1 hym).1
+              rw [hxeq h1', hyeq h2'] at hT
+              rw [hlxv, hlyv, hxeq h1', hyeq h2', hli, hlj] at hNc
+              exact (Cw a b T i j).nonleaf_sound hG hli1 hlj1 h1' h2' hs.pq.1 hs.pq.2 hnlp hF hs.budget hT hNc
+          · have hnd : ¬ (1 ≤ p1.val ∧ rd fd.val (Cw a b T i j).w (Cw a b T i j).t (Cw a b T i j).inf
+                (p1.val - 1) q1.val + 1 =
+                rd fd.val (Cw a b T i j).w (Cw a b T i j).t (Cw a b T i j).inf p1.val q1.val) := by
+              intro h
+              have := hdel.mpr ⟨h.1, by rw [hv]; exact h.2⟩
+              rw [hd0] at this
+              exact absurd this (by simp)
+            have hni : ¬ (1 ≤ q1.val ∧ rd fd.val (Cw a b T i j).w (Cw a b T i j).t (Cw a b T i j).inf
+                p1.val (q1.val - 1) + 1 =
+                rd fd.val (Cw a b T i j).w (Cw a b T i j).t (Cw a b T i j).inf p1.val q1.val) := by
+              intro h
+              have := hins.mpr ⟨h.1, by rw [hv]; exact h.2⟩
+              rw [hi0] at this
+              exact absurd this (by simp)
+            exact (Cw a b T i j).fallback hG hli1 hlj1 hipq_pos hs.pq.1 hs.pq.2 hF hs.budget hnd hni
+        obtain ⟨hp1, hq1, hLf, hNLf⟩ := hall
+        by_cases hl : leaf_case = true
+        · rw [if_pos hl]
+          have hlp : laOf a (laOf a i + p1.val - 1) = laOf a i ∧ laOf b (laOf b j + q1.val - 1) = laOf b j := by
+            obtain ⟨_, _, e3, e4⟩ := hleaf.mp hl
+            exact ⟨(by rw [← hxeq hp1, ← hlxv, e3, hli]), (by rw [← hyeq hq1, ← hlyv, e4, hlj])⟩
+          have hxt : x.val < to_b1.length := by have := hs.tblen; omega
+          step as ⟨old, imb, ho, himb⟩
+          step as ⟨p', hp'⟩
+          step as ⟨q', hq'⟩
+          have hto : (imb y).val = to_b1.val.set (laOf a i + p1.val - 1) y := by
+            rw [himb, alloc.vec.Vec.set_val_eq, hxeq hp1]
+          refine ⟨?_, by rw [hp', hq']; exact lt_leaf_aux _ _ hp1 hq1⟩
+          have := trans_leaf W hs hp1 hq1 hlp.1 hlp.2 (hLf hlp) y (hyeq hq1) hto
+          rw [hp', hq']; exact this
+        · rw [if_neg hl]
+          have hnl : ¬ (laOf a (laOf a i + p1.val - 1) = laOf a i ∧ laOf b (laOf b j + q1.val - 1) = laOf b j) := by
+            intro hlp
+            apply hl
+            exact hleaf.mpr ⟨hp1, hq1, (by rw [hlxv, hxeq hp1, hlp.1, hli]), (by rw [hlyv, hyeq hq1, hlp.2, hlj])⟩
+          have hmx : stack_i1.length + 1 ≤ Std.Usize.max := by have := hs.stmax; omega
+          step with push_slot_spec stack_i1 stack_j1 top1 x y hs.stl hs.topl hmx as ⟨si', sj', h1, h2, h3, h4, h5, h6, h7, h8⟩
+          have hmx2 : top1.val + 1 ≤ Std.Usize.max := by have := hs.topl; have := hs.stmax; omega
+          step as ⟨top', htop'⟩
+          step as ⟨p', hp'⟩
+          step as ⟨q', hq'⟩
+          rw [hxeq hp1] at h4
+          rw [hyeq hq1] at h5
+          have hW' := trans_push (stack_i' := si') (stack_j' := sj') W hs hp1 hq1 hnl (hNLf hnl)
+            ⟨h1, h2, h3, h4, h5, ⟨h6, h7⟩, h8⟩
+          have e1 : p'.val = laOf a (laOf a i + p1.val - 1) - laOf a i := by rw [hp', hlxv, hxeq hp1, hli]
+          have e2 : q'.val = laOf b (laOf b j + q1.val - 1) - laOf b j := by rw [hq', hlyv, hyeq hq1, hlj]
+          refine ⟨?_, ?_⟩
+          · rw [htop', e1, e2]; exact hW'
+          · rw [hp', hq']
+            exact lt_push_aux _ _ _ _ _ _ _ _ hlx2 hly2 (by rw [hli]; exact hxeq hp1) (by rw [hlj]; exact hyeq hq1) hp1 hq1
+      · rw [if_neg hg]
+        have hg' : go_diag = false := by simpa using hg
+        rw [hg'] at hgo
+        by_cases hd : del_ok = true
+        · rw [if_pos hd]
+          obtain ⟨h1, h2⟩ := hdel.mp hd
+          have h1' : 1 ≤ p1.val := h1
+          step as ⟨p', hp'⟩
+          have hD := (Cw a b T i j).del_sound hli1 hlj1 h1' hs.pq.1 hs.pq.2 hF hs.budget (by rw [← hv]; exact h2)
+          refine ⟨?_, by rw [hp']; exact lt_del_aux _ _ h1'⟩
+          have := trans_del W hs h1' hD
+          rw [hp']; exact this
+        · rw [if_neg hd]
+          have hdn : del_ok = false := by simpa using hd
+          have hit : ins_ok = true := bool_go_false _ _ _ _ hgo hdn
+          obtain ⟨h1, h2⟩ := hins.mp hit
+          have h1' : 1 ≤ q1.val := h1
+          step as ⟨q', hq'⟩
+          have hD := (Cw a b T i j).ins_sound hli1 hlj1 h1' hs.pq.1 hs.pq.2 hF hs.budget (by rw [← hv]; exact h2)
+          refine ⟨?_, by rw [hq']; exact lt_ins_aux _ _ h1'⟩
+          have := trans_ins W hs h1' hD
+          rw [hq']; exact this
+    · rw [if_neg hpos]
+      simp only [WP.spec_ok]
+      have h0 : ipq.val = 0 := by have : ¬ 0 < ipq.val := hpos; omega
+      have hp0 : p1.val = 0 := by omega
+      have hq0 : q1.val = 0 := by omega
+      rw [hp0, hq0] at hs
+      exact hs
+  · exact hW
+
 end difffold_lines_extract
