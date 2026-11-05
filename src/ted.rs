@@ -245,20 +245,42 @@ fn label_lower_bound(a: &PostTree, b: &PostTree) -> u32 {
 }
 
 fn ted_oriented(a: &PostTree, b: &PostTree, st: &mut Stats) -> u32 {
-    let cap = (a.len() + b.len()) as u32;
-    let mut tau = (a.len().abs_diff(b.len()) as u32)
-        .max(label_lower_bound(a, b))
-        .max(1);
+    let n = a.len();
+    let m = b.len();
+    let cap = (n + m) as u32;
+    let mut tau = max32(adiff(n, m) as u32, label_lower_bound(a, b));
+    tau = max32(tau, 1);
     loop {
         // Once the band would cover a third of the table, skip the remaining doubling steps.
-        if u64::from(tau) * 3 >= a.len().max(b.len()) as u64 {
+        if (tau as u64) * 3 >= umax(n, m) as u64 {
             tau = cap;
         }
-        st.attempts += 1;
-        if let Some(d) = within(a, b, tau.min(cap), st) {
+        st.attempts = st.attempts.wrapping_add(1);
+        let r = within_td(a, b, min32(tau, cap), st);
+        if let Some(d) = r.0 {
             return d;
         }
-        tau = tau.saturating_mul(2);
+        tau = dbl32(tau);
+    }
+}
+
+/// The larger of two `u32`.
+#[inline]
+fn max32(x: u32, y: u32) -> u32 {
+    if x >= y {
+        x
+    } else {
+        y
+    }
+}
+
+/// `x.saturating_mul(2)`.
+#[inline]
+fn dbl32(x: u32) -> u32 {
+    if x >= 2_147_483_648 {
+        u32::MAX
+    } else {
+        2 * x
     }
 }
 

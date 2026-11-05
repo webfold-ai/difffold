@@ -118,95 +118,29 @@ Compiled with Lean 4.31.0 in this session; `check-kernel.sh`, `check-lines.sh` a
 | `first_nl`, `last_nl` | Aeneas rejects the real functions (mutually recursive closure impls), so the extraction uses a closure-free copy `extract/lines_core.rs`. The copy is tied to the real source by `tests/agree.rs` on 60,000 random inputs, **not by a proof**. `last_nl` has no spec. | tested only |
 | `src/ted.rs` (real file, `#[path]`) | Extracted by `extract-lines.sh` with roots `PostTree::from_kids`, `label_lower_bound`, `fill_window`, `within_td`; no hand copy remains. `src/ted.rs` was refactored non-semantically so those functions use only constructs stock Aeneas translates (while loops, `if`-based min/max/abs_diff helpers, counting instead of `sort_unstable`, `wrapping_add` counters). `gen/lean-ted/DifffoldTed.lean` has no axiom and elaborates (`check-ted.sh`). `ted_oriented`, `mirror`, `ted_mapping`, `check_mapping`, `replay_script` are not extracted yet. | extracted, elaborates |
 
-### TED theorems over the extracted code (`Ted/*.lean`, `check-ted.sh`, zero `sorry`)
+### TED theorems over the extracted code (`Ted/*.lean`, `check-ted.sh`, zero `sorry`, standard axioms only)
 
-| theorem | statement | status |
+All statements are about the Aeneas translation of the real `src/ted.rs` (included by `#[path]`, no copy). Output: `AXIOMS-ted.txt`.
+
+| theorem | statement | file |
 |---|---|---|
-| `from_kids_spec` (`Ted/FromKids.lean`) | `lml` satisfies the leftmost-leaf equations at every node (`lml[j] = j+1` for a leaf, `lml[j] = lml[first child]` otherwise, values in `1 .. j+1`); `keyroots` is strictly ascending and `v` is a keyroot iff it is the last node of the postorder with its leftmost leaf (`LastWithLml`). Hypotheses: fewer than 2^31 nodes, one child list per node, the first child of a node precedes it. Loop specs `from_kids_loop{0,1,2,3}_spec`. | checked |
-| `label_lower_bound_spec` (`Ted/LabelLB.lean`) | for the real counting `label_lower_bound`: the result is `max n m - overlap(A, B)`, `overlap` the size of the multiset intersection (`Ted.interM`, `Ted/Overlap.lean`, pinned by `Ted.count_interM`: `count x (interM A B) = min (count x A) (count x B)`). Merge loop spec `llb_loop_spec`. Unconditional (the sort was replaced by a count table). Hypotheses: fewer than 2^31 nodes, labels of `a` below 2^31. Loop specs `llb_top_loop_spec`, `llb_count_loop_spec`, `llb_consume_loop_spec`. | checked |
-| `cell_step` (`Ted/Cell.lean`) | one iteration of the inner loop of `fill_window` writes `fd[p,q] = min(min(min(del, ins), X), inf)` where `del`, `ins` read the up and left neighbours, `X` is the diagonal neighbour plus the relabel cost when `lx = li` and `ly = lj` (and then also stores the value in `td`), else the neighbour at the subtree boundaries plus the stored `td[x,y]`; `row_min` becomes the min; out-of-band reads give `inf`. Helpers `get_spec`, `bidx_spec`, `tdv_if_spec`, `upd_if_spec`. | checked (one cell) |
-| `cellNew_cap` | if the four values a cell reads hold `min(true, inf)` then the cell holds `min(textbook recurrence, inf)` | checked (algebra) |
-| `Ted.fdist` (`Ted/Model.lean`) | the textbook forest recursion as a Lean function, `fdist_node` (the equation), `fdist_leaf_leaf` | a model, nothing about Rust |
+| `from_kids_spec` | `lml` satisfies the leftmost-leaf equations; keyroots are strictly ascending and are exactly the last node per leftmost leaf | `FromKids` |
+| `label_lower_bound_spec` | result is `max(n, m) - overlap` (multiset intersection, `Ted.count_interM`), no sort axiom | `LabelLB`, `Overlap` |
+| `Ted.D`, `D_size` | the Zhang-Shasha forest recursion on postorder indices (right-to-left, whole-tree match when both last trees start at the forest ends), and `|size F - size G| <= D <= size F + size G` | `Zs` |
+| `Ted.D_le_cost`, `Ted.exists_map` | `D l x l' y` **equals the minimum cost of a valid tree edit mapping** between the node ranges (one to one, preserving postorder and the descendant relation; cost = unmapped nodes + relabel costs). This is the independent mapping-based specification | `Mapping` |
+| `Ted.D_row_mono` | rows of the forest table never get cheaper (the early exit is sound) | `Mono` |
+| `cell_truth_leaf`, `cell_truth_nonleaf`, `cellNew_fok` | one cell of the banded table is ok: never below `min(true, tau + 1)`, never above `tau + 1`, exact when the true value plus the position offset of the window fits the budget | `Truth`, `Window` |
+| `fill_inner_loop_spec`, `fill_rows_loop_spec`, `fill_window_spec` | the three nested loops of `fill_window` maintain that invariant, the early exit `row_min > tau` and the empty band lose nothing, and the subtree-distance table `td` ends ok for all pairs of the window's subtrees; entries of other windows are untouched | `Window` |
+| `within_inner_spec`, `within_outer_spec`, `within_td_spec` | the loops over keyroot pairs (ascending order argument through `krf`), the skip filter `|li - lj| > 2 tau`, and the driver: `within_td` returns `some d` exactly when `ted <= tau`, and then `d = ted`, where `ted = D 1 n 1 m` (trees given by leftmost-leaf maps that nest, `WfL`, with a single root); it also returns a table that is ok for every pair | `Driver` |
+| `cell_step`, `get_spec`, `bidx_spec`, `relabel_cost_spec` | one inner-loop iteration and the arithmetic helpers, including the kind-aware relabel cost 0/1/2 | `Cell` |
 
-**Not proved (item (c) of the TED task):** that the banded `fill_window`/`within_td` tables equal `min(Ted.fdist, tau+1)`.
-What is missing is (1) the loop-level statement that a whole row `q in [qlo, qhi]` satisfies the one-cell equation with
-neighbours read from the final table (needs the band index to be injective, `bandIdx_inj`, proved in `Ted/Cell.lean`, and the row
-loop invariant), (2) the identification of the table cell `(p, q)` of window `(i0, j0)` with `fdist` of the postorder
-prefixes `li .. li+p-1` and `lj .. lj+q-1` read as forests, (3) the Zhang-Shasha lemma that the `td` entries read by the
-non-leaf-path branch are the subtree distances computed by an earlier window (keyroot order), (4) that cells outside the
-band cost more than `tau` (the size-difference bound on `fdist`), (5) the early exit on `row_min > tau`, and (6) the
-`within_td` driver (keyroot loops, the `|li - lj| <= 2 t` skip). `ted_oriented`, `ted_stats`, `mirror`, `ted_mapping`,
-`check_mapping` and `replay_script` are not extracted at all. Axiom output: `AXIOMS-ted.txt`.
+Hypotheses of the driver theorem (all stated, none assumed silently): `WfL` of both leftmost-leaf maps (subtrees are intervals that nest), a
+single root (`lml n = 1`), keyroot lists that are sorted and exactly the last node per leftmost leaf (`from_kids_spec` gives this), fewer than
+`2^14` nodes per tree and `tau <= n + m` so that no `usize` addition overflows on a 32-bit platform.
 
-What backs the TED solver instead is testing, not proof: a brute-force forest-recursion oracle on 6,000 random pairs,
-agreement of all distances with two APTED implementations on 237 real ASTs, validated mappings and an executed
-edit-script replay (see `notes/lanes/RESULTS.md`).
-
-The stock Charon and Aeneas releases were used, not apeiron's patched build, so apeiron's `regen.sh` identity
-check would reject these digests. `last_nl`, the line differ's Myers search and the interner are not covered.
-
-## Line search (`src/lines.rs`)
-
-Two layers. **Layer 1 (`Myers/*.lean`, plain Lean 4.31.0, no Mathlib)** is a Lean model of the algorithm with
-its optimality theorem. **Layer 2 (`Myers2/Real*.lean`, over Aeneas)** proves that the Aeneas translation of the
-real `src/lines.rs` search refines that model. Both layers have zero `sorry` and use only `propext`,
-`Classical.choice`, `Quot.sound` (`AXIOMS-myers.txt`, `AXIOMS-myers-extract.txt`).
-
-Build: `./run-myers.sh Lcs Script Solve Snake Reach Compl Path Mid Good Pipeline Bound Glue TrimSpec Splice SolveLen CpreChar AxiomAudit`
-then `AENEAS_HOME=... ./extract-real.sh` and `LEAN_WS=... ./check-real.sh RealCommon RealSnake RealDefs RealX0 RealFwd
-RealSnakeBack RealBack RealScan RealBits RealHalve RealSweep RealMiddle RealSolve` (oleans in `build-myers/`).
-
-### Layer 1: the model (proved)
-
-| obligation | theorems (file) |
-|---|---|
-| `lcs`, sublist characterisation | `lcs_le`, `lcs_ex` (Lcs) |
-| (a) trimming equal ends | `lcs_prefix`, `lcs_suffix`, `lcs_trim` (Lcs), `opt_trim` (Script) |
-| (b) dropping ids absent from the other side | `lcs_filter`, `kept_expand`, `filter_optimal` (Script) |
-| (c) script soundness and optimality | `cost_eq`, `cost_ge`, `optimal_iff`, `exists_optimal`, `optimal_min` (Script) |
-| (d) divide step, model of `solve` | `optimal_append` (Script), `solve_optimal`, `solve_total` (Solve) |
-| (e) furthest-reaching recurrence | `F_sound` (Reach), `compl_all` (Compl), `F_le` (Bound) |
-| (e) middle snake, both parities | `path_point`, `exists_hit`, `sweep_sound`, `sweep_some`, `fhit_good`, `bhit_good`, `two_le`, `midPt_spec`, `mid_spec` (Path, Mid, Good) |
-| pipeline | `line_search_optimal`, `line_search_cost` (Pipeline) |
-
-### Layer 2: the real extracted code refines the model (proved)
-
-The real `src/lines.rs` is included by `#[path]` (`extract-myers/lib.rs`); Aeneas translates it with no copies
-(`gen/lean-real/DifffoldReal.lean`, `gen/RECEIPT-real.txt`). `src/lines.rs` was refactored without changing
-behaviour (`or_else` as `match`, `snake`/`snake_back` take the two slices). Under the precondition
-`|A| + |B| <= 2^28` (so no `i32` overflow; the `i32` side goals are discharged in the proofs):
-
-| extracted function | theorem | states |
-|---|---|---|
-| `common_prefix`, `common_suffix` | `common_prefix_u32`, `common_suffix_u32` (RealCommon) | length, equal ends, maximality |
-| `snake`, `snake_back` | `snake_spec` (RealSnake), `snake_back_spec` (RealSnakeBack) | equals the model run length, with size bounds |
-| `forward_one` | `forward_one_spec` (RealFwd, RealX0) | writes `vf[off+k] = F A B d k`, reports the model overlap, reads only what round `d` is entitled to |
-| `backward_one` | `backward_one_spec` (RealBack) | the same for `vb` with the reversed lists; reported point is `(n - Bk, m - (Bk - k))` when nonnegative |
-| `forward_seq`, `backward_seq` | `forward_seq_spec`, `backward_seq_spec` (RealScan) | scan of `lo, lo+2, .., hi`: first hit, written entries, untouched entries |
-| `forward`, `backward` | `forward_spec`, `backward_spec` (RealHalve) | the halving visits the same diagonals, leftmost hit wins |
-| `sweep` | `sweep_spec` (RealSweep) | returns exactly the model `Myers.sweep` result (arrays hold `F` at every round, indices in bounds) |
-| `middle` | `middle_spec` (RealMiddle) | returns the model `midPt`, scratch arrays keep their sizes |
-| `solve` | `solve_spec` (RealSolve) | the flag arrays receive the flags of `Myers.Solve Myers.mid`, hence (by `solve_optimal`, `mid_spec`) a minimal edit script |
-
-`Myers.Solve Myers.mid` is optimal by `solve_optimal`, so the real `solve` writes a minimal script into the
-segment it is given.
-
-### Not yet done (open, nothing here is claimed proved)
-
-- `diff_ids`: still uses `each` closures (compaction of ids that occur on one side only). It must be refactored to
-  plain recursion, extracted, and connected to `filter_optimal` and `trim` (model lemmas exist).
-- `diff_text_with`: the byte-level cut (`line_start`, `suffix_on_line_start`, `count_lines`, `split_lines`,
-  `first_nl`/`last_nl` with `trailing_zeros`, `count_ones`), final-newline handling, and the application of the
-  script to the texts.
-- `intern`: uses `std::collections::HashMap` with a keyed hasher; Aeneas has no model of it. Planned replacement:
-  an open-addressing interner with real byte equality on probe, then a proof that equal ids mean equal lines.
-- `Algo::Histogram` (`hist`, `find_anchor`, `walk_chain`, `index_a`): soundness (valid script) not started;
-  optimality is not claimed for it.
-- Performance check of the refactors with `linebench` has not been re-run.
-
-Earlier, smaller extraction of closure-free copies (`extract/myers_core.rs`, `Myers2/CommonCopy.lean`,
-`Myers2/SnakeSpec.lean`, `tests/myers_core.rs`) is superseded by the real-source extraction above and kept only as
-a record.
+**Not done** (reported honestly): `ted_oriented` (the doubling loop), `mirror` and the invariance of the distance under mirroring,
+`ted_mapping` (traceback), `check_mapping`, `replay_script` are not extracted or proved. `WfL` of the `lml` array that `from_kids` builds is
+assumed, not derived from a validity predicate on the child lists (it holds for postorder trees built by `expand`).
 
 ## What is not proved
 

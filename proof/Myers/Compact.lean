@@ -49,6 +49,20 @@ theorem scatterOf_append (r1 r2 : List Bool) (p1 p2 : List Nat) (out : List Bool
     | nil => simp at h
     | cons p p1 => simp only [List.cons_append, scatterOf]; exact ih _ _ (by simpa using h)
 
+theorem length_scatterOf (r : List Bool) (p : List Nat) (out : List Bool) :
+    (scatterOf r p out).length = out.length := by
+  induction r generalizing p out with
+  | nil => simp [scatterOf]
+  | cons x r ih => cases p with
+    | nil => simp [scatterOf]
+    | cons q p => simp only [scatterOf]; rw [ih]; simp
+
+theorem length_editOf (keep) (xs : List Nat) (b : Nat) (e : List Bool) :
+    (editOf keep xs b e).length = e.length := by
+  induction xs generalizing b e with
+  | nil => simp [editOf]
+  | cons x xs ih => simp only [editOf]; rw [ih]; split <;> simp
+
 theorem length_posOf (keep) (xs : List Nat) (b : Nat) : (posOf keep xs b).length = (xs.filter keep).length := by
   induction xs generalizing b with
   | nil => simp [posOf]

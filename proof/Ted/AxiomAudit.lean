@@ -2,18 +2,28 @@ import FromKids
 import LabelLB
 import Cell
 import Model
+import Zs
+import Mapping
+import Mono
+import Truth
+import Window
+import Driver
 open difffold_lines_extract
 #print axioms from_kids_spec
-#print axioms from_kids_lml_loop_spec
-#print axioms from_kids_keyroot_loop_spec
 #print axioms label_lower_bound_spec
-#print axioms llb_consume_loop_spec
-#print axioms Ted.count_interM
-#print axioms Ted.length_of_counts
 #print axioms cell_step
 #print axioms cellNew_cap
-#print axioms get_spec
-#print axioms bidx_spec
-#print axioms relabel_cost_spec
-#print axioms Ted.fdist_node
-#print axioms Ted.fdist_leaf_leaf
+#print axioms Ted.D_size
+#print axioms Ted.D_le_cost
+#print axioms Ted.exists_map
+#print axioms Ted.D_row_mono
+#print axioms Ted.cell_truth_leaf
+#print axioms Ted.cell_truth_nonleaf
+#print axioms Ctx.cellNew_fok
+#print axioms Ctx.inner_step
+#print axioms fill_inner_loop_spec
+#print axioms fill_rows_loop_spec
+#print axioms fill_window_spec
+#print axioms within_inner_spec
+#print axioms within_outer_spec
+#print axioms within_td_spec

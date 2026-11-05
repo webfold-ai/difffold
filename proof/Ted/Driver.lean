@@ -406,6 +406,28 @@ theorem fdb_replicate (N : Nat) (inf : Std.U32) (c : Nat) (h : inf.val = c) :
   rw [getU_eq _ _ hk]
   simp [h]
 
+/-- The final read of the root pair. -/
+theorem vec_read_spec (td : alloc.vec.Vec Std.U32) (w t x y : Std.Usize) (inf : Std.U32) (i7 : Std.Usize)
+    (hw : w.val = 2 * t.val + 1) (hi7 : i7.val = x.val - y.val + (y.val - x.val))
+    (htdlen : (x.val + 1) * w.val ≤ td.val.length) (htdbig : (x.val + 1) * w.val < 2 ^ 32) :
+    (if i7 ≤ t then (do let i8 ← ted.bidx w t x y; alloc.vec.Vec.index_usize td i8) else ok inf) ⦃ r =>
+      r.val = rd td.val w.val t.val inf.val x.val y.val ⦄ := by
+  split
+  · rename_i hdt
+    have hb : InBand t.val x.val y.val := (inBand_iff _ _ _ _ hi7).mp (by scalar_tac)
+    have hlt := bandIdx_lt w.val t.val x.val y.val hw hb
+    have hb' := hb
+    unfold InBand at hb'
+    step as ⟨i, hi⟩
+    have hil : i.val < td.val.length := by omega
+    step as ⟨r, hr⟩
+    simp only [rd, hb, ↓reduceIte]
+    rw [hr, ← hi, getU_eq _ _ hil]
+  · rename_i hdt
+    simp only [WP.spec_ok]
+    have : ¬ InBand t.val x.val y.val := fun h => hdt (by have := (inBand_iff _ _ _ _ hi7).mpr h; scalar_tac)
+    simp [rd, this]
+
 /-- The distance of the two trees, by the textbook recursion on postorder indices. -/
 def Ctx.ted (C : Ctx) : Nat := D C.la C.lb C.ren 1 C.n 1 C.m
 
@@ -441,12 +463,100 @@ theorem within_td_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C
     exfalso; unfold Ctx.ted at h; omega
   · simp only [if_neg hgt]
     have hnlen : ¬ (a.label.len = 0#usize) := by
-      intro h; have := congrArg Aeneas.Std.UScalar.val h; simp at this; omega
+      intro h
+      have h' : a.label.len.val = 0 := by have := congrArg Aeneas.Std.UScalar.val h; simpa using this
+      omega
     have hmlen : ¬ (b.label.len = 0#usize) := by
-      intro h; have := congrArg Aeneas.Std.UScalar.val h; simp at this; omega
+      intro h
+      have h' : b.label.len.val = 0 := by have := congrArg Aeneas.Std.UScalar.val h; simpa using this
+      omega
     simp only [if_neg hnlen, if_neg hmlen]
     have hle : i1.val ≤ tau.val := by have : ¬ tau.val < i1.val := hgt; omega
-    trace_state
-    sorry
+    have htv : (UScalar.cast .Usize tau).val = C.t := by rw [U32.cast_Usize_val_eq, htau]
+    generalize ht' : UScalar.cast .Usize tau = t at htv
+    have hwn := hK.wbig
+    have hn1b : C.n + 1 ≤ (C.n + 1) * C.w := Nat.le_mul_of_pos_right _ (by omega)
+    step as ⟨inf, hinf⟩
+    have hinfv : inf.val = C.inf := by unfold Ctx.inf; omega
+    step as ⟨i2, hi2⟩
+    step as ⟨w, hw'⟩
+    have hwv : w.val = C.w := by omega
+    step as ⟨i3, hi3⟩
+    have hi3v : i3.val = C.n + 1 := by omega
+    step as ⟨i4, hi4⟩
+    have hi4v : i4.val = (C.n + 1) * C.w := by rw [hi4, hi3v, hwv]
+    step as ⟨td, htd1, htd2⟩
+    have hmx : ∀ k, k ≤ C.n ∨ k ≤ C.m → (k + 1) * C.w < 2 ^ 32 := by
+      intro k hk
+      rcases hk with hk | hk
+      · have : (k + 1) * C.w ≤ (C.n + 1) * C.w := Nat.mul_le_mul_right _ (by omega)
+        omega
+      · have : (k + 1) * C.w ≤ (C.m + 1) * C.w := Nat.mul_le_mul_right _ (by omega)
+        omega
+    step as ⟨i5, hi5⟩
+    have hi5v : i5.val = max C.n C.m := by omega
+    have hi5b : i5.val + 1 < 2 ^ 32 := by omega
+    step as ⟨rows, hrows⟩
+    have hrowsv : rows.val = max C.n C.m + 1 := by omega
+    have hbigmax : (max C.n C.m + 1) * C.w < 2 ^ 32 := hmx _ (by omega)
+    have hrw : rows.val * w.val < 2 ^ 32 := by rw [hrowsv, hwv]; exact hbigmax
+    step as ⟨i6, hi6⟩
+    have hi6v : i6.val = (max C.n C.m + 1) * C.w := by rw [hi6, hrowsv, hwv]
+    step as ⟨fd, hfd1, hfd2⟩
+    have hfdlen : (C.n + 1) * C.w ≤ fd.val.length := by
+      have hfdl : fd.val.length = i6.val := hfd2
+      rw [hfdl, hi6v]; exact Nat.mul_le_mul_right _ (by omega)
+    have htdlen : (C.n + 1) * C.w ≤ td.val.length := by
+      have htdl : td.val.length = i4.val := htd2
+      rw [htdl, hi4v]
+    have hTB : Ctx.FdB td.val C.inf := by rw [htd1]; exact fdb_replicate _ _ _ hinfv
+    have hFB : Ctx.FdB fd.val C.inf := by rw [hfd1]; exact fdb_replicate _ _ _ hinfv
+    have hG0 : C.GInv td.val (C.WB (vals a.keyroots.val) (vals b.keyroots.val) (0#usize).val 0) := by
+      rw [htd1]; exact init_ginv C hw (vals a.keyroots.val) (vals b.keyroots.val) i4.val inf hinfv (by rw [hi4v])
+    obtain ⟨r, he, k1, k2, k3⟩ := WP.spec_imp_exists
+      (within_outer_spec C a b hK hKe hw tau t st td fd 0#usize htau (by rw [htv]) (by simp)
+        htdlen hfdlen hTB hFB hG0)
+    rw [he]
+    simp only [bind_tc_ok]
+    obtain ⟨st1, td1⟩ := r
+    dsimp only at k1 k2 k3
+    have hfin : C.GInv td1.val (fun _ _ => True) := by
+      intro x y hx1 hxn hy1 hym
+      have hh := k3 x y hx1 hxn hy1 hym
+      refine ⟨hh.1, fun _ hb => hh.2 ?_ hb⟩
+      unfold Ctx.WB
+      left
+      rw [List.take_length]
+      exact hKe.mA x hx1 hxn
+    have hroot := hfin C.n C.m hn1 (Nat.le_refl _) hm1 (Nat.le_refl _)
+    have hTDe : TD C.la C.lb C.ren C.n C.m = C.ted := by unfold TD Ctx.ted; rw [hra, hrb]
+    have hadf : adf (C.la C.n) (C.lb C.m) = 0 := by rw [hra, hrb]; rfl
+    rw [hTDe, hadf] at hroot
+    step as ⟨i7, hi7⟩
+    have hi7v : i7.val = C.n - C.m + (C.m - C.n) := by omega
+    have hbigw : (C.n + 1) * C.w < 2 ^ 32 := hK.wbig
+    have hn1w : (C.n + 1) * C.w ≤ td1.val.length := by rw [k1]; exact htdlen
+    step with vec_read_spec td1 w t a.label.len b.label.len inf i7 (by rw [hwv, htv]; exact hw)
+      hi7 (by rw [hlenA, hwv]; exact hn1w) (by rw [hlenA, hwv]; exact hbigw) as ⟨d, hd⟩
+    have hdv : d.val = rd td1.val C.w C.t C.inf C.n C.m := by
+      rw [hd, hwv, htv, hlenA, hlenB, hinfv]
+    obtain ⟨⟨hlb, hub⟩, hex⟩ := hroot
+    rw [← hdv] at hlb hub hex
+    have hinfd : C.inf = C.t + 1 := rfl
+    by_cases hdle : d ≤ tau
+    · simp only [if_pos hdle]
+      simp only [WP.spec_ok]
+      have hd1 : d.val ≤ C.t := by have : d.val ≤ tau.val := hdle; omega
+      have hted : C.ted ≤ C.t := by omega
+      have := hex trivial (by omega)
+      exact ⟨⟨this, hted⟩, fun _ => hfin⟩
+    · simp only [if_neg hdle]
+      simp only [WP.spec_ok]
+      have hd1 : C.t < d.val := by have : ¬ d.val ≤ tau.val := hdle; omega
+      have hted : C.t < C.ted := by
+        by_cases h : C.ted ≤ C.t
+        · have := hex trivial (by omega); omega
+        · omega
+      exact ⟨hted, fun h => absurd h (by omega)⟩
 
 end difffold_lines_extract
