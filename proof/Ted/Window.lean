@@ -166,6 +166,10 @@ theorem band_of_budget (C : Ctx) (hA : WfL C.la) (hB : WfL C.lb) {x y : Nat} (hx
   unfold InBand
   split at h <;> omega
 
+/-- Entries of the subtree-distance table that are not leaf pairs of this window are never touched. -/
+def Frame (C : Ctx) (td0 td : List Std.U32) : Prop :=
+  ∀ x y, ¬ (C.LeafPair x y ∧ x ≤ C.i0 ∧ y ≤ C.j0) → rd td C.w C.t C.inf x y = rd td0 C.w C.t C.inf x y
+
 def FdB (L : List Std.U32) (inf : Nat) : Prop := ∀ k < L.length, (L[k]!).val ≤ inf
 
 theorem FdB_set {L : List Std.U32} {inf : Nat} (h : FdB L inf) (i : Nat) (v : Std.U32) (hv : v.val ≤ inf) :
@@ -203,7 +207,7 @@ theorem inner_step (C : Ctx) (hG : C.Good) (hw : C.w = 2 * C.t + 1) (fd td fd' t
     (v : Std.U32) {p q qlo rm : Nat} (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) (hp : 1 ≤ p) (hq : 1 ≤ q)
     (hps : p ≤ C.si) (hqs : q ≤ C.sj) (hband : InBand C.t p q)
     (hR : C.RowsInv fd p q) (hT : C.TdInv td p q) (hFB : FdB fd C.inf) (hTB : FdB td C.inf)
-    (hM : C.RowMin fd p q qlo rm)
+    (hM : C.RowMin fd p q qlo rm) (td0 : List Std.U32) (hFr : C.Frame td0 td)
     (hv : v.val = cellNew fd td C.w C.t C.inf C.li C.lj p q (C.li + p - 1) (C.la (C.li + p - 1))
         (C.lb (C.lj + q - 1)) (C.ren (C.li + p - 1) (C.lj + q - 1)))
     (hfd' : fd' = fd.set (bandIdx C.w C.t p q) v) (hidx : bandIdx C.w C.t p q < fd.length)
@@ -213,12 +217,12 @@ theorem inner_step (C : Ctx) (hG : C.Good) (hw : C.w = 2 * C.t + 1) (fd td fd' t
     (htd2 : ¬ (C.LeafPair (C.li + p - 1) (C.lj + q - 1) ∧ InBand C.t (C.li + p - 1) (C.lj + q - 1)) →
       td' = td) :
     C.RowsInv fd' p (q + 1) ∧ C.TdInv td' p (q + 1) ∧ FdB fd' C.inf ∧ FdB td' C.inf ∧
-      C.RowMin fd' p (q + 1) qlo (min rm v.val) := by
+      C.RowMin fd' p (q + 1) qlo (min rm v.val) ∧ C.Frame td0 td' := by
   have hfok := cellNew_fok C hG fd td hli hlj hp hq hps hqs hR hT
   rw [← hv] at hfok
   have hvle : v.val ≤ C.inf := by have := hfok.2.1; unfold Ctx.inf; exact this
   have hlen' : fd'.length = fd.length := by rw [hfd']; simp
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro p' q' hp' hq' hc
     by_cases e : p' = p ∧ q' = q
     · obtain ⟨rfl, rfl⟩ := e
@@ -293,6 +297,23 @@ theorem inner_step (C : Ctx) (hG : C.Good) (hw : C.w = 2 * C.t + 1) (fd td fd' t
         · exact Or.inl h
         · exact Or.inr ⟨h1, by omega⟩) hb
       omega
+  · intro x' y' hn
+    have hxi : C.li + p - 1 ≤ C.i0 := by
+      have hlile : C.li ≤ C.i0 := by have := (hG.wa.1 C.i0 hG.i0a).2; rw [← hG.li_eq] at this; exact this
+      have hps2 : p ≤ C.i0 - C.li + 1 := hps
+      omega
+    have hyj : C.lj + q - 1 ≤ C.j0 := by
+      have hljle : C.lj ≤ C.j0 := by have := (hG.wb.1 C.j0 hG.j0a).2; rw [← hG.lj_eq] at this; exact this
+      have hqs2 : q ≤ C.j0 - C.lj + 1 := hqs
+      omega
+    by_cases hc : C.LeafPair (C.li + p - 1) (C.lj + q - 1) ∧ InBand C.t (C.li + p - 1) (C.lj + q - 1)
+    · obtain ⟨hteq, hidT⟩ := htd1 hc
+      have hne : ¬ (x' = C.li + p - 1 ∧ y' = C.lj + q - 1) := fun h => hn (by
+        obtain ⟨h1, h2⟩ := h; subst h1; subst h2; exact ⟨hc.1, hxi, hyj⟩)
+      rw [hteq, rd_set_ne td C.w C.t C.inf (C.li + p - 1) (C.lj + q - 1) x' y' v hw hc.2
+        (fun h => hne ⟨h.1.symm, h.2.symm⟩)]
+      exact hFr x' y' hn
+    · rw [htd2 hc]; exact hFr x' y' hn
 
 end Ctx
 
@@ -325,23 +346,26 @@ theorem fill_inner_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : 
     (hq1 : 1 ≤ q.val) (hqlo : p.val ≤ qlo + C.t) (hqq : qlo ≤ q.val) (hqle : q.val ≤ qhi.val + 1)
     (hfdlen : (C.si + 1) * C.w ≤ fd.val.length) (htdlen : (C.n + 1) * C.w ≤ td.val.length)
     (hR : C.RowsInv fd.val p.val q.val) (hT : C.TdInv td.val p.val q.val)
-    (hFB : Ctx.FdB fd.val C.inf) (hTB : Ctx.FdB td.val C.inf) (hM : C.RowMin fd.val p.val q.val qlo row_min.val) :
+    (hFB : Ctx.FdB fd.val C.inf) (hTB : Ctx.FdB td.val C.inf) (hM : C.RowMin fd.val p.val q.val qlo row_min.val)
+    (td0 : List Std.U32) (hFr : C.Frame td0 td.val) :
     ted.fill_window_loop2_loop0 a.label a.lml a.keyroots a.kids a.kind b.label b.lml b.keyroots b.kids b.kind
       td fd st t inf w li lj q p qhi x lx row_min ⦃ r =>
       r.2.2.2.1.val = qhi.val + 1 ∧ r.1.val.length = td.val.length ∧ r.2.1.val.length = fd.val.length ∧
       C.RowsInv r.2.1.val p.val (qhi.val + 1) ∧ C.TdInv r.1.val p.val (qhi.val + 1) ∧
-      Ctx.FdB r.2.1.val C.inf ∧ Ctx.FdB r.1.val C.inf ∧ C.RowMin r.2.1.val p.val (qhi.val + 1) qlo r.2.2.2.2.val ⦄ := by
+      Ctx.FdB r.2.1.val C.inf ∧ Ctx.FdB r.1.val C.inf ∧ C.RowMin r.2.1.val p.val (qhi.val + 1) qlo r.2.2.2.2.val ∧
+      C.Frame td0 r.1.val ⦄ := by
   unfold ted.fill_window_loop2_loop0
   apply loop.spec_decr_nat
     (measure := fun s => qhi.val + 1 - s.2.2.2.1.val)
     (inv := fun s => 1 ≤ s.2.2.2.1.val ∧ qlo ≤ s.2.2.2.1.val ∧ s.2.2.2.1.val ≤ qhi.val + 1 ∧
       s.1.val.length = td.val.length ∧ s.2.1.val.length = fd.val.length ∧
       C.RowsInv s.2.1.val p.val s.2.2.2.1.val ∧ C.TdInv s.1.val p.val s.2.2.2.1.val ∧
-      Ctx.FdB s.2.1.val C.inf ∧ Ctx.FdB s.1.val C.inf ∧ C.RowMin s.2.1.val p.val s.2.2.2.1.val qlo s.2.2.2.2.val)
+      Ctx.FdB s.2.1.val C.inf ∧ Ctx.FdB s.1.val C.inf ∧ C.RowMin s.2.1.val p.val s.2.2.2.1.val qlo s.2.2.2.2.val ∧
+      C.Frame td0 s.1.val)
   · intro s hs
     obtain ⟨td1, fd1, st1, q1, rm1⟩ := s
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hs
-    dsimp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 ⊢
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hs
+    dsimp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 ⊢
     have hsi : C.si = C.i0 - C.li + 1 := rfl
     have hsj : C.sj = C.j0 - C.lj + 1 := rfl
     have hlile : C.li ≤ C.i0 := by have := (hG.wa.1 C.i0 hG.i0a).2; rw [← hG.li_eq] at this; exact this
@@ -420,18 +444,18 @@ theorem fill_inner_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : 
             InBand t.val (x.val) (lj.val + q1.val - 1)) → td2.val = td1.val := by
           intro hc; rw [htd1', if_neg hc]
         have hstep := Ctx.inner_step C hG hw fd1.val td1.val fd2.val td2.val vv (qlo := qlo)
-          (rm := rm1.val) hli hlj hp1 h1 hp2 hqs hband h6 h7 h8 h9 h10 hv1 hfd'' hidx
+          (rm := rm1.val) hli hlj hp1 h1 hp2 hqs hband h6 h7 h8 h9 h10 td0 h11 hv1 hfd'' hidx
           (by
             intro hc'
             have := htd1c (hleaf.mpr hc')
             rw [hww, ht, hx, hljj] at this
             exact ⟨this, hxy_band hc'.2⟩)
           (fun hc' => htd2c (fun h => hc' (hleaf.mp h)))
-        obtain ⟨k1, k2, k3, k4, k5⟩ := hstep
+        obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hstep
         have hq'' : q2.val = q1.val + 1 := hq'
         have hrm2 : rm2.val = min rm1.val vv.val := hrm'
         rw [hrm2]
-        refine ⟨⟨by omega, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, by omega⟩
+        refine ⟨⟨by omega, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, by omega⟩
         · by_cases hc3 : (lx.val = li.val ∧ (b.lml.val[lj.val + q1.val - 2]!).val = lj.val ∧
               InBand t.val (x.val) (lj.val + q1.val - 1))
           · rw [htd1c hc3]; simp [h4]
@@ -442,6 +466,7 @@ theorem fill_inner_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : 
         · exact k3
         · exact k4
         · rw [hq'']; exact k5
+        · exact k6
     · -- the loop is over
       have hq3 : q1.val = qhi.val + 1 := by
         have : ¬ q1.val ≤ qhi.val := hqq'
@@ -450,7 +475,184 @@ theorem fill_inner_loop_spec (C : Ctx) (hG : C.Good) (a b : ted.PostTree) (hK : 
       rw [if_neg hqq']
       simp only [WP.spec_ok]
       rw [hq3] at h6 h7 h10
-      exact ⟨hq3, h4, h5, h6, h7, h8, h9, h10⟩
-  · exact ⟨hq1, hqq, hqle, rfl, rfl, hR, hT, hFB, hTB, hM⟩
+      exact ⟨hq3, h4, h5, h6, h7, h8, h9, h10, h11⟩
+  · exact ⟨hq1, hqq, hqle, rfl, rfl, hR, hT, hFB, hTB, hM, hFr⟩
+
+
+namespace Ctx
+
+theorem rows_start' (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {fd : List Std.U32} {p : Nat}
+    (hR : C.RowsInv fd p 1) : C.RowsInv fd p (max (p - C.t) 1) := by
+  intro p' q' hp' hq' hc
+  rcases hc with h | h | h | ⟨h1, h2⟩
+  · exact hR p' q' hp' hq' (Or.inl h)
+  · exact hR p' q' hp' hq' (Or.inr (Or.inl h))
+  · exact hR p' q' hp' hq' (Or.inr (Or.inr (Or.inl h)))
+  · by_cases e : q' = 0
+    · exact hR p' q' hp' hq' (Or.inr (Or.inr (Or.inl e)))
+    · subst h1
+      apply okF_out C fd hli hlj
+      intro hb
+      unfold InBand at hb
+      omega
+
+/-- A leaf pair of the window whose window cell is out of the band cannot meet the budget. -/
+theorem leaf_budget_false (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {x y p q : Nat}
+    (hp : 1 ≤ p) (hq : 1 ≤ q) (hx : x = C.li + p - 1) (hy : y = C.lj + q - 1) (hl : C.LeafPair x y)
+    (hout : ¬ (p ≤ q + C.t ∧ q ≤ p + C.t)) :
+    ¬ (TD C.la C.lb C.ren x y + adf (C.la x) (C.lb y) ≤ C.t) := by
+  have := TD_eq_Dw C hp hq hli hlj (by rw [← hx]; exact hl.1) (by rw [← hy]; exact hl.2)
+  rw [← hx, ← hy] at this
+  rw [this]
+  have hs := Dw_size (la := C.la) (lb := C.lb) (ren := C.ren) hli hlj p q
+  omega
+
+theorem td_start (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {td : List Std.U32} {p : Nat}
+    (hp : 1 ≤ p) (hT : C.TdInv td p 1) : C.TdInv td p (max (p - C.t) 1) := by
+  intro x y hx1 hx2 hy1 hy2
+  have hold := hT x y hx1 hx2 hy1 hy2
+  refine ⟨hold.1, fun hd hb => ?_⟩
+  by_cases hd1 : C.Done p 1 x y
+  · exact hold.2 hd1 hb
+  · exfalso
+    obtain ⟨h1, h2, h3⟩ := hd
+    unfold Ctx.Done at hd1
+    rcases h3 with h3 | ⟨h3, h4 | ⟨h4, h5⟩⟩
+    · exact hd1 ⟨h1, h2, Or.inl h3⟩
+    · exact hd1 ⟨h1, h2, Or.inr ⟨h3, Or.inl h4⟩⟩
+    · have hly := (hG.wb.1 y hy1).2
+      have : C.lb y = C.lj := h3.2
+      have hq : 1 ≤ y - C.lj + 1 := by omega
+      by_cases hy : y < C.lj
+      · omega
+      refine leaf_budget_false C hG hli hlj hp hq (by omega) (by omega) h3 ?_ hb
+      omega
+
+theorem rows_end (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {fd : List Std.U32} {p qhi : Nat}
+    (hqhi : qhi = min C.sj (p + C.t)) (hR : C.RowsInv fd p (qhi + 1)) : C.RowsInv fd (p + 1) 1 := by
+  intro p' q' hp' hq' hc
+  by_cases e : p' = p
+  · subst e
+    by_cases h0 : q' = 0
+    · exact hR p' q' hp' hq' (Or.inr (Or.inr (Or.inl h0)))
+    · by_cases hlt : q' < qhi + 1
+      · exact hR p' q' hp' hq' (Or.inr (Or.inr (Or.inr ⟨rfl, hlt⟩)))
+      · apply okF_out C fd hli hlj
+        intro hb; unfold InBand at hb; omega
+  · apply hR p' q' hp' hq'
+    rcases hc with h | h | h | ⟨h1, h2⟩
+    · exact Or.inl (by omega)
+    · exact Or.inr (Or.inl h)
+    · exact Or.inr (Or.inr (Or.inl h))
+    · exact Or.inr (Or.inr (Or.inl (by omega)))
+
+theorem td_end (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {td : List Std.U32} {p qhi : Nat}
+    (hp : 1 ≤ p) (hqhi : qhi = min C.sj (p + C.t)) (hT : C.TdInv td p (qhi + 1)) :
+    C.TdInv td (p + 1) 1 := by
+  intro x y hx1 hx2 hy1 hy2
+  have hold := hT x y hx1 hx2 hy1 hy2
+  refine ⟨hold.1, fun hd hb => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := hd
+  by_cases hdn : C.Done p (qhi + 1) x y
+  · exact hold.2 hdn hb
+  · exfalso
+    unfold Ctx.Done at hdn
+    rcases h3 with h3 | ⟨h3, h4⟩
+    · exact hdn ⟨h1, h2, Or.inl h3⟩
+    · have hly := (hG.wb.1 y hy1).2
+      have : C.lb y = C.lj := h3.2
+      have hq : 1 ≤ y - C.lj + 1 := by omega
+      have hyl : C.lj ≤ y := by omega
+      have hxx : x < C.li + p - 1 ∨ x = C.li + p - 1 := by
+        rcases h4 with h4 | ⟨h4, h5⟩
+        · omega
+        · exfalso; omega
+      rcases hxx with hxx | hxx
+      · exact hdn ⟨h1, h2, Or.inr ⟨h3, Or.inl hxx⟩⟩
+      by_cases hy3 : y < C.lj + (qhi + 1) - 1
+      · exact hdn ⟨h1, h2, Or.inr ⟨h3, Or.inr ⟨hxx, hy3⟩⟩⟩
+      · refine leaf_budget_false C hG hli hlj hp hq (by omega) (by omega) h3 ?_ hb
+        have hsj : y - C.lj + 1 ≤ C.sj := by
+          have := h2; simp only [Ctx.sj]; omega
+        omega
+
+theorem hall_of_small (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {p : Nat} (hbig : C.sj + C.t < p) :
+    ∀ q', q' ≤ C.sj → C.t < Dw C.la C.lb C.ren C.li C.lj p q' + C.δ := by
+  intro q' hq'
+  have := Dw_size (la := C.la) (lb := C.lb) (ren := C.ren) hli hlj p q'
+  omega
+
+theorem hall_of_rowmin (C : Ctx) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {fd : List Std.U32} {p qhi qlo rm : Nat}
+    (hR : C.RowsInv fd p (qhi + 1)) (hM : C.RowMin fd p (qhi + 1) qlo rm) (hps : p ≤ C.si)
+    (hqhi : qhi = min C.sj (p + C.t)) (hqlo : qlo = max (p - C.t) 1) (hrm : C.t < rm) :
+    ∀ q', q' ≤ C.sj → C.t < Dw C.la C.lb C.ren C.li C.lj p q' + C.δ := by
+  intro q' hq'
+  have hs := Dw_size (la := C.la) (lb := C.lb) (ren := C.ren) hli hlj p q'
+  by_cases hb : InBand C.t p q'
+  · have hcond : q' = 0 ∨ (qlo ≤ q' ∧ q' < qhi + 1) := by
+      by_cases h0 : q' = 0
+      · exact Or.inl h0
+      · unfold InBand at hb; exact Or.inr ⟨by omega, by omega⟩
+    have h1 := hM.2 q' hq' hcond hb
+    have h2 := hR p q' hps hq' (by
+      rcases hcond with h | h
+      · exact Or.inr (Or.inr (Or.inl h))
+      · exact Or.inr (Or.inr (Or.inr ⟨rfl, h.2⟩)))
+    unfold Ctx.OkF FOK at h2
+    by_cases hle : Dw C.la C.lb C.ren C.li C.lj p q' + C.δ ≤ C.t
+    · have := h2.2.2 hle
+      omega
+    · omega
+  · unfold InBand at hb; omega
+
+theorem exit_final (C : Ctx) (hG : C.Good) (hli : 1 ≤ C.li) (hlj : 1 ≤ C.lj) {td : List Std.U32}
+    {p qhi : Nat} (hp1 : 1 ≤ p) (hps : p ≤ C.si)
+    (hall : ∀ q', q' ≤ C.sj → C.t < Dw C.la C.lb C.ren C.li C.lj p q' + C.δ)
+    (hT : C.TdInv td p (qhi + 1)) : C.TdInv td (C.si + 1) 1 := by
+  intro x y hx1 hx2 hy1 hy2
+  have hold := hT x y hx1 hx2 hy1 hy2
+  refine ⟨hold.1, fun hd hb => ?_⟩
+  by_cases hdn : C.Done p (qhi + 1) x y
+  · exact hold.2 hdn hb
+  · exfalso
+    obtain ⟨h1, h2, h3⟩ := hd
+    unfold Ctx.Done at hdn
+    rcases h3 with h3 | ⟨h3, h4⟩
+    · exact hdn ⟨h1, h2, Or.inl h3⟩
+    · have hly := (hG.wb.1 y hy1).2
+      have hlx := (hG.wa.1 x hx1).2
+      have hlbj : C.lb y = C.lj := h3.2
+      have hlai : C.la x = C.li := h3.1
+      have hyl : C.lj ≤ y := by omega
+      have hxl : C.li ≤ x := by omega
+      -- the row of x is at least p, otherwise the pair is done
+      have hrow : p ≤ x - C.li + 1 := by
+        by_cases e : x < C.li + p - 1
+        · exact absurd ⟨h1, h2, Or.inr ⟨h3, Or.inl e⟩⟩ hdn
+        · omega
+      have hsj : y - C.lj + 1 ≤ C.sj := by simp only [Ctx.sj]; omega
+      have hcA := closed_win C hG h1
+      have hcB := closed_winB C hG h2
+      obtain ⟨y₀, hy0a, hy0b, hy0c⟩ := D_row_mono (ren := C.ren) hG.wa hG.wb hli hlj
+        (x - C.li + 1 - p) (C.li + p - 1) x y (by omega) (by omega) hcA hcB (by omega)
+      have hq0 := hall (y₀ + 1 - C.lj) (by omega)
+      have e1 : C.lj + (y₀ + 1 - C.lj) - 1 = y₀ := by omega
+      unfold Dw at hq0
+      rw [e1] at hq0
+      have hTDeq := TD_eq_Dw C (p := x - C.li + 1) (q := y - C.lj + 1) (by omega) (by omega) hli hlj
+        (by have : C.li + (x - C.li + 1) - 1 = x := by omega
+            rw [this]; exact hlai)
+        (by have : C.lj + (y - C.lj + 1) - 1 = y := by omega
+            rw [this]; exact hlbj)
+      have e2 : C.li + (x - C.li + 1) - 1 = x := by omega
+      have e3 : C.lj + (y - C.lj + 1) - 1 = y := by omega
+      rw [e2, e3] at hTDeq
+      unfold Dw at hTDeq
+      rw [e2, e3] at hTDeq
+      have e4 : adf (C.la x) (C.lb y) = C.δ := by unfold Ctx.δ; rw [hlai, hlbj]
+      rw [hTDeq, e4] at hb
+      omega
+
+end Ctx
 
 end difffold_lines_extract

@@ -58,4 +58,15 @@ theorem clone_vec_u32 (v : alloc.vec.Vec Std.U32) :
   obtain ⟨r, hr, hh⟩ := WP.spec_imp_exists (clone_u32 v)
   rw [hr, hh]
 
+theorem usize_sat_sub_val (p t : Std.Usize) :
+    (core.num.Usize.saturating_sub p t).val = p.val - t.val := by
+  have hb := p.hBounds
+  have h2 : p.val < 2 ^ Std.UScalarTy.Usize.numBits := by simpa [UScalar.max] using hb
+  unfold core.num.Usize.saturating_sub UScalar.saturating_sub
+  show (BitVec.ofNat _ (max 0 (p.val - t.val))).toNat = p.val - t.val
+  rw [BitVec.toNat_ofNat]
+  have : (max 0 (p.val - t.val)) = p.val - t.val := by omega
+  rw [this]
+  exact Nat.mod_eq_of_lt (by omega)
+
 end difffold_lines_extract
