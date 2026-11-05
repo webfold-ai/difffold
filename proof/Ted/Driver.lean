@@ -440,7 +440,8 @@ theorem within_td_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C
       (match r.1.1 with
         | none => C.t < C.ted
         | some d => d.val = C.ted ∧ C.ted ≤ C.t) ∧
-      (C.ted ≤ C.t → C.GInv r.1.2.val (fun _ _ => True)) ⦄ := by
+      (C.ted ≤ C.t → C.GInv r.1.2.val (fun _ _ => True)) ∧
+      (C.ted ≤ C.t → (C.n + 1) * C.w ≤ r.1.2.val.length ∧ Ctx.FdB r.1.2.val C.inf) ⦄ := by
   unfold ted.within_td
   have hnb := hK.nbig
   have hmb := hK.mbig
@@ -459,8 +460,9 @@ theorem within_td_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C
   · simp only [if_pos hgt]
     simp only [WP.spec_ok]
     have : tau.val < i1.val := hgt
-    refine ⟨by show C.t < C.ted; unfold Ctx.ted; omega, fun h => ?_⟩
-    exfalso; unfold Ctx.ted at h; omega
+    refine ⟨by show C.t < C.ted; unfold Ctx.ted; omega, fun h => ?_, fun h => ?_⟩
+    · exfalso; unfold Ctx.ted at h; omega
+    · exfalso; unfold Ctx.ted at h; omega
   · simp only [if_neg hgt]
     have hnlen : ¬ (a.label.len = 0#usize) := by
       intro h
@@ -549,7 +551,7 @@ theorem within_td_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C
       have hd1 : d.val ≤ C.t := by have : d.val ≤ tau.val := hdle; omega
       have hted : C.ted ≤ C.t := by omega
       have := hex trivial (by omega)
-      exact ⟨⟨this, hted⟩, fun _ => hfin⟩
+      exact ⟨⟨this, hted⟩, fun _ => hfin, fun _ => ⟨by rw [k1]; exact htdlen, k2⟩⟩
     · simp only [if_neg hdle]
       simp only [WP.spec_ok]
       have hd1 : C.t < d.val := by have : ¬ d.val ≤ tau.val := hdle; omega
@@ -557,6 +559,6 @@ theorem within_td_spec (C : Ctx) (a b : ted.PostTree) (hK : C.Link a b) (hKe : C
         by_cases h : C.ted ≤ C.t
         · have := hex trivial (by omega); omega
         · omega
-      exact ⟨hted, fun h => absurd h (by omega)⟩
+      exact ⟨hted, fun h => absurd h (by omega), fun h => absurd h (by omega)⟩
 
 end difffold_lines_extract
