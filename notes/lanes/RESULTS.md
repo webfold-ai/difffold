@@ -110,6 +110,9 @@ of that. It does not reach OmniDiff: classical TED has no move operation, and th
 reorders and cross-parent moves where OmniDiff scores far higher. The general-TED run falls back to the
 top-down mapping for trees over 20,000 nodes (fallback count not recorded). Files: `results/accuracy/`.
 
+Why the gap exists, per failure class, with ceilings and ranked changes [measured]: `notes/research/ACCURACY-MECHANICS.md`.
+Ideas from the sister repositories for tree edit distance, line diff, memory and accuracy: `notes/research/IDEAS-FROM-SISTER-REPOS.md`.
+
 ## Lane 2d: GumTree and RefactoringMiner accuracy  [measured, indicative]
 See `notes/lanes/GUMTREE-RM.md`. On 200 small Java fixtures (scoped scoring, lenient to JDT-based tools):
 OmniDiff 83.0% perfect, RefactoringMiner 80.5%, best GumTree matcher 73.5%, default GumTree 70.5%,
