@@ -10,8 +10,9 @@ The winner tables below are generated from that file by `tools/strbench/summariz
 Labels: MEASURED means the number came from the harness on the machine described under Hardware.
 Nothing here is claimed for other hardware or builds.
 
-The difffold numbers in the sections above are for the version 1 kernel. The section "After v2" at the
-end gives the version 2 kernel, measured against the version 1 kernel in the same session.
+The difffold numbers in the sections above are for the version 1 kernel. The section "After v2" gives the
+version 2 kernel, measured against the version 1 kernel in the same session. The section "After v3" at the
+end gives the version 3 kernel, measured against versions 1 and 2 with RapidFuzz as the control.
 
 ## Status
 
@@ -669,3 +670,238 @@ the kernel.
 | 100000 | sparse-u32 | unrelated | 1 | 0.07 | 0.17 | 2.34 | 0.04 |
 | 100000 | sparse-u32 | unrelated | 8 | 0.31 | 1.41 | 4.53 | 0.59 |
 | 100000 | sparse-u32 | unrelated | 32 | 4.94 | 8.75 | 1.77 | 2308.84 |
+
+## After v3
+
+This section reports the version 3 difffold kernel (pruned wavefront, exact full bit-parallel pass, lazy
+symbol-count bound on the exact path, and a new `levenshtein_u32`). The design and the tests are in
+`notes/lanes/LEVENSHTEIN.md`, section "Version 3". Labels: MEASURED is a timing or count from this session.
+TESTED is a check that passed. Nothing here is PROVED.
+
+Harness and binaries:
+
+- The harness in `tools/strbench/` is unchanged except that the difffold exact job calls `levenshtein_u32`.
+  The bounded job still calls `levenshtein_within_u32`. Each version is a separate binary built from the same
+  harness with a different kernel file: the version 1 kernel, the version 2 kernel and the version 3 kernel
+  (this change). RapidFuzz 0.5.0 is the in-run control, run in its own process.
+- Edlib and WFA2-lib were not rebuilt. The comparison asked for is v3 against v1, v2 and RapidFuzz, and their
+  source trees are not on this machine. No external source was fetched in this session. The earlier Edlib and
+  WFA2 rows are not comparable to these numbers.
+
+Run conditions: `taskset -c 0`, one warm-up and seven timed passes, median reported, 5 pairs (3 at lengths
+10,000 and above). Lengths 1,000, 10,000 and 100,000. Alphabets 2, 4, 256 and sparse `u32`. Bounded regimes
+`d<k`, `d==k`, `d==k+1`, `d>>k` and `unrelated`. Bounds 1, 8, 32 and 128. Exact regimes `tiny-prefix-suffix`,
+`d=16` and `unrelated`. The 1-minute load at the start of each cell is in the TSV. The VM was shared with
+another benchmark (two `mechanics` processes using about three cores), so the load was 2.5 to 7.5 for most
+cells. This noise is the main limit of the matrix, and it is handled below.
+
+Correctness (MEASURED and TESTED): every timed pair was checked against an oracle first (the band oracle, or
+RapidFuzz as the consensus reference for the 100,000-symbol unrelated exact pairs). The matrix has 0 mismatches
+in all 552 cells. A random differential check of the same kernel (2,600,000 checks against the full dynamic
+program and RapidFuzz, 0 mismatches) was run separately.
+
+Raw data (scratchpad, not committed): `matrix-v1.tsv`, `matrix-v2.tsv`, `matrix-v3.tsv` and `matrix-rf.tsv`
+(the full subset, 276 cells each), `matrix-v3x-exact.tsv` (the exact cells of v3 after the lazy symbol bound),
+`repeat-results.tsv` (the interleaved repeats) and `sweep.tsv` (the in-process sweep).
+
+### Summary, bounded job (matrix run, one pass per cell)
+
+Geometric means are over the 80 bounded cells of each length. "v3 faster / tie / slower than v2" uses 1.3 as
+the threshold, from this single matrix run. "Cells with v3 under 1.3x RF" counts cells where v3 is not more
+than 1.3 times slower than RapidFuzz in the same run.
+
+| len | cells | geomean v3/v2 | geomean v3/v1 | v3 vs v2: faster / tie / slower (1.3x) | cells with v3 under 1.3x RF |
+|---|---|---|---|---|---|
+| 1000 | 80 | 0.532 | 0.153 | 44 / 27 / 9 | 49 |
+| 10000 | 80 | 0.581 | 0.042 | 52 / 16 / 12 | 63 |
+| 100000 | 80 | 0.600 | 0.021 | 46 / 29 / 5 | 71 |
+
+The single-pass matrix shows more "slower than v2" cells than the in-process sweep below does. The repeats
+explained most of them (see the section on cells still worse).
+
+### Bounded job, median microseconds per pair (matrix run)
+
+Each cell is `v1 / v2 / v3 (RF)`, with v3 in bold. Units are microseconds (us) or milliseconds (ms). Rows are
+regime and bound. Columns are alphabets. A row is absent where the harness skips the regime (`d>>k` needs
+`8k <= n / 2`).
+
+#### length 1000
+
+| regime | k | alphabet 2 | alphabet 4 | alphabet 256 | alphabet sparse-u32 |
+|---|---|---|---|---|---|
+| d<k | 1 | 0.41 us / 0.18 us / **0.18 us** (RF 0.47 us) | 0.38 us / 0.80 us / **0.35 us** (RF 0.48 us) | 0.41 us / 0.80 us / **0.18 us** (RF 0.48 us) | 0.41 us / 0.18 us / **0.18 us** (RF 0.47 us) |
+| d<k | 8 | 26.22 us / 1.49 us / **0.35 us** (RF 3.68 us) | 26.03 us / 0.40 us / **0.31 us** (RF 3.52 us) | 53.54 us / 0.43 us / **1.08 us** (RF 4.68 us) | 41.34 us / 0.43 us / **0.32 us** (RF 23.16 us) |
+| d<k | 32 | 58.47 us / 2.26 us / **1.93 us** (RF 17.59 us) | 58.77 us / 9.23 us / **2.84 us** (RF 17.31 us) | 71.74 us / 9.52 us / **2.22 us** (RF 17.45 us) | 103.17 us / 10.42 us / **1.37 us** (RF 39.78 us) |
+| d<k | 128 | 72.48 us / 34.21 us / **34.40 us** (RF 24.17 us) | 73.66 us / 35.33 us / **40.63 us** (RF 24.35 us) | 91.10 us / 47.42 us / **47.39 us** (RF 24.61 us) | 120.34 us / 125.90 us / **128.20 us** (RF 62.31 us) |
+| d==k | 1 | 0.46 us / 0.84 us / **0.84 us** (RF 0.70 us) | 0.47 us / 0.87 us / **0.23 us** (RF 0.72 us) | 0.51 us / 0.34 us / **0.33 us** (RF 0.67 us) | 0.49 us / 0.88 us / **0.24 us** (RF 0.81 us) |
+| d==k | 8 | 41.42 us / 0.91 us / **1.77 us** (RF 4.81 us) | 38.73 us / 0.85 us / **0.46 us** (RF 4.39 us) | 62.83 us / 0.90 us / **1.25 us** (RF 5.15 us) | 95.16 us / 0.90 us / **1.38 us** (RF 44.84 us) |
+| d==k | 32 | 60.24 us / 13.11 us / **6.19 us** (RF 17.64 us) | 69.06 us / 10.98 us / **3.27 us** (RF 18.40 us) | 76.03 us / 10.43 us / **3.75 us** (RF 17.50 us) | 112.16 us / 28.42 us / **3.70 us** (RF 42.38 us) |
+| d==k | 128 | 73.23 us / 35.44 us / **39.84 us** (RF 24.07 us) | 75.30 us / 35.84 us / **46.66 us** (RF 23.39 us) | 87.76 us / 47.85 us / **50.67 us** (RF 22.39 us) | 125.04 us / 125.17 us / **126.39 us** (RF 60.70 us) |
+| d==k+1 | 1 | 0.47 us / 0.19 us / **0.78 us** (RF 0.43 us) | 4.50 us / 0.97 us / **0.22 us** (RF 0.43 us) | 2.86 us / 0.40 us / **0.18 us** (RF 0.48 us) | 2.82 us / 0.92 us / **0.81 us** (RF 0.39 us) |
+| d==k+1 | 8 | 45.11 us / 3.01 us / **1.58 us** (RF 4.00 us) | 52.10 us / 0.94 us / **1.55 us** (RF 4.88 us) | 64.78 us / 5.46 us / **0.40 us** (RF 4.83 us) | 86.34 us / 0.92 us / **0.42 us** (RF 41.05 us) |
+| d==k+1 | 32 | 66.93 us / 14.68 us / **15.64 us** (RF 18.07 us) | 70.81 us / 12.21 us / **3.28 us** (RF 17.89 us) | 81.09 us / 18.28 us / **3.68 us** (RF 17.50 us) | 111.29 us / 11.01 us / **3.71 us** (RF 41.09 us) |
+| d==k+1 | 128 | 76.22 us / 37.69 us / **35.11 us** (RF 23.86 us) | 77.92 us / 37.72 us / **35.49 us** (RF 23.34 us) | 91.93 us / 87.58 us / **50.89 us** (RF 22.47 us) | 123.98 us / 128.92 us / **202.31 us** (RF 59.67 us) |
+| d>>k | 1 | 0.53 us / 0.30 us / **0.07 us** (RF 0.06 us) | 1.01 us / 0.42 us / **0.09 us** (RF 0.17 us) | 0.22 us / 0.08 us / **0.06 us** (RF 0.05 us) | 0.49 us / 0.09 us / **0.07 us** (RF 0.04 us) |
+| d>>k | 8 | 14.67 us / 2.37 us / **0.25 us** (RF 0.69 us) | 10.30 us / 0.35 us / **0.25 us** (RF 0.14 us) | 10.97 us / 0.66 us / **0.17 us** (RF 0.46 us) | 13.54 us / 0.78 us / **0.26 us** (RF 2.58 us) |
+| d>>k | 32 | 56.45 us / 49.22 us / **4.41 us** (RF 4.77 us) | 41.21 us / 13.04 us / **2.50 us** (RF 3.46 us) | 37.38 us / 10.31 us / **2.85 us** (RF 3.82 us) | 43.63 us / 10.38 us / **2.79 us** (RF 9.76 us) |
+| d>>k | 128 | 64.22 us / 35.68 us / **36.34 us** (RF 14.08 us) | 52.53 us / 35.81 us / **36.05 us** (RF 10.28 us) | 49.84 us / 10.73 us / **11.81 us** (RF 7.88 us) | 58.76 us / 51.10 us / **48.37 us** (RF 21.48 us) |
+| unrelated | 1 | 0.10 us / 0.20 us / **0.13 us** (RF 0.02 us) | 0.08 us / 0.08 us / **0.05 us** (RF 0.02 us) | 0.07 us / 0.08 us / **0.05 us** (RF 0.02 us) | 0.06 us / 0.18 us / **0.05 us** (RF 0.02 us) |
+| unrelated | 8 | 1.05 us / 2.71 us / **0.44 us** (RF 0.38 us) | 0.64 us / 0.76 us / **0.65 us** (RF 0.22 us) | 0.37 us / 0.74 us / **0.21 us** (RF 0.14 us) | 0.35 us / 0.77 us / **0.21 us** (RF 0.35 us) |
+| unrelated | 32 | 53.56 us / 17.85 us / **8.03 us** (RF 3.85 us) | 38.52 us / 13.02 us / **7.12 us** (RF 2.76 us) | 4.11 us / 33.19 us / **2.21 us** (RF 2.33 us) | 3.87 us / 9.51 us / **2.12 us** (RF 7.95 us) |
+| unrelated | 128 | 62.07 us / 35.87 us / **58.93 us** (RF 11.14 us) | 49.16 us / 36.09 us / **36.26 us** (RF 6.93 us) | 40.61 us / 2.65 us / **2.62 us** (RF 4.37 us) | 38.32 us / 48.75 us / **48.35 us** (RF 11.99 us) |
+
+#### length 10000
+
+| regime | k | alphabet 2 | alphabet 4 | alphabet 256 | alphabet sparse-u32 |
+|---|---|---|---|---|---|
+| d<k | 1 | 4.09 us / 1.50 us / **1.51 us** (RF 4.46 us) | 4.05 us / 1.50 us / **1.51 us** (RF 4.46 us) | 4.10 us / 7.51 us / **1.51 us** (RF 4.46 us) | 4.06 us / 1.50 us / **1.51 us** (RF 4.46 us) |
+| d<k | 8 | 222.30 us / 8.34 us / **4.16 us** (RF 31.63 us) | 273.02 us / 8.34 us / **8.09 us** (RF 40.37 us) | 290.39 us / 1.89 us / **7.88 us** (RF 47.10 us) | 258.84 us / 8.36 us / **3.97 us** (RF 353.12 us) |
+| d<k | 32 | 1.86 ms / 4.22 us / **3.51 us** (RF 146.65 us) | 1.91 ms / 4.14 us / **7.35 us** (RF 191.85 us) | 1.31 ms / 4.53 us / **2.98 us** (RF 187.75 us) | 1.35 ms / 4.56 us / **2.94 us** (RF 459.39 us) |
+| d<k | 128 | 6.82 ms / 62.65 us / **52.23 us** (RF 263.65 us) | 6.62 ms / 52.16 us / **33.13 us** (RF 256.41 us) | 6.78 ms / 41.33 us / **17.72 us** (RF 258.37 us) | 8.09 ms / 41.57 us / **17.15 us** (RF 804.72 us) |
+| d==k | 1 | 4.42 us / 1.65 us / **1.64 us** (RF 8.18 us) | 5.13 us / 1.69 us / **7.60 us** (RF 6.52 us) | 6.95 us / 1.79 us / **1.67 us** (RF 5.72 us) | 5.15 us / 1.69 us / **1.58 us** (RF 6.37 us) |
+| d==k | 8 | 471.60 us / 9.65 us / **2.07 us** (RF 52.54 us) | 477.03 us / 3.55 us / **8.49 us** (RF 53.48 us) | 332.18 us / 2.40 us / **6.27 us** (RF 50.81 us) | 321.59 us / 10.14 us / **8.21 us** (RF 404.50 us) |
+| d==k | 32 | 2.59 ms / 14.64 us / **6.07 us** (RF 195.87 us) | 2.43 ms / 12.05 us / **4.91 us** (RF 190.36 us) | 1.50 ms / 12.22 us / **5.61 us** (RF 192.21 us) | 1.51 ms / 12.26 us / **4.02 us** (RF 563.26 us) |
+| d==k | 128 | 6.96 ms / 220.51 us / **128.11 us** (RF 249.67 us) | 6.98 ms / 187.13 us / **79.57 us** (RF 243.07 us) | 7.11 ms / 157.52 us / **34.88 us** (RF 247.64 us) | 8.56 ms / 156.93 us / **32.91 us** (RF 731.57 us) |
+| d==k+1 | 1 | 4.34 us / 1.51 us / **1.42 us** (RF 4.86 us) | 38.68 us / 1.69 us / **6.53 us** (RF 4.56 us) | 27.00 us / 1.59 us / **1.44 us** (RF 2.77 us) | 41.83 us / 1.74 us / **1.27 us** (RF 3.42 us) |
+| d==k+1 | 8 | 517.60 us / 2.48 us / **8.43 us** (RF 48.10 us) | 558.05 us / 2.52 us / **6.79 us** (RF 37.27 us) | 361.12 us / 10.19 us / **6.94 us** (RF 50.16 us) | 347.72 us / 2.45 us / **5.79 us** (RF 474.93 us) |
+| d==k+1 | 32 | 2.28 ms / 15.31 us / **9.16 us** (RF 177.30 us) | 2.60 ms / 13.42 us / **10.97 us** (RF 186.26 us) | 1.54 ms / 12.26 us / **8.69 us** (RF 204.16 us) | 1.36 ms / 12.13 us / **10.76 us** (RF 566.24 us) |
+| d==k+1 | 128 | 6.82 ms / 249.22 us / **143.12 us** (RF 243.79 us) | 7.13 ms / 184.43 us / **73.65 us** (RF 244.24 us) | 7.25 ms / 158.74 us / **33.15 us** (RF 241.39 us) | 8.10 ms / 151.80 us / **34.31 us** (RF 725.96 us) |
+| d>>k | 1 | 4.38 us / 0.73 us / **3.07 us** (RF 1.01 us) | 1.62 us / 2.69 us / **0.57 us** (RF 0.02 us) | 6.03 us / 0.53 us / **1.77 us** (RF 0.47 us) | 6.40 us / 0.67 us / **2.36 us** (RF 1.10 us) |
+| d>>k | 8 | 99.71 us / 3.90 us / **0.93 us** (RF 2.98 us) | 13.17 us / 1.35 us / **0.54 us** (RF 0.86 us) | 22.53 us / 2.25 us / **0.81 us** (RF 2.71 us) | 42.67 us / 3.57 us / **1.33 us** (RF 46.05 us) |
+| d>>k | 32 | 458.81 us / 18.43 us / **6.83 us** (RF 41.99 us) | 302.14 us / 12.73 us / **6.92 us** (RF 31.90 us) | 207.57 us / 10.89 us / **3.36 us** (RF 36.05 us) | 197.57 us / 10.79 us / **2.99 us** (RF 221.88 us) |
+| d>>k | 128 | 4.74 ms / 324.94 us / **134.56 us** (RF 53.78 us) | 3.41 ms / 225.76 us / **65.77 us** (RF 42.97 us) | 1.89 ms / 155.80 us / **30.30 us** (RF 44.73 us) | 2.27 ms / 156.60 us / **28.54 us** (RF 228.63 us) |
+| unrelated | 1 | 0.10 us / 0.08 us / **0.07 us** (RF 0.03 us) | 0.07 us / 0.09 us / **0.06 us** (RF 0.03 us) | 0.07 us / 0.08 us / **0.06 us** (RF 0.03 us) | 0.07 us / 0.10 us / **0.05 us** (RF 0.03 us) |
+| unrelated | 8 | 0.97 us / 2.73 us / **1.04 us** (RF 0.38 us) | 0.88 us / 2.55 us / **0.66 us** (RF 0.27 us) | 0.36 us / 2.49 us / **0.27 us** (RF 0.20 us) | 0.36 us / 2.51 us / **0.27 us** (RF 0.47 us) |
+| unrelated | 32 | 14.04 us / 16.83 us / **4.52 us** (RF 19.34 us) | 7.94 us / 11.85 us / **6.48 us** (RF 18.00 us) | 4.02 us / 9.85 us / **2.19 us** (RF 17.74 us) | 3.90 us / 9.86 us / **2.10 us** (RF 174.89 us) |
+| unrelated | 128 | 269.22 us / 308.78 us / **152.83 us** (RF 27.06 us) | 150.74 us / 220.63 us / **67.50 us** (RF 22.51 us) | 63.46 us / 144.93 us / **28.20 us** (RF 19.85 us) | 58.82 us / 152.58 us / **28.07 us** (RF 177.51 us) |
+
+#### length 100000
+
+| regime | k | alphabet 2 | alphabet 4 | alphabet 256 | alphabet sparse-u32 |
+|---|---|---|---|---|---|
+| d<k | 1 | 40.81 us / 26.52 us / **23.95 us** (RF 47.62 us) | 40.80 us / 27.09 us / **23.09 us** (RF 49.33 us) | 40.59 us / 30.64 us / **24.26 us** (RF 46.34 us) | 40.80 us / 23.07 us / **25.81 us** (RF 50.09 us) |
+| d<k | 8 | 3.49 ms / 27.19 us / **23.92 us** (RF 454.82 us) | 2.64 ms / 26.86 us / **23.31 us** (RF 331.21 us) | 2.89 ms / 75.53 us / **24.65 us** (RF 466.53 us) | 3.16 ms / 23.87 us / **23.94 us** (RF 2.61 ms) |
+| d<k | 32 | 18.01 ms / 28.48 us / **24.77 us** (RF 1.98 ms) | 17.21 ms / 29.61 us / **24.62 us** (RF 1.92 ms) | 14.18 ms / 25.69 us / **25.75 us** (RF 2.36 ms) | 13.89 ms / 26.80 us / **24.78 us** (RF 5.96 ms) |
+| d<k | 128 | 71.56 ms / 86.58 us / **74.53 us** (RF 2.69 ms) | 73.94 ms / 72.73 us / **53.90 us** (RF 2.75 ms) | 58.37 ms / 64.56 us / **39.60 us** (RF 3.39 ms) | 58.01 ms / 65.36 us / **38.21 us** (RF 8.84 ms) |
+| d==k | 1 | 47.14 us / 25.48 us / **31.37 us** (RF 77.81 us) | 45.82 us / 22.69 us / **22.40 us** (RF 63.13 us) | 47.81 us / 22.90 us / **24.89 us** (RF 74.31 us) | 47.47 us / 28.10 us / **22.53 us** (RF 74.45 us) |
+| d==k | 8 | 4.99 ms / 26.39 us / **24.23 us** (RF 515.09 us) | 4.24 ms / 24.67 us / **23.42 us** (RF 500.50 us) | 3.69 ms / 23.36 us / **24.55 us** (RF 568.99 us) | 3.49 ms / 24.37 us / **23.70 us** (RF 2.70 ms) |
+| d==k | 32 | 24.39 ms / 37.94 us / **54.14 us** (RF 1.95 ms) | 22.60 ms / 33.76 us / **25.80 us** (RF 1.99 ms) | 13.88 ms / 33.75 us / **27.20 us** (RF 2.53 ms) | 13.27 ms / 34.17 us / **26.06 us** (RF 5.68 ms) |
+| d==k | 128 | 77.71 ms / 256.17 us / **154.79 us** (RF 2.60 ms) | 79.13 ms / 219.47 us / **107.82 us** (RF 2.53 ms) | 61.45 ms / 185.99 us / **56.54 us** (RF 3.24 ms) | 58.44 ms / 185.83 us / **53.35 us** (RF 8.09 ms) |
+| d==k+1 | 1 | 201.78 us / 29.02 us / **21.58 us** (RF 66.79 us) | 527.24 us / 22.65 us / **22.96 us** (RF 50.65 us) | 321.27 us / 19.41 us / **11.00 us** (RF 35.01 us) | 58.93 us / 25.80 us / **24.01 us** (RF 41.47 us) |
+| d==k+1 | 8 | 4.95 ms / 30.08 us / **108.07 us** (RF 548.11 us) | 4.98 ms / 23.53 us / **27.82 us** (RF 521.37 us) | 3.10 ms / 23.46 us / **22.68 us** (RF 461.23 us) | 3.25 ms / 25.29 us / **18.35 us** (RF 2.11 ms) |
+| d==k+1 | 32 | 25.18 ms / 37.97 us / **28.91 us** (RF 2.02 ms) | 22.60 ms / 33.82 us / **29.66 us** (RF 1.93 ms) | 14.53 ms / 32.96 us / **27.30 us** (RF 2.76 ms) | 14.68 ms / 36.23 us / **25.16 us** (RF 6.10 ms) |
+| d==k+1 | 128 | 79.65 ms / 294.27 us / **160.85 us** (RF 2.59 ms) | 81.15 ms / 232.87 us / **100.09 us** (RF 2.51 ms) | 60.48 ms / 189.32 us / **59.77 us** (RF 3.43 ms) | 59.81 ms / 186.39 us / **52.62 us** (RF 7.67 ms) |
+| d>>k | 1 | 31.25 us / 6.98 us / **12.15 us** (RF 8.45 us) | 35.97 us / 11.78 us / **3.32 us** (RF 1.99 us) | 20.00 us / 3.67 us / **3.37 us** (RF 9.48 us) | 36.32 us / 4.22 us / **3.57 us** (RF 5.35 us) |
+| d>>k | 8 | 729.86 us / 2.70 us / **9.13 us** (RF 75.21 us) | 670.96 us / 2.49 us / **5.39 us** (RF 28.42 us) | 290.03 us / 8.26 us / **3.96 us** (RF 29.72 us) | 402.18 us / 3.11 us / **2.23 us** (RF 354.78 us) |
+| d>>k | 32 | 3.94 ms / 19.68 us / **6.83 us** (RF 465.42 us) | 3.20 ms / 14.69 us / **3.98 us** (RF 370.40 us) | 1.82 ms / 12.84 us / **6.25 us** (RF 632.38 us) | 2.10 ms / 21.50 us / **3.34 us** (RF 2.25 ms) |
+| d>>k | 128 | 13.27 ms / 346.65 us / **137.56 us** (RF 556.17 us) | 11.87 ms / 228.24 us / **73.43 us** (RF 523.63 us) | 7.90 ms / 161.31 us / **34.05 us** (RF 788.38 us) | 7.38 ms / 160.05 us / **39.69 us** (RF 2.77 ms) |
+| unrelated | 1 | 0.18 us / 0.20 us / **0.13 us** (RF 0.03 us) | 0.07 us / 0.19 us / **0.12 us** (RF 0.03 us) | 0.07 us / 0.18 us / **0.11 us** (RF 0.02 us) | 0.07 us / 0.18 us / **0.11 us** (RF 0.02 us) |
+| unrelated | 8 | 1.11 us / 2.75 us / **1.19 us** (RF 0.44 us) | 0.63 us / 2.61 us / **0.73 us** (RF 0.30 us) | 0.37 us / 2.53 us / **0.29 us** (RF 0.21 us) | 0.36 us / 2.52 us / **0.26 us** (RF 0.51 us) |
+| unrelated | 32 | 14.73 us / 15.92 us / **10.24 us** (RF 245.07 us) | 8.43 us / 11.96 us / **6.68 us** (RF 236.28 us) | 4.15 us / 9.90 us / **2.29 us** (RF 367.39 us) | 3.80 us / 9.90 us / **2.11 us** (RF 2.01 ms) |
+| unrelated | 128 | 539.31 us / 313.45 us / **126.14 us** (RF 267.90 us) | 151.52 us / 361.97 us / **68.27 us** (RF 239.29 us) | 62.42 us / 153.90 us / **28.14 us** (RF 383.05 us) | 58.87 us / 151.00 us / **27.73 us** (RF 1.94 ms) |
+
+### Exact job (matrix run; v3 re-run after the lazy bound)
+
+The v3 column is the re-run in `matrix-v3x-exact.tsv`, taken after the lazy symbol-count bound. The other
+columns are from the matrix run. `timeout` means the 60 second limit was hit. Every ok cell has 0 mismatches.
+
+| len | alphabet | regime | difffold v1 | difffold v2 | difffold v3 | RapidFuzz |
+|---|---|---|---|---|---|---|
+| 1000 | 2 | d=16 | 206.78 us | 4.10 us | **5.14 us** | 77.92 us |
+| 1000 | 2 | tiny-prefix-suffix | 3.36 us | 1.20 us | **1.00 us** | 1.58 us |
+| 1000 | 2 | unrelated | 571.16 us | 219.62 us | **84.44 us** | 107.20 us |
+| 1000 | 256 | d=16 | 94.74 us | 4.29 us | **3.25 us** | 45.80 us |
+| 1000 | 256 | tiny-prefix-suffix | 3.62 us | 1.98 us | **1.12 us** | 3.03 us |
+| 1000 | 256 | unrelated | 708.39 us | 1.06 ms | **103.06 us** | 55.50 us |
+| 1000 | 4 | d=16 | 134.06 us | 4.20 us | **3.58 us** | 46.73 us |
+| 1000 | 4 | tiny-prefix-suffix | 6.18 us | 2.04 us | **0.94 us** | 6.76 us |
+| 1000 | 4 | unrelated | 380.57 us | 595.05 us | **83.70 us** | 59.49 us |
+| 1000 | sparse-u32 | d=16 | 83.14 us | 8.58 us | **2.88 us** | 148.68 us |
+| 1000 | sparse-u32 | tiny-prefix-suffix | 3.54 us | 1.96 us | **1.12 us** | 4.14 us |
+| 1000 | sparse-u32 | unrelated | 1.81 ms | 2.78 ms | **109.83 us** | 171.84 us |
+| 10000 | 2 | d=16 | 1.52 ms | 7.86 us | **4.67 us** | 5.71 ms |
+| 10000 | 2 | tiny-prefix-suffix | 43.03 us | 15.30 us | **7.85 us** | 111.96 us |
+| 10000 | 2 | unrelated | 29.40 ms | 13.37 ms | **8.41 ms** | 4.78 ms |
+| 10000 | 256 | d=16 | 938.38 us | 7.76 us | **3.81 us** | 3.56 ms |
+| 10000 | 256 | tiny-prefix-suffix | 32.62 us | 3.47 us | **8.07 us** | 78.24 us |
+| 10000 | 256 | unrelated | 29.99 ms | 41.90 ms | **7.16 ms** | 4.08 ms |
+| 10000 | 4 | d=16 | 1.40 ms | 8.35 us | **4.23 us** | 2.80 ms |
+| 10000 | 4 | tiny-prefix-suffix | 35.61 us | 15.22 us | **8.36 us** | 104.25 us |
+| 10000 | 4 | unrelated | 27.33 ms | 21.47 ms | **7.85 ms** | 4.87 ms |
+| 10000 | sparse-u32 | d=16 | 802.59 us | 7.15 us | **10.92 us** | 12.55 ms |
+| 10000 | sparse-u32 | tiny-prefix-suffix | 29.68 us | 15.61 us | **7.99 us** | 201.24 us |
+| 10000 | sparse-u32 | unrelated | 101.57 ms | 172.52 ms | **7.89 ms** | 14.39 ms |
+| 100000 | 2 | d=16 | 17.48 ms | 50.98 us | **35.78 us** | 357.99 ms |
+| 100000 | 2 | tiny-prefix-suffix | 242.90 us | 38.61 us | **24.08 us** | 3.49 ms |
+| 100000 | 2 | unrelated | timeout | 994.23 ms | **799.25 ms** | 462.73 ms |
+| 100000 | 256 | d=16 | 9.91 ms | 49.46 us | **38.61 us** | 370.19 ms |
+| 100000 | 256 | tiny-prefix-suffix | 202.84 us | 38.12 us | **26.95 us** | 2.07 ms |
+| 100000 | 256 | unrelated | 2052.11 ms | timeout | **834.05 ms** | 422.28 ms |
+| 100000 | 4 | d=16 | 16.21 ms | 46.53 us | **27.56 us** | 382.60 ms |
+| 100000 | 4 | tiny-prefix-suffix | 336.96 us | 39.88 us | **24.80 us** | 6.52 ms |
+| 100000 | 4 | unrelated | timeout | 1715.10 ms | **752.11 ms** | 492.49 ms |
+| 100000 | sparse-u32 | d=16 | 8.72 ms | 45.63 us | **32.15 us** | 1760.77 ms |
+| 100000 | sparse-u32 | tiny-prefix-suffix | 192.73 us | 39.50 us | **26.76 us** | 8.05 ms |
+| 100000 | sparse-u32 | unrelated | timeout | timeout | **678.64 ms** | timeout |
+
+Exact summary. v1 and v2 time out on several unrelated pairs at length 100,000. v3 finishes every exact cell in
+under 1 s. On unrelated pairs at length 100,000 RapidFuzz takes about 0.4 to 0.5 s and v3 about 0.7 to 0.8 s. On
+related pairs (`tiny-prefix-suffix` and `d=16`) v3 is at or below RapidFuzz in nearly all cells.
+
+### Cells where v3 is still worse than v1 or v2 by more than 1.2 times
+
+Procedure. The matrix flagged 33 bounded cells where v3 was more than 1.2 times slower than v1 or v2. Each was
+re-run three times with v1, v2 and v3 interleaved, and the median of the three runs per binary was taken
+(`repeat-results.tsv`). Nine cells stayed above 1.2 times. Those nine were then checked in the in-process sweep
+below, where both kernels run in one process in alternation, so both see the same machine state.
+
+Still above 1.2 times after the interleaved repeats, with the in-process sweep ratio in brackets:
+
+| len | alphabet | regime | k | repeat median v1 / v2 / v3 (us) | sweep v3/v2 (v3/v1) | classification |
+|---|---|---|---|---|---|---|
+| 1,000 | 2 | d==k | 1 | 0.45 / 0.22 / 0.84 | 1.02 (0.45) | noise: sweep equal to v2 |
+| 1,000 | sparse | unrelated | 128 | 38.8 / 48.7 / 48.7 | 0.97 (1.19) | real, borderline: about 1.2 times v1 |
+| 10,000 | 2 | d==k+1 | 8 | 538 / 2.44 / 4.10 | 0.58 | environment: v3 faster in the sweep |
+| 10,000 | 256 | d<k | 8 | 296 / 1.89 / 7.59 | 0.95 | environment: bimodal between processes |
+| 10,000 | 4 | d==k | 8 | 480 / 2.46 / 7.26 | 0.89 | environment: bimodal between processes |
+| 100,000 | 256 | unrelated | 1 | 0.065 / 0.179 / 0.108 | 0.56 (1.37) | real, small: about 35 ns over v1 |
+| 100,000 | 4 | d>>k | 8 | 669 / 2.53 / 5.34 | 0.53 | environment: sweep v3 6.6 us, v2 12.4 us |
+| 100,000 | 4 | unrelated | 1 | 0.073 / 0.179 / 0.109 | 0.60 (0.60) | environment: the v1 ratio exists only in the matrix |
+| 100,000 | sparse | unrelated | 1 | 0.066 / 0.178 / 0.108 | 0.62 (1.54) | real, small: about 40 ns over v1 |
+
+The k=8 related cells at length 10,000 and above (the rows with bimodal or environment labels) moved between about
+2 us and about 8 us from one process run to the next, for v2 as well as v3. Two runs of the same v2 binary on the
+same cell gave 1.9 us and 8.4 us. A heap-buffer build of v3 showed the same two modes. Callgrind instruction
+counts for the whole process were equal (7.79 M for v2 against 7.78 M for v3). These cells are classified as
+machine-state noise, not as a kernel regression. The in-process sweep shows v3 at 0.53 to 0.95 times v2 on them.
+
+Real remaining losses, meaning v3 slower than v1 or v2 by more than 1.2 times in the sweep as well as the matrix:
+
+- Unrelated pairs at `k = 1` at length 100,000: about 35 to 40 ns over v1 (1.4 to 1.5 times), and 0.6 times v2.
+  These are sub-0.2 us cells, so the absolute difference is at timer scale.
+- Sparse unrelated pairs at length 1,000 with `k = 128`: about 1.2 times v1, and equal to v2.
+
+### In-process kernel sweep (interleaved, one process)
+
+`wfcmp sweep` (scratchpad, not committed) times the three `levenshtein_within_u32` functions in one process,
+alternating between them, with seven repetitions and the median reported. The pairs come from
+`strbench::make_pair`. Each kernel's answer is checked against RapidFuzz before timing. Both kernels see the same
+machine state here, so this is the cleanest kernel-level comparison in this session.
+
+| len | cells | geomean v3/v2 | geomean v3/v1 | cells more than 1.2x slower than v2 | cells more than 1.2x slower than v1 |
+|---|---|---|---|---|---|
+| 1,000 | 80 | 0.61 | 0.13 | 0 | 0 |
+| 10,000 | 80 | 0.47 | 0.04 | 0 | 0 |
+| 100,000 | 80 | 0.42 | 0.02 | 0 | 4 (all `k = 1` unrelated, 1.35 to 1.54 times) |
+
+Per bound, the geometric mean of v3/v2 is 0.86 at k=1, 0.49 at k=8, 0.32 at k=32 and 0.44 at k=128.
+
+### Limits
+
+- One machine, shared with another benchmark. Timing modes flip by 2 to 4 times between processes, so the
+  decisions above use the interleaved repeats and the in-process sweep. Ratios under 1.3 are treated as ties.
+- Edlib and WFA2-lib are not in this comparison.
+- The exact path still trails RapidFuzz on unrelated pairs (about 1.7 to 1.9 times). The full pass is not
+  tuned further.
+- Nothing here is PROVED. The correctness claims rest on the tests, the random differential check and the
+  mutation checks recorded in `LEVENSHTEIN.md`.

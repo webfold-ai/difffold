@@ -87,7 +87,7 @@ pub mod difffold_levenshtein;
 /// difffold exact distance, found by threshold doubling inside the kernel.
 pub fn difffold(a: &[u32], b: &[u32], k: Option<usize>) -> Answer {
     match k {
-        None => Answer::Dist(difffold_levenshtein::levenshtein(a, b) as usize),
+        None => Answer::Dist(difffold_levenshtein::levenshtein_u32(a, b) as usize),
         Some(k) => {
             let limit = u32::try_from(k).expect("bound fits in u32");
             match difffold_levenshtein::levenshtein_within_u32(a, b, limit) {

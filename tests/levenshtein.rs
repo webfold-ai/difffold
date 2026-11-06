@@ -3,8 +3,9 @@
 //! randomised on long inputs. They are tested, not proved.
 
 use difffold::levenshtein::{
-    histogram_lower_bound_u32, levenshtein, levenshtein_full_dp, levenshtein_within,
-    levenshtein_within_band, levenshtein_within_myers_banded, levenshtein_within_myers_multi,
+    histogram_lower_bound_u32, levenshtein, levenshtein_full_dp, levenshtein_full_pass,
+    levenshtein_full_pass_u32, levenshtein_u32, levenshtein_within, levenshtein_within_band,
+    levenshtein_within_myers_banded, levenshtein_within_myers_multi,
     levenshtein_within_myers_single, levenshtein_within_u32, levenshtein_within_wavefront,
 };
 
@@ -522,4 +523,156 @@ fn histogram_bound_never_exceeds_distance_random() {
     }
     assert_eq!(histogram_lower_bound_u32(&[1, 2, 2], &[2, 1, 2]), 0);
     assert_eq!(histogram_lower_bound_u32(&[1, 2, 3], &[4, 5, 6]), 3);
+}
+
+/// Exact entry points under test: the threshold-doubling exact functions and the full pass alone.
+type Exact = fn(&[u32], &[u32]) -> usize;
+
+fn exact_implementations() -> Vec<(&'static str, Exact)> {
+    vec![
+        ("levenshtein_u32", |a, b| levenshtein_u32(a, b) as usize),
+        ("levenshtein", |a, b| levenshtein(a, b) as usize),
+        ("full_pass_u32", levenshtein_full_pass_u32),
+        ("full_pass", levenshtein_full_pass::<u32>),
+    ]
+}
+
+/// Checks every exact implementation against the oracle on one pair, in both orientations.
+fn check_exact_pair(a: &[u32], b: &[u32]) {
+    let d = levenshtein_full_dp(a, b);
+    for (x, y) in [(a, b), (b, a)] {
+        for (name, f) in exact_implementations() {
+            assert_eq!(f(x, y), d, "{name}: a={x:?} b={y:?}");
+        }
+    }
+}
+
+#[test]
+fn exact_exhaustive_alphabet3_length5() {
+    let seqs = all_sequences(3, 5);
+    for a in &seqs {
+        for b in &seqs {
+            check_exact_pair(a, b);
+        }
+    }
+}
+
+#[test]
+fn exact_exhaustive_alphabet2_length7_full_pass() {
+    // The full pass alone on every pair, so its trimming and orientation are checked on their own.
+    let seqs = all_sequences(2, 7);
+    for a in &seqs {
+        for b in &seqs {
+            let d = levenshtein_full_dp(a, b);
+            assert_eq!(levenshtein_full_pass_u32(a, b), d, "a={a:?} b={b:?}");
+        }
+    }
+}
+
+#[test]
+fn exact_multiword_boundary_lengths() {
+    // Lengths on both sides of each 64-token block boundary, with related, independent and empty-ish
+    // texts over dense, wide and sparse alphabets. The sparse ids are near `u32::MAX`, which takes the
+    // binary search class lookup.
+    let mut rng = Rng(0xE8AC_7000_0064);
+    for &len in &[
+        1usize, 2, 15, 16, 17, 63, 64, 65, 127, 128, 129, 191, 192, 193, 400,
+    ] {
+        for &alpha in &[2usize, 4, 256, 0] {
+            let a = random_seq(&mut rng, len, alpha);
+            let edits = rng.below(40);
+            let related = mutate(&mut rng, &a, edits, alpha);
+            let c_len = rng.below(len * 2 + 3);
+            let unrelated = random_seq(&mut rng, c_len, alpha);
+            check_exact_pair(&a, &related);
+            check_exact_pair(&a, &unrelated);
+        }
+    }
+}
+
+#[test]
+fn exact_long_pairs_cross_the_doubling_switch() {
+    // Lengths of a few hundred, so the doubling runs several rounds before the full pass takes over,
+    // with distances below, near and far above the switch point.
+    let mut rng = Rng(0x5117_C4E5_0001);
+    for &alpha in &[2usize, 4, 256, 0] {
+        for round in 0..4 {
+            let len = 300 + 200 * round;
+            let a = random_seq(&mut rng, len, alpha);
+            let edits = 1 + rng.below(len / 3);
+            let b = mutate(&mut rng, &a, edits, alpha);
+            check_exact_pair(&a, &b);
+            let c_len = len + rng.below(50);
+            let c = random_seq(&mut rng, c_len, alpha);
+            check_exact_pair(&a, &c);
+        }
+    }
+}
+
+#[test]
+fn full_pass_heavy_and_light_classes() {
+    // A pattern dominated by one symbol, with rare symbols that occur once. The dominant class takes a
+    // dedicated row, and the rare ones are rebuilt from their positions, so both paths run in one pass.
+    let mut rng = Rng(0x4EA7_C1A5_0001);
+    for &len in &[70usize, 200, 320, 600] {
+        for _ in 0..6 {
+            let mut a: Vec<u32> = vec![0; len];
+            for slot in a.iter_mut() {
+                if rng.below(5) == 0 {
+                    *slot = 1 + rng.below(len) as u32;
+                }
+            }
+            let text_len = len + rng.below(len / 2 + 1);
+            let text: Vec<u32> = (0..text_len)
+                .map(|_| {
+                    if rng.below(3) == 0 {
+                        rng.below(len) as u32
+                    } else {
+                        0
+                    }
+                })
+                .collect();
+            let d = levenshtein_full_dp(&a, &text);
+            assert_eq!(
+                levenshtein_full_pass_u32(&a, &text),
+                d,
+                "a={a:?} text={text:?}"
+            );
+            assert_eq!(levenshtein_full_pass_u32(&text, &a), d, "swapped");
+            assert_eq!(levenshtein_u32(&a, &text) as usize, d);
+        }
+    }
+}
+
+#[test]
+fn wavefront_pruned_range_when_length_difference_is_near_the_bound() {
+    // The pruned diagonal range matters most when the end diagonal is far from zero, so the lengths
+    // differ by almost the bound. Every limit from the length difference up is checked.
+    let mut rng = Rng(0x9A7E_F20E_0001);
+    for &alpha in &[2usize, 4, 256, 0] {
+        for _ in 0..40 {
+            let len = 1 + rng.below(60);
+            let a = random_seq(&mut rng, len, alpha);
+            let extra = rng.below(20);
+            let edits = extra + rng.below(6);
+            let b = mutate(&mut rng, &a, edits, alpha);
+            let d = levenshtein_full_dp(&a, &b);
+            let gap = a.len().abs_diff(b.len()) as u32;
+            let limits: Vec<u32> = (gap..gap + 12).chain([d as u32]).collect();
+            check_kernel(
+                "wavefront",
+                levenshtein_within_wavefront::<u32>,
+                &a,
+                &b,
+                &limits,
+            );
+            check_kernel(
+                "wavefront",
+                levenshtein_within_wavefront::<u32>,
+                &b,
+                &a,
+                &limits,
+            );
+        }
+    }
 }

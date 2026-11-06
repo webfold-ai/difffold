@@ -8,21 +8,26 @@
 //! The entry points are:
 //!
 //! * [`levenshtein_within`]: the exact distance if it is at most a limit, else `None`.
-//! * [`levenshtein`]: the exact distance, found by threshold doubling so the cost follows the distance.
+//! * [`levenshtein`]: the exact distance, found by threshold doubling so the cost follows the distance,
+//!   then one full bit-parallel pass once the threshold is a sixteenth of the longer input.
+//! * [`levenshtein_u32`]: the same as [`levenshtein`] for integer token ids, with the integer-id class lookup.
 //! * [`levenshtein_within_u32`]: the same as [`levenshtein_within`] for integer token ids, with a symbol
 //!   count lower bound that rejects unrelated inputs before any kernel runs.
 //!
 //! Kernels (all exact):
 //!
-//! * a furthest-reaching wavefront over diagonals, which costs `O((k + 1)^2)` diagonal steps plus match
-//!   extension, so it is cheap for small distances and for short bounds on unrelated input;
+//! * a furthest-reaching wavefront over diagonals. It keeps only the diagonals that can still finish within
+//!   the bound, so it costs about `(k + 1)^2 / 2` diagonal steps plus match extension, and it is cheap for
+//!   small distances and for short bounds on unrelated input;
 //! * a rolling band (Ukkonen's cutoff) of width `2k + 1`, which costs `O(n k)` time and `O(k)` memory;
 //! * a bit-parallel kernel (Myers 1999, Hyyro's block carries). Patterns of up to 64 tokens use one
 //!   word. Longer patterns use only the blocks that hold a row of the band `|i - j| <= k`, so a column
 //!   costs `O(k / 64)` blocks;
+//! * a full bit-parallel pass without a bound, which costs `O(n m / 64)` time and `O(m)` words, used by the
+//!   exact entry points once the bound is large;
 //! * a full dynamic program, kept as [`levenshtein_full_dp`] and used only as the test oracle.
 //!
-//! [`choose_kernel`] picks the cheapest of the three by a cost model. The constants are fitted on one
+//! `choose_kernel` picks the cheapest of the three by a cost model. The constants are fitted on one
 //! machine and are not portable. Every kernel is exact, so the choice never changes the answer.
 //!
 //! Correctness of the band rests on three facts. First, the distance is at most `max(n, m)`, so a
@@ -50,24 +55,182 @@ pub fn levenshtein_within<T: Eq>(a: &[T], b: &[T], limit: u32) -> Option<u32> {
 /// Exact unit-cost Levenshtein distance.
 ///
 /// Doubles the threshold `1, 2, 4, ...` until the bounded search succeeds, so the cost grows with the
-/// distance rather than with the input lengths. The threshold never exceeds `max(n, m)`, where the
-/// search is guaranteed to succeed.
+/// distance rather than with the input lengths. Once the threshold reaches a sixteenth of the longer input,
+/// one full bit-parallel pass finishes the query. The bounded search never exceeds `max(n, m)`, where it is
+/// guaranteed to succeed.
 ///
 /// # Panics
 ///
 /// Panics if the distance does not fit in a `u32`. That requires an input longer than `u32::MAX`
 /// tokens. Use [`levenshtein_within`] for bounded queries, which never panics on length.
 pub fn levenshtein<T: Eq>(a: &[T], b: &[T]) -> u32 {
+    let (a, b) = trim(a, b);
+    if a.is_empty() || b.is_empty() {
+        return distance_to_u32(a.len() + b.len());
+    }
     let cap = a.len().max(b.len());
     let mut k: usize = 1;
     loop {
         let kk = k.min(cap);
+        if kk * EXACT_FULL_DIVISOR >= cap {
+            return distance_to_u32(full_generic(a, b));
+        }
         if let Some(d) = within_usize(a, b, kk) {
             return distance_to_u32(d);
         }
         assert!(kk < cap, "distance is at most the longer input length");
         k = k.saturating_mul(2);
     }
+}
+
+/// Exact unit-cost Levenshtein distance for integer token ids.
+///
+/// The same threshold doubling as [`levenshtein`], with the integer-id class lookup. Once the threshold
+/// reaches `1 / EXACT_FULL_DIVISOR` of the longer input, a banded bounded search would cost a constant
+/// fraction of a full pass, so the full bit-parallel pass takes over. The full pass costs `O(n m / 64)` time
+/// and `O(m)` words of memory.
+pub fn levenshtein_u32(a: &[u32], b: &[u32]) -> u32 {
+    let (a, b) = trim(a, b);
+    if a.is_empty() || b.is_empty() {
+        return distance_to_u32(a.len() + b.len());
+    }
+    let cap = a.len().max(b.len());
+    let mut k: usize = 1;
+    let mut bound_checked = false;
+    loop {
+        let kk = k.min(cap);
+        if kk * EXACT_FULL_DIVISOR >= cap {
+            return distance_to_u32(full_u32(a, b));
+        }
+        if let Some(d) = within_usize_u32(a, b, kk) {
+            return distance_to_u32(d);
+        }
+        assert!(kk < cap, "distance is at most the longer input length");
+        // The symbol-count bound costs a pass over both inputs, so it is computed only once the early rounds
+        // have failed. Every round below the bound fails, so the doubling resumes at the bound.
+        if !bound_checked && k >= EXACT_BOUND_FROM {
+            bound_checked = true;
+            let lb = histogram_lower_bound_u32(a, b);
+            if lb > k {
+                k = lb;
+                continue;
+            }
+        }
+        k = k.saturating_mul(2);
+    }
+}
+
+/// The threshold from which [`levenshtein_u32`] computes the symbol-count bound.
+const EXACT_BOUND_FROM: usize = 64;
+
+/// The full bit-parallel pass alone over integer ids, with no bound. Exposed for the test suite and the
+/// benchmark. Callers should use [`levenshtein_u32`].
+#[doc(hidden)]
+pub fn levenshtein_full_pass_u32(a: &[u32], b: &[u32]) -> usize {
+    let (a, b) = trim(a, b);
+    if a.is_empty() || b.is_empty() {
+        return a.len() + b.len();
+    }
+    full_u32(a, b)
+}
+
+/// The full bit-parallel pass alone over arbitrary tokens, with no bound. Exposed for the test suite.
+#[doc(hidden)]
+pub fn levenshtein_full_pass<T: Eq>(a: &[T], b: &[T]) -> usize {
+    let (a, b) = trim(a, b);
+    if a.is_empty() || b.is_empty() {
+        return a.len() + b.len();
+    }
+    full_generic(a, b)
+}
+
+/// The threshold at which [`levenshtein`] and [`levenshtein_u32`] stop doubling and run the full
+/// bit-parallel pass: a threshold of `longer / EXACT_FULL_DIVISOR` or more.
+const EXACT_FULL_DIVISOR: usize = 16;
+
+/// Full bit-parallel distance over trimmed, non-empty inputs, for arbitrary tokens. Classes come from a
+/// linear scan, so each text token costs one comparison per class. Used only for non-integer tokens.
+fn full_generic<T: Eq>(a: &[T], b: &[T]) -> usize {
+    let (p, t) = orient(a, b);
+    let (cls, reps) =
+        classify_scan(p, usize::MAX).expect("classification without a class cap cannot be refused");
+    let classes = reps.len();
+    let class = |x: &T| reps.iter().position(|&r| p[r] == *x).unwrap_or(classes);
+    full_myers(&cls, classes, p.len(), t, class)
+}
+
+/// Full bit-parallel distance over trimmed, non-empty integer inputs, with dense or sorted class lookup.
+fn full_u32(a: &[u32], b: &[u32]) -> usize {
+    let (p, t) = orient(a, b);
+    let mut keys = p.to_vec();
+    keys.sort_unstable();
+    keys.dedup();
+    let classes = keys.len();
+    let cls: Vec<usize> = p
+        .iter()
+        .map(|x| keys.binary_search(x).expect("every pattern id is a key"))
+        .collect();
+    let max_key = keys[classes - 1];
+    if (max_key as usize) < 4 * p.len() + 256 {
+        let mut table = vec![classes; max_key as usize + 1];
+        for (c, &key) in keys.iter().enumerate() {
+            table[key as usize] = c;
+        }
+        full_myers(&cls, classes, p.len(), t, |x: &u32| {
+            table.get(*x as usize).copied().unwrap_or(classes)
+        })
+    } else {
+        full_myers(&cls, classes, p.len(), t, |x: &u32| {
+            keys.binary_search(x).unwrap_or(classes)
+        })
+    }
+}
+
+/// Full bit-parallel Levenshtein over every block of the pattern in every text column, with no cutoff.
+///
+/// `cls` gives the class of each pattern position, and `class` maps a text token to its class, or to
+/// `classes` if it occurs nowhere in the pattern. The pattern is `p_len` tokens. Memory is `O(p_len)`
+/// words plus the class rows described on [`ColumnMasks`]; time is `O(t.len() * p_len / 64)`.
+fn full_myers<T>(
+    cls: &[usize],
+    classes: usize,
+    p_len: usize,
+    t: &[T],
+    class: impl Fn(&T) -> usize,
+) -> usize {
+    debug_assert!(p_len >= 1 && cls.len() == p_len && !t.is_empty());
+    let mut masks = ColumnMasks::new(cls, classes);
+    let blocks = masks.blocks;
+    let last_high = 1u64 << ((p_len - 1) % WORD_BITS);
+    let mut pv = vec![!0u64; blocks];
+    let mut mv = vec![0u64; blocks];
+    let mut score = p_len;
+    for x in t {
+        let eq = masks.eq_row(class(x));
+        // The top row has `D[0][j] = j`, so its horizontal delta into block 0 is `+1`.
+        let mut carry: i8 = 1;
+        let mut delta: i8 = 0;
+        for b in 0..blocks {
+            let hbit = if b + 1 == blocks { last_high } else { HIGH };
+            let (np, nm, cout, d) = block_step(eq[b], pv[b], mv[b], carry, hbit);
+            pv[b] = np;
+            mv[b] = nm;
+            carry = cout;
+            delta = d;
+        }
+        match delta {
+            1 => score += 1,
+            -1 => score -= 1,
+            _ => {}
+        }
+    }
+    score
+}
+
+/// Bounded search for integer ids used by the doubling of [`levenshtein_u32`]. The symbol-count bound is
+/// left out there, because it costs a pass over both inputs and the exact path computes it only when needed.
+fn within_usize_u32(a: &[u32], b: &[u32], k: usize) -> Option<usize> {
+    within_u32_core(a, b, k, false)
 }
 
 /// Full `O(n m)` dynamic program. The reference oracle for the tests, not a fast path.
@@ -153,34 +316,38 @@ pub fn levenshtein_within_myers_banded<T: Eq>(a: &[T], b: &[T], limit: u32) -> O
 /// of the pattern. Each text token is mapped to its class by a dense table when the ids are small
 /// relative to the pattern, and by binary search otherwise.
 pub fn levenshtein_within_u32(a: &[u32], b: &[u32], limit: u32) -> Option<u32> {
-    let k = limit_to_usize(limit);
+    within_u32_core(a, b, limit_to_usize(limit), true).map(distance_to_u32)
+}
+
+/// The body of [`levenshtein_within_u32`]. The symbol-count bound runs only when `histogram` is set.
+fn within_u32_core(a: &[u32], b: &[u32], k: usize, histogram: bool) -> Option<usize> {
     let (a, b) = trim(a, b);
     if a.len().abs_diff(b.len()) > k {
         return None;
     }
     if a.is_empty() || b.is_empty() {
-        return Some(distance_to_u32(a.len() + b.len()));
+        return Some(a.len() + b.len());
     }
     let (p, t) = orient(a, b);
     let k = k.min(t.len());
     let blocks = p.len().div_ceil(WORD_BITS);
     match choose_kernel(k, blocks, t.len(), Some(U32_LOOKUP_COST)) {
-        Kernel::Wavefront => wavefront(a, b, k).map(distance_to_u32),
+        Kernel::Wavefront => wavefront(a, b, k),
         Kernel::Band => {
-            if histogram_lower_bound_u32(p, t) > k {
+            if histogram && histogram_lower_bound_u32(p, t) > k {
                 return None;
             }
-            band(a, b, k).map(distance_to_u32)
+            band(a, b, k)
         }
         Kernel::BitParallel => {
-            if histogram_lower_bound_u32(p, t) > k {
+            if histogram && histogram_lower_bound_u32(p, t) > k {
                 return None;
             }
             let mut keys = p.to_vec();
             keys.sort_unstable();
             keys.dedup();
             if keys.len() > (MAX_MASK_WORDS / blocks).saturating_sub(1) {
-                return band(a, b, k).map(distance_to_u32);
+                return band(a, b, k);
             }
             let classes = keys.len();
             let cls: Vec<usize> = p
@@ -200,7 +367,7 @@ pub fn levenshtein_within_u32(a: &[u32], b: &[u32], limit: u32) -> Option<u32> {
                 let class = |x: &u32| keys.binary_search(x).unwrap_or(classes);
                 run_kernel(&masks, p.len(), t, class, k)
             };
-            found.map(distance_to_u32)
+            found
         }
     }
 }
@@ -423,8 +590,8 @@ fn bit_parallel_entry<T: Eq>(
     run(&masks, p, t, &class, k).map(distance_to_u32)
 }
 
-/// Sentinel for a wavefront diagonal that no cost has reached.
-const UNREACHED: isize = isize::MIN;
+/// Marks a wavefront diagonal that no cost has reached. Valid positions are non-negative.
+const UNREACHED: isize = -1;
 /// Chunk size for the match-extension fast path, in tokens.
 const EXT_CHUNK: usize = 16;
 
@@ -434,58 +601,108 @@ const EXT_CHUNK: usize = 16;
 /// score `s`. Monotonicity along a diagonal (`D[i + 1][j + 1] >= D[i][j]` for unit costs) means every
 /// point before that position on the diagonal also costs at most `s`, so the furthest point is a
 /// complete summary of the diagonal. Each score extends the diagonals of the previous score by one
-/// substitution, deletion or insertion, then slides along matches. The work is `O(k^2)` diagonal steps
-/// plus the total match extension.
+/// substitution, deletion or insertion, then slides along matches.
+///
+/// Only diagonals that can still finish within the bound are computed. A point on diagonal `d` with cost
+/// `s` needs at least `|end - d|` more edits to reach the end diagonal `end = m - n`, so the diagonal is
+/// kept only when `|d| <= s` and `s + |end - d| <= k`. A diagonal outside that range cannot lie on an
+/// alignment of cost at most `k`, so dropping it never changes the answer. This halves the diagonal steps
+/// of a search that runs to the bound. The work is at most `(k + 1)^2` diagonal steps plus the total
+/// match extension.
 ///
 /// Requires trimmed inputs, both non-empty, and `|n - m| <= k`. Returns the distance if it is at most `k`.
 fn wavefront<T: Eq>(a: &[T], b: &[T], k: usize) -> Option<usize> {
+    // Diagonals run over `[-k, k]`, with two unreached cells on each side. The padding lets a step read
+    // one neighbour beyond the previous step's range without a check.
+    let width = 2 * k + 5;
+    if width <= WF_STACK_WIDTH {
+        let mut prev = [UNREACHED; WF_STACK_WIDTH];
+        let mut cur = [UNREACHED; WF_STACK_WIDTH];
+        wavefront_in(a, b, k, &mut prev[..width], &mut cur[..width])
+    } else {
+        let mut prev = vec![UNREACHED; width];
+        let mut cur = vec![UNREACHED; width];
+        wavefront_in(a, b, k, &mut prev, &mut cur)
+    }
+}
+
+/// Widest wavefront buffer kept on the stack. It covers bounds up to 13, the common case on
+/// unrelated input, where an allocation would cost more than the search.
+const WF_STACK_WIDTH: usize = 32;
+
+/// The wavefront steps over two buffers of `2k + 5` cells, both filled with [`UNREACHED`].
+fn wavefront_in<'b, T: Eq>(
+    a: &[T],
+    b: &[T],
+    k: usize,
+    mut prev: &'b mut [isize],
+    mut cur: &'b mut [isize],
+) -> Option<usize> {
     let (n, m) = (a.len() as isize, b.len() as isize);
     debug_assert!(n >= 1 && m >= 1 && (n - m).unsigned_abs() <= k);
+    debug_assert!(prev.len() == 2 * k + 5 && cur.len() == 2 * k + 5);
     let end = m - n;
-    // Diagonals run over `[-(k + 1), k + 1]`. The extra cell on each side stays unreached, so the
-    // neighbour reads at the edges need no check.
-    let off = k as isize + 1;
-    let width = 2 * k + 3;
-    let mut prev = vec![UNREACHED; width];
-    let mut cur = vec![UNREACHED; width];
-    let h0 = extend(a, b, 0, 0);
+    let off = k as isize + 2;
+    let h0 = slide(a, b, 0, 0);
     if end == 0 && h0 == a.len() {
         return Some(0);
     }
     prev[off as usize] = h0 as isize;
     for s in 1..=k {
         let si = s as isize;
-        for d in -si..=si {
-            let idx = (d + off) as usize;
+        let rem = (k - s) as isize;
+        let lo = (-si).max(end - rem);
+        let hi = si.min(end + rem);
+        let base = (lo + off) as usize;
+        let len = (hi - lo + 1) as usize;
+        // Each window is `[insertion source, same diagonal, deletion source]` for one diagonal, in
+        // increasing order, so the reads need no index arithmetic or bounds checks.
+        let sources = prev[base - 1..base + len + 1].windows(3);
+        for (t, (w, out)) in sources.zip(cur[base..base + len].iter_mut()).enumerate() {
+            let d = lo + t as isize;
             let mut best = UNREACHED;
             // Substitution on the same diagonal, or keep the point if a side is exhausted.
-            let same = prev[idx];
+            let same = w[1];
             if same != UNREACHED {
                 let (i, j) = (same, same + d);
                 best = best.max(if i < n && j < m { i + 1 } else { i });
             }
             // Deletion of a token of `a`: from diagonal `d + 1`, the pattern position advances.
-            let del = prev[idx + 1];
-            if del != UNREACHED && del < n {
+            let del = w[2];
+            if del >= 0 && del < n {
                 best = best.max(del + 1);
             }
             // Insertion of a token of `b`: from diagonal `d - 1`, the text position advances.
-            let ins = prev[idx - 1];
-            if ins != UNREACHED && ins + d - 1 < m {
+            let ins = w[0];
+            if ins >= 0 && ins + d - 1 < m {
                 best = best.max(ins);
             }
             if best != UNREACHED {
-                let (i, j) = (best as usize, (best + d) as usize);
-                best += extend(a, b, i, j) as isize;
+                best += slide(a, b, best as usize, (best + d) as usize) as isize;
             }
-            cur[idx] = best;
+            *out = best;
         }
+        // Cells just outside this step's range are read by the next step, so they must read as unreached.
+        let (low, high) = (base, base + len - 1);
+        cur[low - 2..low].fill(UNREACHED);
+        cur[high + 1..=high + 2].fill(UNREACHED);
         if cur[(end + off) as usize] >= n {
             return Some(s);
         }
         std::mem::swap(&mut prev, &mut cur);
     }
     None
+}
+
+/// Length of the common run starting at `a[i]` and `b[j]`, for the wavefront. The first mismatch, the
+/// common case on unrelated input, costs one comparison and no call.
+#[inline]
+fn slide<T: Eq>(a: &[T], b: &[T], i: usize, j: usize) -> usize {
+    if i < a.len() && j < b.len() && a[i] == b[j] {
+        1 + extend(a, b, i + 1, j + 1)
+    } else {
+        0
+    }
 }
 
 /// Rolling band over the trimmed inputs, with the contract of [`band_rows`] and no row budget.
@@ -579,6 +796,92 @@ impl Masks {
             rows[c * blocks + i / WORD_BITS] |= 1u64 << (i % WORD_BITS);
         }
         Masks { blocks, rows }
+    }
+}
+
+/// Match words of a pattern for the full pass, without a table of every class.
+///
+/// A class that occurs at least `blocks / 4` times has its own row of `blocks` words, and there are at most
+/// `4 * m / blocks` such rows, so the rows take `O(m)` words whatever the alphabet. A rarer class keeps only
+/// the positions of its occurrences, and its row is rebuilt for each text token in `O(blocks)` words. So
+/// every column costs `O(blocks)` plus the occurrences of rare classes, which is below `blocks / 4` each.
+struct ColumnMasks {
+    blocks: usize,
+    classes: usize,
+    /// The row of each heavy class, or `usize::MAX` for a light class.
+    heavy_row: Vec<usize>,
+    heavy: Vec<u64>,
+    /// Positions of each light class, as the slice `light_pos[light_off[c]..light_off[c + 1]]`.
+    light_off: Vec<usize>,
+    light_pos: Vec<usize>,
+    /// Scratch row for a light class, or for a text token that occurs nowhere in the pattern.
+    scratch: Vec<u64>,
+}
+
+impl ColumnMasks {
+    /// Builds the rows from the class of each pattern position, every class below `classes`.
+    fn new(cls: &[usize], classes: usize) -> Self {
+        let blocks = cls.len().div_ceil(WORD_BITS);
+        let mut occ = vec![0usize; classes];
+        for &c in cls {
+            occ[c] += 1;
+        }
+        let threshold = (blocks / 4).max(1);
+        let mut heavy_row = vec![usize::MAX; classes];
+        let mut rows = 0;
+        for c in 0..classes {
+            if occ[c] >= threshold {
+                heavy_row[c] = rows;
+                rows += 1;
+            }
+        }
+        let mut heavy = vec![0u64; rows * blocks];
+        let mut light_off = vec![0usize; classes + 1];
+        for c in 0..classes {
+            light_off[c + 1] = light_off[c]
+                + if heavy_row[c] == usize::MAX {
+                    occ[c]
+                } else {
+                    0
+                };
+        }
+        let mut light_pos = vec![0usize; light_off[classes]];
+        let mut fill = light_off.clone();
+        for (i, &c) in cls.iter().enumerate() {
+            if heavy_row[c] == usize::MAX {
+                light_pos[fill[c]] = i;
+                fill[c] += 1;
+            } else {
+                heavy[heavy_row[c] * blocks + i / WORD_BITS] |= 1u64 << (i % WORD_BITS);
+            }
+        }
+        ColumnMasks {
+            blocks,
+            classes,
+            heavy_row,
+            heavy,
+            light_off,
+            light_pos,
+            scratch: vec![0u64; blocks],
+        }
+    }
+
+    /// The match row of a text token of class `c`. A class at or above `classes` matches nothing.
+    fn eq_row(&mut self, c: usize) -> &[u64] {
+        let blocks = self.blocks;
+        if c >= self.classes {
+            self.scratch.fill(0);
+            return &self.scratch;
+        }
+        let r = self.heavy_row[c];
+        if r != usize::MAX {
+            return &self.heavy[r * blocks..(r + 1) * blocks];
+        }
+        self.scratch.fill(0);
+        for &i in &self.light_pos[self.light_off[c]..self.light_off[c + 1]] {
+            self.scratch[i / WORD_BITS] |= 1u64 << (i % WORD_BITS);
+        }
+        &self.scratch
     }
 }
 

@@ -1,9 +1,11 @@
 # Bounded unit-cost Levenshtein over token sequences
 
 Status: implemented in `src/levenshtein.rs`, exported as `difffold::levenshtein`. Exact, tested,
-not proved. No Lean proof is claimed for any part of this module. The current revision is version 2: it
-adds a wavefront kernel, a symbol-count lower bound and a banded bit-parallel kernel, and replaces the
-dispatcher. The version 1 measurements are kept below, labelled as history.
+not proved. No Lean proof is claimed for any part of this module. The current revision is version 3: it
+prunes the wavefront to the diagonals that can still finish within the bound, adds a full bit-parallel pass
+for large exact distances, and adds an exact `u32` entry point. Version 2 added a wavefront kernel, a
+symbol-count lower bound and a banded bit-parallel kernel. Version 1 measurements are kept below, labelled
+as history. The version 2 and version 3 measurements are in `STRING-BASELINES.md`.
 
 ## Objective: three distances that must not be confused
 
@@ -26,14 +28,99 @@ implemented here.
 - `levenshtein(a, b) -> u32`: the exact distance, found by threshold doubling `1, 2, 4, ...` capped at
   `max(n, m)`. Its cost follows the distance. It panics only if the distance exceeds `u32::MAX`, which
   needs an input longer than 4 billion tokens. The panic is documented.
+- `levenshtein_u32(a: &[u32], b: &[u32]) -> u32`: the exact distance for integer ids, with the same doubling
+  and the integer-id class lookup. Version 3. It switches to a full bit-parallel pass once the threshold
+  reaches a sixteenth of the longer input.
 - `levenshtein_within_u32(a: &[u32], b: &[u32], limit: u32) -> Option<u32>`: the same contract for
   integer ids, with dense or sorted class lookup instead of a linear scan.
-- Hidden, for the test suite and benchmark only: `levenshtein_full_dp` (oracle),
+- Hidden, for the test suite and benchmark only: `levenshtein_full_dp` (oracle), `levenshtein_full_pass`,
+  `levenshtein_full_pass_u32`,
   `levenshtein_within_band`, `levenshtein_within_wavefront`, `levenshtein_within_myers_single`,
   `levenshtein_within_myers_multi`, `levenshtein_within_myers_banded`, `histogram_lower_bound_u32`.
 
 Every element type needs only `T: Eq`. Hashing and ordering are not required; the generic path uses a
 linear class scan, and the `u32` path uses a table or binary search.
+
+## Version 3 (pruned wavefront and exact full pass)
+
+Changes from version 2. The public contract is unchanged, and `levenshtein_u32` is new.
+
+- Wavefront pruning. A point on diagonal `d` with cost `s` needs at least `|end - d|` more edits to reach
+  the end diagonal `end = m - n`. The kernel therefore computes only the diagonals with `|d| <= s` and
+  `s + |end - d| <= k`. A diagonal outside that range cannot lie on an alignment of cost at most `k`, so
+  the answer does not change. The steps of a search that runs to the bound fall from about `(k + 1)^2` to
+  about `(k + 1)^2 / 2`. The reads of the next step stay inside the padded buffer. The two cells just
+  outside each step's range are reset to unreached, so a read never sees a value from two steps earlier.
+- Stack buffers for the wavefront when `2k + 5 <= 32`, and a branch-light step that reads the three
+  neighbour sources through `windows(3)`. Match extension first compares one pair of tokens, so an
+  unrelated pair costs one comparison per diagonal.
+- `levenshtein` (generic) and the new `levenshtein_u32` double the threshold as before, but switch to a
+  full bit-parallel pass with no bound as soon as `16 * k >= longer input`. The full pass streams the
+  text and keeps `O(m)` words: a class that occurs at least `blocks / 4` times has its own row, and a
+  rarer class is rebuilt per text token from its positions (`ColumnMasks`). Time is `O(n m / 64)`.
+- `levenshtein_u32` computes the symbol-count bound only after threshold 64 has failed. Every round below
+  the bound fails, so the doubling resumes at the bound. Computing the bound at the start would cost a pass
+  over both inputs even for related pairs with a small distance.
+- The strbench exact job calls `levenshtein_u32` for integer ids. The bounded job still calls
+  `levenshtein_within_u32`.
+
+Cost model. `choose_kernel` is unchanged: its wavefront term is still `(k + 1)^2 * WF_STEP_COST`. After
+pruning the true step count is about half of that. I kept the constants because an in-process sweep
+(below) showed no decision that needed to change, and the constants were not refitted.
+
+Correctness, tested (not proved):
+
+- `tests/levenshtein.rs` has 24 tests, the 18 from version 2 and 6 new ones: `exact_exhaustive_alphabet3_length5`,
+  `exact_exhaustive_alphabet2_length7_full_pass` (full pass alone on every pair), `exact_multiword_boundary_lengths`
+  (lengths 1, 2, 15 to 17, 63 to 65, 127 to 129, 191 to 193, 400 over four alphabets, sparse ids near
+  `u32::MAX`), `exact_long_pairs_cross_the_doubling_switch`, `full_pass_heavy_and_light_classes`, and
+  `wavefront_pruned_range_when_length_difference_is_near_the_bound`.
+- The exact entry points are checked in both orientations against `levenshtein_full_dp`.
+- Random differential check, `strbench` verify copy (`vdiff`, scratchpad only): 200,000 rounds, 2,600,000
+  checks of the exact answer, bounds 0, 1, 2, 4, 8, 13, 32, 63, 64, 65, 128 and 200, and the RapidFuzz
+  reference. 0 mismatches.
+- Workspace `cargo test --locked --workspace`: 73 passed, 0 failed (67 before, plus the 6 new tests).
+
+Mutation checks (each applied once to `src/levenshtein.rs`, the test file run, the file restored and
+verified by SHA-256 against the clean copy):
+
+| id | mutation | result |
+|---|---|---|
+| M1 | wavefront prune one too tight (`end - rem + 1`) | caught, 8 tests fail |
+| M2 | full pass top-boundary carry `1` to `0` | caught, 8 tests fail |
+| M3 | light class drops its last position | caught, 4 tests fail |
+| M4 | heavy row bit shifted by one | caught, 8 tests fail |
+| M5 | `slide` ignores the mismatch test | caught, 8 tests fail |
+| M6 | high-side padding reset removed | survived, see below |
+| M7 | prune loosened by one (`end - rem - 1`, still valid) | passes, as expected |
+| M8 | symbol-count bound rejects at `lb == k` (both bit-parallel and band arms) | caught, 6 tests fail |
+
+M6 survived because the reset is redundant in every trace the tests reach. The range `[lo_s, hi_s]` is
+unimodal in `s`: `hi_s = min(s, end + k - s)` rises by one and then falls by one, so a cell above the range
+is never a stale value from an earlier step. This is an argument, not a machine check. The reset is kept as
+a defensive invariant.
+
+Measurements: see `STRING-BASELINES.md`, section "After v3". Headline:
+
+- Bounded unrelated pairs, the case that regressed in version 2: the in-process sweep (interleaved, one
+  process, answers checked against RapidFuzz first) gives a geometric mean of v3 over v2 of 0.61 at length
+  1,000, 0.47 at 10,000 and 0.42 at 100,000. No cell of 240 is more than 1.2 times slower than version 2.
+  Against version 1, 4 cells are more than 1.2 times slower, all at `k = 1` on unrelated pairs, by about
+  30 to 40 ns each.
+- Exact unrelated pairs at length 100,000 now complete in about 0.7 to 0.8 s (version 2 and version 1 timed
+  out at 60 s). RapidFuzz takes about 0.4 to 0.5 s on the same pairs.
+
+Known losses (version 3), with the kernel-level sweep as the reference:
+
+- Exact unrelated pairs are slower than RapidFuzz: about 1.7 times at length 100,000 and about 1.9 times at
+  length 1,000 over alphabet 256. The full pass costs about 5 ns per 64-token block step, and this is not
+  tuned further.
+- Unrelated pairs at `k = 1`: about 30 to 40 ns more than version 1 (1.4 to 1.5 times), at the level of
+  timer noise.
+- Sparse ids at length 1,000 with `k = 128` on unrelated pairs: about 1.2 times version 1 in the sweep.
+- Related pairs with small `k` at length 10,000 and above showed bimodal timings (about 2 us or about 8 us)
+  in separate processes, for version 2 and version 3 alike. The same pair measured in one process gives
+  equal times for the two kernels. These are classified as environment noise, not as a regression.
 
 ## Version 2 (kernels and dispatch)
 
