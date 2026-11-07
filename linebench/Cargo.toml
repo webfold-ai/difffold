@@ -6,14 +6,14 @@ publish = false
 
 [dependencies]
 difffold = { path = ".." }
-similar = "2"
-imara-diff = "0.1"
+similar = "3"
+imara-diff = "0.2"
 fast_rsync = "0.2"
 qbsdiff = "1"
 flate2 = "1"
 apted = "0.1"
 tree-edit-distance = "0.4"
-tree-sitter = "0.25"
+tree-sitter = "0.26"
 tree-sitter-java = "0.23"
 tree-sitter-go = "0.25"
 tree-sitter-c = "0.24"
