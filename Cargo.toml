@@ -14,7 +14,7 @@ ts = ["dep:tree-sitter", "dep:tree-sitter-java", "dep:tree-sitter-go", "dep:tree
 
 [dependencies]
 apeiron = { git = "https://github.com/webfold-ai/apeiron", rev = "07ab506" }
-tree-sitter = { version = "0.26", optional = true }
+tree-sitter = { version = "0.27", optional = true }
 tree-sitter-java = { version = "0.23", optional = true }
 tree-sitter-go = { version = "0.25", optional = true }
 tree-sitter-c = { version = "0.24", optional = true }
