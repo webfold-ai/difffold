@@ -414,8 +414,9 @@ The held-out half is within 0.002 of the dev half in changed-span F1 and the ord
 the same. This supports that the dev-chosen choices are not overfitted to individual fixtures (the inherited thresholds were not held out, Section 5.3); it is not an
 out-of-corpus test, because both halves come from the same collection, and the design of two phases
 (descend, retarget) was guided by dev failures. `results/accuracy/sweeps/dev-sweep.tsv` records the
-one-at-a-time sweeps: changed-span F1 moves by 0.01 or less over `dice` 0.3 to 0.7, `keep` 0.2 to 0.5 and
-`min_exact` 2 to 5; `anchor_below` and `hops` matter more (Section 7).
+one-at-a-time sweeps on dev: changed-span F1 stays within 0.963 to 0.966 over `dice` 0.3 to 0.7, 0.964 to 0.966 over `keep`
+0.2 to 0.5 and 0.963 to 0.966 over `min_exact` 2 to 5, but ranges from 0.948 to 0.966 over `anchor_below` 2 to 12 and from
+0.950 to 0.966 over `hops` 0 to 12; precision and recall trade against each other along both.
 
 **A second ground truth: DiffBenchmark's Defects4J oracle.** The only other public mapping ground truth we could
 run is the Defects4J oracle of DiffBenchmark (Alikhanifard and Tsantalis; `hrd-oracle/adb-paper/d4j-exp`, 996 files of 800
