@@ -225,8 +225,8 @@ mappings for 20-29% (GumTree), 25-36% (MTDiff) and 21-30% (IJM) of the file revi
 build a benchmark of AST node mappings from 800 bug-fixing and 188 refactoring commits and
 measure precision and recall against it. OmniDiff, the
 baseline here, is an open-source tree-sitter based structural diff tool distributed with
-hand-authored node mappings; it has no accompanying paper that we know of, so we cite its repository
-and commit. Its fixtures are the only ground truth used in this paper.
+hand-authored node mappings; its README cites no paper, so we cite its repository and commit (AGPL-3.0 with a
+separate commercial licence). Its fixtures are the only ground truth used in this paper.
 
 ## 5 Evaluation design
 
@@ -358,9 +358,12 @@ by root-cause class".
 
 Reorder, move and wrap decisions, which a top-down matcher cannot make, go from 0.034, 0.186 and 0.401 to
 0.832, 0.860 and 0.902. On cross-parent moves the refined mapping is above OmniDiff's (0.860 against
-0.809); on reorder and wrap/unwrap it is below. The decisions in these classes are decisions about
-pairs, deletions and insertions of the nodes involved, not a recall of move operations; the corpus has
-127 ground-truth move roots, 1,301 wrap/unwrap roots and 108 reordered pairs (`results/accuracy/taxonomy.csv`).
+0.809); on reorder and wrap/unwrap it is below. For the reorder and cross-parent-move classes every graded decision is a ground-truth *pair*, so these
+accuracies are pair recalls of reordered and moved nodes: reorder 35 of 1,044 pairs recovered by the top-down
+matcher, 869 by the refinement, 945 by OmniDiff; cross-parent move 205, 947 and 891 of 1,101. For wrap/unwrap
+the pair recall is 829, 9,311 and 9,717 of 10,328 (`results/accuracy/class_pair_recall.csv`; the
+top-down column is in `results/accuracy/topdown/`). The corpus has 127 ground-truth move roots, 1,301
+wrap/unwrap roots and 108 reordered pairs (`results/accuracy/taxonomy.csv`).
 
 ### 6.2 RQ2: ablation of the refinement phases
 
