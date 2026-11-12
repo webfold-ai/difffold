@@ -21,3 +21,8 @@ target/
 
 # bindings build output
 /difffold_bindings/dist/
+
+# bindings build output
+__pycache__/
+*.pyc
+/difffold_bindings/dist/
