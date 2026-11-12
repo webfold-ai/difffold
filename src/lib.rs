@@ -10,6 +10,10 @@
 //! * [`diff::apply`]: every script is replayed against the before-tree and must rebuild the
 //!   after-tree id for id, and its summed cost must equal the reported distance (`C3`).
 //!
+//! * [`refine`]: not exact. A heuristic cross-level repair of the top-down mapping (moves, reorders,
+//!   wraps, unwraps). Its result is a partial bijection that respects node kinds; it is not an optimum
+//!   of any objective and carries no certificate beyond that.
+//!
 //! The contracts are stated in `SPEC.md` and exercised against an independent oracle in `tests/`.
 
 #![forbid(unsafe_code)]
