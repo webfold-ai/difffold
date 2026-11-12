@@ -1,0 +1,24 @@
+[package]
+name = "difffold_bindings"
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.89"
+description = "Python and WebAssembly (TypeScript) bindings for difffold: line diff as an edit script, Git-compatible unified patches, three-way merge and tree edit distance."
+license = "Apache-2.0"
+publish = false
+
+[lib]
+name = "difffold_bindings"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+difffold = { path = ".." }
+pyo3 = { version = "0.30", optional = true, features = ["abi3-py39"] }
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+
+[features]
+# Build the `difffold` Python extension module (with maturin, or `cargo build --features python`).
+python = ["dep:pyo3"]
+# Build the WebAssembly module (`scripts/build-wasm.sh`).
+wasm = ["dep:wasm-bindgen", "dep:js-sys"]
