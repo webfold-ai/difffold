@@ -41,6 +41,6 @@ DFOLD_TED=1 cargo run --release --locked -p difffold --features ts --bin score_a
 ```
 
 `OMNI_DUMP` is the output of `tools/omni_dump`; `-` selects the difffold-only mode that wrote
-`SUMMARY-difffold-only.md` and `SUMMARY-ted-only.md`. With `DFOLD_TED` set the scorer uses `ted_mapping`
+`SUMMARY-difffold-only.md` (and, in `results/accuracy/previous-fork-run/`, `SUMMARY-ted-only.md`). With `DFOLD_TED` set the scorer uses `ted_mapping`
 (falling back to the top-down mapping above 20,000 nodes); `DFOLD_KINDS` and `DFOLD_MOVES` change that
 configuration and are not recorded in the committed `ted-only` files.

@@ -17,8 +17,9 @@ container pairs, and pair remaining equal leaves inside mapped ancestors. On the
 fixtures of the public OmniDiff corpus (eight tree-sitter languages) the refinement raises
 changed-span F1 from 0.844 to 0.965 and the fraction of fixtures with no visible mismatch from
 56.8% to 75.3%. OmniDiff scores 0.973 and 82.1% on the same scorer; the paired bootstrap interval
-of the changed-span difference includes zero, the perfect-fixture difference does not. Parameters
-were chosen on one half of the fixtures and the other half gives 0.964. The pipeline is faster than
+of the changed-span difference includes zero, the perfect-fixture difference does not. Two phases and two
+of the five thresholds were chosen on one half of the fixtures, the rest being inherited; the other half
+gives 0.964. The pipeline is faster than
 OmniDiff in matching and, with the tree-sitter parse counted on both sides, the headline ratio is
 given in Section 6.4. The refined mapping is a heuristic repair, not an optimum of any objective;
 the certified part is only the top-down core.
@@ -44,7 +45,7 @@ F1, less of it in per-fixture perfection, at a time cost that is a fraction of t
 
 1. A precise statement of the matching problem and of what the top-down objective cannot express
    (Section 2).
-2. `difffold`: an exact-identity, certified top-down core (Section 3.1, 3.2) and a five-phase
+2. `difffold`: an exact-identity, certified top-down core (Section 3.1, 3.2) and a six-phase
    cross-level refinement with a complexity argument and stated invariants (Section 3.3, 3.4).
 3. An evaluation on 998 fixtures with metrics defined before results, a held-out half for the
    parameters, a per-phase ablation, a failure taxonomy, bootstrap intervals over fixtures and
@@ -130,8 +131,15 @@ Identical subtrees cost O(1). On the fixtures, the cost is dominated by the DP o
 
 The pruning bound, the threshold decision, the widening search and the strip lemma are mechanised in
 Lean over a model of the objective (five modules of about 910 lines, no `sorry`, no custom axiom,
-`proof/`). The Rust code is not extracted or formally linked to that model; agreement of the code
-with the model is tested against an independent oracle (`tests/`), not proved.
+`proof/Difffold/`). Separately, `proof/Kernel/` holds Lean theorems over the Aeneas translation of the
+shipped `src/kernel.rs` (the threshold DP): its `fill_correct` states, under hypotheses listed in
+`proof/README.md` (suffix sums supplied by the caller, a pair-cost oracle that respects the size bound,
+total size below 2^27), that `fill` returns a result exactly when the grid optimum is at most τ and
+then returns that optimum. It does not cover that the grid is the child-list alignment of two nodes
+and that the oracle is the recursive distance (properties of `diff.rs`), the interner, replay or
+anything in the refinement. These statements are as recorded in `proof/README.md`; they were not
+re-checked with Lean for this paper. Everything else is tested against an independent oracle
+(`tests/`), not proved.
 
 ### 3.3 Cross-level refinement
 
@@ -265,18 +273,20 @@ fixtures with hand-authored `human_mapping.json` ground truth (Defects4J-derived
 stratified real-world changes). A fixture is *scorable* if it is in a language for which a tree-sitter
 grammar is wired in here (C, Go, Java, JavaScript, Python, Rust, TSX, TypeScript), its ground truth loads
 and has pairs, and node counts agree with OmniDiff's. 998 of 1,761 are scorable (515 Java); 763 are not,
-761 of them for language (C++, C#, Kotlin, shell, HTML, JSON and others; the list is
+758 of them for language (C++, C#, Kotlin, shell, HTML, JSON and others; the list is
 `results/accuracy/unscorable.csv`). No fixture was dropped for a node-count mismatch. An earlier version
 of this work scored 1,001 fixtures on a private fork of OmniDiff; the public corpus is a different
 snapshot and those numbers are not mixed with these (`results/accuracy/previous-fork-run/`).
 
-**Split.** To keep parameter choice apart from reporting, fixtures are split by the low bit of the upper
-half of the FNV-1a hash of `dataset/name` (`DFOLD_SPLIT=dev|test`): 505 *dev* and 493 *test* fixtures.
-Phase thresholds (`dice`, `keep`, `anchor_below`, `min_exact`, `hops`) were swept one at a time on dev;
-`anchor_below` = 3 was chosen as the value with the highest dev changed-span F1 (tied with 2, the larger
-taken) and everything was then frozen before the test half was scored. Two phases (descend, retarget)
-were designed while looking at dev failures. The sweeps are not in the repository as files (they were
-exploratory runs); the dev and test results are (`results/accuracy/split-dev`, `split-test`).
+**Split.** To keep part of the parameter choice apart from reporting, fixtures are split by the low bit of
+the upper half of the FNV-1a hash of `dataset/name` (`DFOLD_SPLIT=dev|test`): 505 *dev* and 493 *test*
+fixtures. The split is **partial protection only**. The first implementation of the refinement (before
+this split existed) fixed `dice` = 0.5, `keep` = 0.3, `min_exact` = 2 and the validate and orphan rules
+after exploratory runs over all fixtures that were not recorded; these were not re-selected. What was
+chosen on dev alone: `anchor_below` = 3 (highest dev changed-span F1, tied with 2, the larger taken),
+`hops` = 3, and the design of the descend and retarget phases from dev failures. The test half was scored
+after these were frozen, and had also been scored once earlier with the same configuration.
+Sweeps over the inherited thresholds on dev show they sit on a plateau (`results/accuracy/sweeps/dev-sweep.tsv`).
 
 **Systems compared.** (a) *top-down*: `diff_checked` followed by `mapping::correspondence`, no
 refinement. (b) *difffold*: top-down plus `refine` with `Options::FULL`. (c) *OmniDiff*: its own node
@@ -368,7 +378,7 @@ The ablation is cumulative and in one order; interactions between phases are not
 
 ### 6.3 RQ3: held-out half and a second dataset
 
-Table 5. Parameters chosen on dev, scored on test. Source: `results/accuracy/split-dev/` and
+Table 5. Dev-chosen choices (`anchor_below`, `hops`, descend, retarget) frozen, scored on test. Source: `results/accuracy/split-dev/` and
 `results/accuracy/split-test/` (`summary_tables.md`).
 
 | half | fixtures | difffold span F1 | OmniDiff span F1 | difffold perfect | OmniDiff perfect |
@@ -377,7 +387,7 @@ Table 5. Parameters chosen on dev, scored on test. Source: `results/accuracy/spl
 | test | 493 | 0.964 | 0.972 | 74.8% | 83.2% |
 
 The held-out half is within 0.002 of the dev half in changed-span F1 and the ordering to OmniDiff is
-the same. This supports that the thresholds are not overfitted to individual fixtures; it is not an
+the same. This supports that the dev-chosen choices are not overfitted to individual fixtures (the inherited thresholds were not held out, Section 5.3); it is not an
 out-of-corpus test, because both halves come from the same collection, and the design of two phases
 (descend, retarget) was guided by dev failures. `results/accuracy/sweeps/dev-sweep.tsv` records the
 one-at-a-time sweeps: changed-span F1 moves by 0.01 or less over `dice` 0.3 to 0.7, `keep` 0.2 to 0.5 and
@@ -405,7 +415,64 @@ improve changed-span F1 on dev and were not adopted (they are not in the reposit
 
 ## 7 Threats to validity and what was not run
 
-<<THREATS>>
+**Ground truth and scorer.** The ground truth is the mapping hand-authored by OmniDiff's authors, with
+their notion of visible nodes, and OmniDiff was developed against these fixtures. Ambiguous cases (wrap,
+group matches, duplicated code) are therefore decided in OmniDiff's favour, and OmniDiff's numbers are
+an in-sample upper end. The scorer reproduces OmniDiff's own checker on OmniDiff's output (3,251 visible
+mismatches in both, zero/non-zero agreement 100% on 998 fixtures; `results/accuracy/summary_tables.md`,
+"Calibration"), which validates the scorer for OmniDiff's mapping; it ignores operation kinds
+(identical versus update) and the subtree-closure step of groups, which OmniDiff's checker enforces.
+No independent annotation of difffold's output exists.
+
+**Selection and leakage.** The dev/test split is by fixture name hash, not by project, so the two halves
+contain fixtures from the same repositories and, for Defects4J, from the same project histories. The
+held-out result bounds overfitting of thresholds only to the extent that fixtures are independent. Two
+phases were designed while reading dev failures. The corpus was also used by the previous version of
+this work to choose what to build (the failure taxonomy of the top-down matcher), so the whole corpus
+is not blind to the design.
+
+**Coverage.** Eight languages; Java is 52% of the scorable fixtures; the corpus is changes in open-source
+repositories curated by OmniDiff's authors, with a preference for difficult cases, and says nothing about
+the distribution of everyday diffs, about documents other than source code, or about languages without a
+wired grammar (758 fixtures were not scorable for that reason). No temporal web or document data was
+used.
+
+**Metric.** Changed-span F1 is a token-level view that excludes comments and punctuation; micro averages
+are dominated by a few large fixtures (ten fixtures carry half of the errors of either tool), so we also give
+the bootstrap interval over fixtures, the perfect-fixture rate and per-class accuracy. The paired
+difference in changed-span F1 to OmniDiff is not distinguishable from zero in this corpus; that is not
+evidence of equality, only of the interval's width (about 1 point). The class attribution is the scorer's
+heuristic root-cause assignment, not a causal analysis.
+
+**Ablation.** Cumulative in one order. The null result for validate and containers may be specific to this
+corpus (few unmatched same-kind containers remain after the exact phase); we did not construct inputs
+on which they matter.
+
+**Timing.** The machine is a shared four-vCPU VM. During every timing run the one-minute load average was
+between 20 and 36 (recorded per fixture in `harness/results/cli-t4.csv` and in the paired file), mostly
+other jobs of the same host, and all of our timed processes ran at `nice` 10. Absolute times are therefore
+several times those of an earlier run on a quiet machine of the same size (`results/fixtures-java-go-c.csv`,
+OmniDiff median 9.6 ms there); we report per-fixture minima beside medians for that reason and
+interleave the two tools fixture by fixture in the paired run, but a ratio measured under this load is
+still less reliable than one measured on an idle machine, and we have not repeated it on one. OmniDiff was
+timed in process through its library (parse, AST metadata load, `diff_code_with_config`), not through its
+command-line binary, whose JSON rendering and process start are not included; OmniDiff's load step
+computes AST metadata that `diff_code` needs, difffold's convert step builds the arena that `diff`
+needs, and the with-parse view adds each tool's own preparation. GumTree was timed as a cold JVM
+process on a 40-fixture subset. All timings are single-threaded for the Rust tools.
+
+**Not run.**
+- Accuracy of GumTree 4.0.0-beta4 on the OmniDiff ground truth. The pipeline for it exists in
+  `tools/gumtree_eval/` (Eval.java was fixed for this version) and earlier results for a different GumTree
+  snapshot on 200 Java fixtures are in `notes/lanes/GUMTREE-RM.md`; they were not repeated here.
+- RefactoringMiner, difftastic and diffsitter accuracy; difftastic and diffsitter timing was not repeated
+  (earlier 80-fixture wall-clock results are in `harness/results/`).
+- The DiffBenchmark RefOracle (the benchmark paper's main oracle) and the Zenodo/GitHub datasets
+  of GumTree 3 and BDiff, which have no ground-truth mapping.
+- General (Zhang-Shasha-style) tree edit distance with the refinement: the scorer supports `DFOLD_TED`
+  but the refinement was not combined with it.
+- Idle-machine timing and multi-machine timing.
+
 
 ## 8 Reproducing
 

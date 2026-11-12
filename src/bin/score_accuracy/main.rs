@@ -1415,6 +1415,40 @@ fn run(args: Vec<String>) {
     }
     std::fs::write(out.join("class_failures.csv"), cls_csv).unwrap();
 
+    // Pair recall within each class: only the ground-truth *pairs* (not deletions or insertions) whose
+    // root cause is that class, and whether the tool paired them exactly as the ground truth does. For
+    // the move and reorder classes this is the recall of moved and reordered nodes.
+    writeln!(
+        md,
+        "\n### Pair recall by root-cause class (ground-truth pairs only)\n"
+    )
+    .unwrap();
+    writeln!(md, "| class | ground-truth pairs | difffold pairs correct | omnidiff pairs correct | difffold recall | omnidiff recall |").unwrap();
+    writeln!(md, "|---|---|---|---|---|---|").unwrap();
+    let mut rec_csv = String::from("class,gt_pairs,difffold_correct,omnidiff_correct\n");
+    for c in CLASSES {
+        let (mut n_pairs, mut okd, mut oko) = (0usize, 0usize, 0usize);
+        for x in &fixtures {
+            for (d, o) in x.dd.iter().zip(&x.od).take(x.gt_pairs) {
+                if d.cls == c {
+                    n_pairs += 1;
+                    okd += usize::from(!d.fail);
+                    oko += usize::from(!o.fail);
+                }
+            }
+        }
+        writeln!(
+            md,
+            "| {} | {n_pairs} | {okd} | {oko} | {} | {} |",
+            cls_name(c),
+            f(okd as f64 / n_pairs.max(1) as f64),
+            f(oko as f64 / n_pairs.max(1) as f64)
+        )
+        .unwrap();
+        writeln!(rec_csv, "{},{n_pairs},{okd},{oko}", cls_name(c)).unwrap();
+    }
+    std::fs::write(out.join("class_pair_recall.csv"), rec_csv).unwrap();
+
     // Wrap prevalence and fixture-level gap attribution.
     let n = fixtures.len();
     let wrap_any = fixtures

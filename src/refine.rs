@@ -3,27 +3,34 @@
 //! The top-down engine ([`crate::diff`]) pairs a node only when its parent is paired, so a subtree
 //! that moves, a container that is added around existing code (wrap) or removed from around it
 //! (unwrap), and a reordered child are all reported as delete plus insert. This module starts from
-//! the top-down mapping and repairs it in four phases, each of which only touches nodes that are
-//! still unmapped (phase 1 may re-pair the interior of a subtree it proves identical):
+//! the top-down mapping and repairs it. Every phase touches only nodes that are still unmapped,
+//! except phase 1, which may re-pair the interior of a subtree it proves identical.
 //!
-//! 1. **seed**: the top-down pairs, minus pairs of internal nodes with different kinds (a leaf may be
-//!    updated to a leaf of another kind). A kind change
-//!    on an internal node is how the top-down objective expresses a wrap (the wrapper is "relabelled"
-//!    to the wrapped node); it is dropped so phases 2 and 3 can place both nodes properly.
-//! 2. **exact** (`Options::exact`): an unmapped before-subtree and an unmapped after-subtree with the
+//! 0. **seed**: the top-down pairs, minus pairs of internal nodes with different kinds (a leaf may be
+//!    updated to a leaf of another kind). A kind change on an internal node is how the top-down
+//!    objective expresses a wrap (the wrapper is "relabelled" to the wrapped node); it is dropped so
+//!    later phases can place both nodes properly.
+//! 1. **exact** (`Options::exact`): an unmapped before-subtree and an unmapped after-subtree with the
 //!    same arena id are structurally identical (I1), so they are paired node for node, largest first,
 //!    wherever they sit. This is move and reorder detection for unchanged code, in O(1) per
 //!    candidate because equality is an id comparison.
+//! 2. **validate** (`Options::validate`): drop a tentative internal pair whose Dice similarity of
+//!    mapped descendants is below `Options::keep`.
 //! 3. **containers** (`Options::containers`): bottom-up, an unmapped internal before-node is paired
 //!    with the unmapped after-node of the same kind that shares the most already-mapped descendants,
 //!    when the Dice coefficient `2 |common| / (|desc b| + |desc a|)` reaches `Options::dice`.
 //! 4. **recover** (`Options::recover`): for every container pair created in phase 3, the certified
 //!    top-down aligner runs on the two subtrees and its pairs fill in the still-unmapped nodes
-//!    beneath them. Then unmapped leaves with an equal label under a mapped parent pair up.
+//!    beneath them. Then unmapped leaf children with an equal label under paired parents pair up.
+//! 5. **descend** and **retarget** (`Options::descend`, `Options::retarget`): unmapped leaves (and
+//!    tentative leaf updates) are paired with a free leaf of equal label inside the partner of their
+//!    nearest mapped ancestor, climbing at most `Options::hops` ancestors.
+//! 6. **orphans**: a leaf pair outside an identical subtree stands only when the parents of the two
+//!    leaves are paired with each other, unless phase 5 made it.
 //!
 //! The result is a mapping, not a top-down edit script: pairs may cross levels and order. It is not
 //! an optimum of any edit-distance objective. [`Mapping::moves`] counts the pairs whose parents are
-//! not paired with each other or that cross a sibling.
+//! not paired with each other or that cross a sibling. Cost: see `paper/paper.md`, section 3.3.
 
 use crate::diff::diff;
 use crate::intern::{Arena, Id};
@@ -115,7 +122,8 @@ pub struct Mapping {
     /// `a2b[a]` is the before-index paired with after-node `a`, or [`NIL`].
     pub a2b: Vec<u32>,
     /// The phase that last paired each before-node: 1 seed, 2 exact, 3 containers, 4 recovery by
-    /// alignment, 5 recovery of leaves. For diagnostics.
+    /// alignment, 5 recovery of leaves under paired parents, 6 descend and retarget. (Diagnostic tags,
+    /// not the phase numbers of the module documentation.)
     pub phase: Vec<u8>,
     cur: u8,
 }
