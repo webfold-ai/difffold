@@ -21,7 +21,10 @@ pub mod kernel;
 pub mod lines;
 pub mod mapping;
 pub mod merge;
+pub mod refine;
 pub mod ted;
+#[cfg(feature = "ts")]
+pub mod ts;
 pub mod unified;
 
 pub use diff::{
