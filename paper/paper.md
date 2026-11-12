@@ -411,7 +411,54 @@ one-at-a-time sweeps: changed-span F1 moves by 0.01 or less over `dice` 0.3 to 0
 
 <<SECOND>>
 
-<<SPEED>>
+### 6.4 RQ4: speed with and without the parse
+
+**One headline.** With each tool's own preparation counted (difffold: tree-sitter parse, arena build, match and
+refine; OmniDiff: tree-sitter parse, AST-metadata load, diff), difffold used **5.4 times less total time** on
+120 Java, Go and C fixtures timed fixture by fixture against OmniDiff (median per-fixture ratio 8.8, 10th to 90th
+percentile 4.4 to 42.0). That is not an order of magnitude: the tree-sitter parse and arena build are 98% of
+difffold's time (5,226 of 5,345 ms), and the matching and refinement the paper is about are 2% (119 ms). Counted without the
+parse on either side, the ratio is 20.3 (matching only: 146). Machine load was 68 to 85 on four vCPUs throughout,
+so these are loaded-machine figures (Section 7).
+
+Table 6. Paired, interleaved in-process timing, 120 fixtures drawn from the 350 of run `t4` (seed 1), ten passes per
+fixture and tool, OmniDiff over difffold. Totals are sums over fixtures of the per-fixture median over the passes
+(left) and of the per-fixture minimum (right). Source: `harness/results/paired-t4/SUMMARY.md` and `paired.csv`.
+
+| view | OmniDiff total ms | difffold total ms | total ratio | median per-fixture ratio (p10 to p90) | total ratio, minima |
+|---|---:|---:|---:|---:|---:|
+| matching only, top-down core | 17,405 | 6 | 3,094 | 2,977 (211 to 17,185) | 2,555 |
+| matching only, with refinement | 17,405 | 119 | 146 | 347 (57 to 597) | 302 |
+| own work, parse removed on both sides, with refinement | 24,859 | 1,225 | 20.3 | 67.7 (13.0 to 118.7) | 33.2 |
+| with parse, with refinement (OmniDiff load includes AST metadata) | 29,045 | 5,345 | **5.4** | **8.8** (4.4 to 42.0) | 6.4 |
+| with parse, with refinement (OmniDiff tree-sitter parse only) | 21,591 | 5,345 | 4.0 | 6.8 (3.1 to 40.7) | 4.6 |
+
+*Matching only* is difffold's production path (certified top-down diff with replay, correspondence, flattening and
+refinement) against `diff_code_with_config`. *Own work* is difffold's arena build plus matching against OmniDiff's
+AST-metadata load plus diff. The "parse only" row omits OmniDiff's metadata and so understates its
+cost; the metadata is required by its `diff_code`. The top-down core on its own is 6 ms over these 120
+fixtures; the refinement is 20 times that (119 ms) but 2% of the end-to-end time.
+
+The unpaired run, in which OmniDiff (run `omni_time`) and difffold (`dfold-cli --reps 10`) were timed in different
+load windows over all 350 fixtures, gives 3.6 for the same with-parse view and 88 for matching only
+(`harness/results/unpaired-t4/SUMMARY.md`); we take the paired figures as primary and the difference between the
+two as an indication of the measurement noise under this load. Median-of-passes and minimum-of-passes agree to within 20%
+on the with-parse ratio (5.4 and 6.4).
+
+Cold-process wall time (process start to exit, `dfold-cli`, 350 fixtures, up to ten rounds, shuffled order;
+`harness/results/SUMMARY-t4.md`): top-down 19.7 s in total (median 15.9 ms, p90 146.6 ms, p99 604 ms); with
+refinement 20.4 s (16.2, 151.0, 608 ms), i.e. the refinement adds 3.6% to the cold wall time of the command.
+`git diff --diff-algorithm=myers`, which does not parse, takes 1.9 s (median 3.8 ms) on the same files.
+<<GUMTREETIMING>>
+
+*Scaling.* Over the 120 paired fixtures, the least-squares slope of log time on log node count is 0.88
+for the refinement alone (per-fixture minima; 9 to 100,456 nodes; `harness/results/paired-t4/SUMMARY.md`; 0.91 over the
+350 fixtures of the unpaired run), 1.01 for the arena build, 1.29 for the tree-sitter parse and 0.27 for the certified top-down core, whose cost follows the size of the changed
+region rather than of the file. The refinement is therefore close to linear on these inputs, in line with the
+argument of Section 3.3 and not a proof of it. The largest fixture (100,456 nodes, a generated C test file) takes 607 ms
+to parse, 174 ms to build the arena, 0.6 ms for the top-down core and 21.7 ms for refined matching; OmniDiff's load
+and diff on it take 1,582 ms and 2,119 ms in the same pass.
+
 
 ### 6.5 RQ5: where the remaining errors are
 
