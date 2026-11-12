@@ -261,8 +261,17 @@ converted to tree-sitter preorder indices (every node, named and anonymous).
   in the scorer source.
 - **Uncertainty.** Percentile bootstrap over fixtures (the unit of independence), 10,000 resamples,
   paired where two tools are compared (`harness/bootstrap_ci.py`).
-- **Timing.** Per stage (parse, intern, top-down, refine) the median, minimum and maximum over n = 10
-  passes per fixture; then medians and quantiles over fixtures; ratios are per fixture.
+- **Timing.** In process, per fixture and per stage, the median, minimum and maximum over n = 10 passes.
+  difffold stages: *parse* (tree-sitter, both files), *convert* (arena and interner), *prod* (the
+  production path: certified top-down diff with replay; for the refined tool also correspondence,
+  flattening and refinement). OmniDiff stages: *parse* (tree-sitter only), *load* (parse plus the AST
+  metadata its diff needs), *diff* (`diff_code_with_config`). Four views, each a sum of stages:
+  *matching only* (difffold prod against OmniDiff diff); *own work* (difffold convert + prod against
+  OmniDiff load minus parse plus diff, i.e. the shared tree-sitter parse taken out); *with parse*
+  (difffold parse + convert + prod against OmniDiff load + diff); and the cold-process wall time of
+  `dfold-cli` (process start to exit). Then medians and quantiles over fixtures; ratios (OmniDiff over
+  difffold) are computed per fixture and also as ratios of totals. The headline is the *with parse*
+  ratio, because it is what a caller who starts from files sees; the other views say where the time goes.
 
 ### 5.3 Setup
 
