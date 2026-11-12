@@ -301,7 +301,7 @@ Sweeps over the inherited thresholds on dev show they sit on a plateau (`results
 **Systems compared.** (a) *top-down*: `diff_checked` followed by `mapping::correspondence`, no
 refinement. (b) *difffold*: top-down plus `refine` with `Options::FULL`. (c) *OmniDiff*: its own node
 mapping dumped by `tools/omni_dump` (default `HeuristicConfig`), scored by the same scorer. (d) *GumTree*
-4.0.0-beta4: run for timing only (Section 6.4); its accuracy was not re-measured here (Section 7).
+4.0.0-beta4: accuracy on the Java fixtures with three matchers (Section 6.3) and cold-process time on a subset (Section 6.4).
 
 **Machine and toolchain.** One shared four-vCPU virtual machine (Intel Xeon Processor at 2.30 GHz, 16 GB, Linux 6.18.44), Rust 1.97.0
 (`cargo build --release`, opt-level 3, no LTO), OpenJDK 21.0.12.1, tree-sitter 0.26.13 with the grammar crates pinned in
@@ -419,7 +419,7 @@ one-at-a-time sweeps on dev: changed-span F1 stays within 0.963 to 0.966 over `d
 0.950 to 0.966 over `hops` 0 to 12; precision and recall trade against each other along both.
 
 **GumTree on the Java fixtures.** We ran GumTree 4.0.0-beta4 in process (`tools/gumtree_eval/java/Eval.java`, JDT generator, one pass
-per matcher after warm-up) on the 515 Java fixtures, converted its mappings by byte range onto the tree-sitter preorder numbering
+per matcher per fixture; the run was split in two JVM sessions after an interruption, and only the first did warm-up) on the 515 Java fixtures, converted its mappings by byte range onto the tree-sitter preorder numbering
 (`tools/gumtree_eval/gt2map`) and scored them with the same scorer. GumTree's JDT tree has no node for punctuation and for some wrappers,
 so scoring every tree-sitter node (*raw*) charges it for nodes it cannot express and gives 0% perfect fixtures for every matcher; we report
 the *scoped* scoring, which judges only the nodes GumTree's tree contains and is therefore lenient to GumTree and not to difffold or OmniDiff.
@@ -571,11 +571,10 @@ needs, and the with-parse view adds each tool's own preparation. GumTree was tim
 process on a 40-fixture subset. All timings are single-threaded for the Rust tools.
 
 **Not run.**
-- Accuracy of GumTree 4.0.0-beta4 on the OmniDiff ground truth. The pipeline for it exists in
-  `tools/gumtree_eval/` (Eval.java was fixed for this version) and earlier results for a different GumTree
-  snapshot on 200 Java fixtures are in `notes/lanes/GUMTREE-RM.md`; they were not repeated here.
-- RefactoringMiner, difftastic and diffsitter accuracy; difftastic and diffsitter timing was not repeated
-  (earlier 80-fixture wall-clock results are in `harness/results/`).
+- GumTree accuracy outside Java (its Go and C generators were not run for accuracy) and any interval for the GumTree
+  comparison; RefactoringMiner accuracy on the OmniDiff corpus (earlier indicative results for a different GumTree snapshot
+  and corpus snapshot are in `notes/lanes/GUMTREE-RM.md`); difftastic and diffsitter accuracy and timing (earlier 80-fixture
+  wall-clock results are in `harness/results/`).
 - The DiffBenchmark RefOracle (the benchmark paper's main oracle) and the Zenodo/GitHub datasets
   of GumTree 3 and BDiff, which have no ground-truth mapping.
 - General (Zhang-Shasha-style) tree edit distance with the refinement: the scorer supports `DFOLD_TED`

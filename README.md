@@ -376,9 +376,12 @@ followed by the cross-level refinement (`refine`, `Options::FULL`; `DFOLD_REFINE
 - The `ted` engine's earlier accuracy (a mixed run on the previous corpus) is in
   `results/accuracy/previous-fork-run/` and is not comparable to the table above.
 
-GumTree and RefactoringMiner were scored on subsets of the earlier ground truth with a scoring that is lenient
-to their JDT trees; see `notes/lanes/GUMTREE-RM.md` and `results/accuracy/gumtree/`. That comparison is
-indicative, not like for like, and was not repeated for the current corpus.
+**GumTree 4.0.0-beta4** was run in process on the 515 Java fixtures and scored by the same scorer
+(`results/accuracy/gumtree-4.0.0-beta4/`; `tools/gumtree_eval/`). Scoped scoring (judges only the nodes GumTree's JDT tree can
+express, so it is lenient to GumTree): changed-span F1 0.958 (`gumtree-simple`, the default), 0.961 (`gumtree-hybrid-id`), 0.846 (`gumtree-classic`);
+perfect fixtures 74.2%, 74.0%, 31.3%. On the same Java fixtures difffold (refined) scores 0.965 and 75.9%, OmniDiff 0.978 and 83.9%. No intervals were
+computed for this comparison. RefactoringMiner was not re-run on this corpus; its earlier indicative scoring is in
+`notes/lanes/GUMTREE-RM.md` (a different GumTree snapshot and a different corpus snapshot).
 
 ### Provenance of the recorded results
 
