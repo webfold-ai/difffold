@@ -23,3 +23,4 @@ fixture_selection: harness/select_fixtures.py --slowest 50 --sample 300 --seed 1
 omnidiff_timing: in process via tools/omni_dump/src/bin/omni_time.rs (library parse, metadata load, diff_code_with_config), not the omnidiff command line
 gumtree_timing: cold JVM process via gumtree textdiff on a 24-fixture subset (cli-gtcmp-t4.csv), interleaved with difffold cold in the same rounds
 binary_note: dfold-cli, cli_bench and omni_time were built from the working tree of this branch before commit 0e8bf37; between that build and difffold_commit above, src/refine.rs changed only in formatting and doc comments (git diff 00a1931..0e8bf37 -- src/refine.rs) and the other changes are tests, scripts and docs
+load_gtcmp: start 77.72 78.73 68.71 71/934 27844 end 62.00 62.75 65.25 61/823 13035

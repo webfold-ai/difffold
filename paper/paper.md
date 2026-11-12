@@ -520,7 +520,11 @@ Cold-process wall time (process start to exit, `dfold-cli`, 350 fixtures, up to 
 `harness/results/SUMMARY-t4.md`): top-down 19.7 s in total (median 15.9 ms, p90 146.6 ms, p99 604 ms); with
 refinement 20.4 s (16.2, 151.0, 608 ms), i.e. the refinement adds 3.6% to the cold wall time of the command.
 `git diff --diff-algorithm=myers`, which does not parse, takes 1.9 s (median 3.8 ms) on the same files.
-<<GUMTREETIMING>>
+GumTree 4.0.0-beta4 as a command (`gumtree textdiff`, cold JVM per call, default `gumtree-simple` matcher), timed in the same
+shuffled rounds as difffold's cold process on 24 fixtures (seed 1, ten rounds each; `harness/results/SUMMARY-gtcmp-t4.md`): median
+3,498 ms per call against 11.6 ms (top-down) and 10.2 ms (refined), total 94.4 s against 0.72 s and 0.76 s, p90 7,080 ms against 92 ms. This is the
+command-line experience including JVM start and JIT warm-up, not a matching-time comparison (GumTree's in-process matching after warm-up has a median of
+1.2 ms, Table 7); the load average was 62 to 79 during these runs.
 
 *Scaling.* Over the 120 paired fixtures, the least-squares slope of log time on log node count is 0.88
 for the refinement alone (per-fixture minima; 9 to 100,456 nodes; `harness/results/paired-t4/SUMMARY.md`; 0.91 over the

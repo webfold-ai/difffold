@@ -64,9 +64,11 @@ Read these before using the numbers below.
 - **The objectives are not OmniDiff's.** `diff` computes top-down distance: it does not match across levels,
   detect moves, or recover wrap/unwrap. `refine` repairs its mapping heuristically (no objective, no certificate beyond a bijection that respects kinds). `ted` can match across levels by promotion (so it can express
   wrap/unwrap) but has no move operation, so a moved or reordered subtree is a delete plus an insert.
-- **Accuracy has been scored against one hand-authored ground truth only** (OmniDiff's mappings), for
-  `diff`, for `ted` (a mixed run, see [OmniDiff: cost and accuracy](#omnidiff-cost-and-accuracy)) and,
-  indicatively, for GumTree and RefactoringMiner (`notes/lanes/GUMTREE-RM.md`). Accuracy against
+- **Accuracy has been scored against two ground truths, on overlapping inputs:** OmniDiff's hand-authored mappings
+  (998 fixtures; `diff`, `diff` + `refine`, OmniDiff, and GumTree 4.0.0-beta4 on the Java subset) and DiffBenchmark's
+  Defects4J oracle (`diff`, `diff` + `refine`, RefactoringMiner, GumTree 3.0; see
+  [OmniDiff: cost and accuracy](#omnidiff-cost-and-accuracy)). Both oracles favour the tool they were derived from. `ted`
+  was scored only in an earlier mixed run on the previous corpus (`results/accuracy/previous-fork-run/`). Accuracy against
   difftastic, diffsitter or imara-diff has **not** been measured.
 - **Correctness evidence is of different kinds** and the kinds are not interchangeable: tests, oracle
   comparisons, Lean proofs about a model, and Lean proofs about Aeneas-extracted Rust. See the

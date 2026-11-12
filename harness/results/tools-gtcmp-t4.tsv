@@ -1,0 +1,3 @@
+difffold	top-down Selkow (exact) - cold process	java,go,c	0		1	ROUNDS=10	/tmp/claude-0/-home-user/7140ace6-8c79-5e0b-862a-dcd7d087d66c/scratchpad/dd-target/release/dfold-cli --algo difffold {B} {A}
+difffold-refine	top-down + cross-level refinement - cold process	java,go,c	0		1	ROUNDS=10	/tmp/claude-0/-home-user/7140ace6-8c79-5e0b-862a-dcd7d087d66c/scratchpad/dd-target/release/dfold-cli --algo difffold-refine {B} {A}
+gumtree	heuristic matching (gumtree-simple) - cold JVM process	java,go,c	0		0	ROUNDS=10;JAVA_TOOL_OPTIONS=	/tmp/claude-0/-home-user/7140ace6-8c79-5e0b-862a-dcd7d087d66c/scratchpad/dd-gt/gumtree-4.0.0-beta4/bin/gumtree textdiff {B} {A}
