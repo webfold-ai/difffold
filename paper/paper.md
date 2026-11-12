@@ -19,9 +19,10 @@ changed-span F1 from 0.844 to 0.965 and the fraction of fixtures with no visible
 56.8% to 75.3%. OmniDiff scores 0.973 and 82.1% on the same scorer; the paired bootstrap interval
 of the changed-span difference includes zero, the perfect-fixture difference does not. Two phases and two
 of the five thresholds were chosen on one half of the fixtures, the rest being inherited; the other half
-gives 0.964. The pipeline is faster than
-OmniDiff in matching and, with the tree-sitter parse counted on both sides, the headline ratio is
-given in Section 6.4. The refined mapping is a heuristic repair, not an optimum of any objective;
+gives 0.964. In paired timing on 120 fixtures
+(Section 6.4), difffold's matching and refinement take 1/146 of OmniDiff's diff time, but the tree-sitter parse is
+98% of difffold's end-to-end time, so with each tool's own preparation counted the total is 5.4 times lower
+(not an order of magnitude; measured on a heavily loaded machine). The refined mapping is a heuristic repair, not an optimum of any objective;
 the certified part is only the top-down core.
 
 ## 1 Introduction
@@ -38,8 +39,8 @@ as one deletion plus one insertion.
 This paper asks a narrow engineering question: **how much of the accuracy gap between an exact
 top-down matcher and a tuned heuristic matcher can a small, bounded, cross-level repair pass
 close, and at what cost in time?** Our answer, on one public corpus, is: most of it in changed-span
-F1, less of it in per-fixture perfection, at a time cost that is a fraction of the top-down time
-(Section 6.4).
+F1, less of it in per-fixture perfection, at a cost of about 2% of end-to-end time, because the
+certified top-down core is cheap and the tree-sitter parse dominates (Section 6.4).
 
 **Contributions.**
 
@@ -302,7 +303,14 @@ refinement. (b) *difffold*: top-down plus `refine` with `Options::FULL`. (c) *Om
 mapping dumped by `tools/omni_dump` (default `HeuristicConfig`), scored by the same scorer. (d) *GumTree*
 4.0.0-beta4: run for timing only (Section 6.4); its accuracy was not re-measured here (Section 7).
 
-**Machine and toolchain.** <<MACHINE>>
+**Machine and toolchain.** One shared four-vCPU virtual machine (Intel Xeon Processor at 2.30 GHz, 16 GB, Linux 6.18.44), Rust 1.97.0
+(`cargo build --release`, opt-level 3, no LTO), OpenJDK 21.0.12.1, tree-sitter 0.26.13 with the grammar crates pinned in
+`Cargo.lock` (C 0.24.2, Go 0.25.0, Java 0.23.5, JavaScript 0.25.0, Python 0.25.0, Rust 0.24.2, TypeScript 0.23.2), apeiron
+revision `07ab506`. OmniDiff `ee5ee5b43b39602ef68b6ebb30ddeeea5e843265` built with its `ci` profile (release, no LTO, 16
+codegen units); GumTree 4.0.0-beta4 from the release archive (sha256 `a9f94acc...a3ea`, full value in the machine files).
+`difffold` commits and load averages are recorded in `results/accuracy/machine.txt` (accuracy) and
+`harness/results/machine-t4.txt` (speed). The accuracy scorer is deterministic. All timing was taken while other jobs
+kept the load average between 20 and 85 on the four vCPUs, and every timed process ran at `nice` 10.
 
 
 ## 6 Results
@@ -409,7 +417,23 @@ out-of-corpus test, because both halves come from the same collection, and the d
 one-at-a-time sweeps: changed-span F1 moves by 0.01 or less over `dice` 0.3 to 0.7, `keep` 0.2 to 0.5 and
 `min_exact` 2 to 5; `anchor_below` and `hops` matter more (Section 7).
 
-<<SECOND>>
+**A second ground truth: DiffBenchmark's Defects4J oracle.** The only other public mapping ground truth we could
+run is the Defects4J oracle of DiffBenchmark (Alikhanifard and Tsantalis; `hrd-oracle/adb-paper/d4j-exp`, 996 files of 800
+bugs, derived from RefactoringMiner's output with manual fixes). It is a second *annotation*, not a second
+*input set*: its source files are the Defects4J files that OmniDiff's fixtures also contain, about half of which fell in the
+dev half, and difffold's top-down and refined mappings were converted onto RefactoringMiner's JDT trees by the adapter in
+`tools/diffbenchmark_adapter/` (byte-range matching, same-type pairs only, plus a completion step for JDT wrapper nodes that
+tree-sitter has no counterpart of; without the completion the precision of the top-down engine collapses, see
+`notes/lanes/DIFFBENCHMARK.md`). We ran DiffBenchmark's own scoring code (`HRDBenchmarkComputer` over HRDGen3 renderings) for RefactoringMiner 3.0.10
+(`RMD`), GumTree 3.0 greedy (`GTG`) and simple (`GTS`), difffold top-down (`DFT_TD`) and difffold refined (`DFT_RF`). The metric is
+the benchmark's: true positives, false positives and false negatives of mappings between nodes of the two JDT trees (abstract
+mappings plus program elements), reported here raw, without the adjustment for mappings all tools share, and the number of files with no false
+positive or negative ("perfect"). <<DFBN>>
+
+<<DFBTABLE>>
+
+<<DFBREAD>>
+
 
 ### 6.4 RQ4: speed with and without the parse
 

@@ -301,7 +301,23 @@ ground truth, so it is the main one scored for accuracy.
 300 drawn at random, seed 1), `harness/results/*-t4.*`; 120 of them timed fixture by fixture against OmniDiff in
 `harness/results/paired-t4/`. Machine, toolchain and revisions: `harness/results/machine-t4.txt`. **The
 machine was heavily loaded by other jobs (one-minute load average 20 to 70 on 4 vCPUs) and every timed process ran at
-`nice` 10**, so absolute times are several times those of an idle machine; see the paper, section 7. <<SPEEDNUMBERS>>
+`nice` 10**, so absolute times are several times those of an idle machine; see the paper, section 7.
+
+| view (OmniDiff over difffold, paired, 120 fixtures, 10 passes each) | OmniDiff total | difffold total | total ratio | median per-fixture ratio |
+|---|---:|---:|---:|---:|
+| **with the tree-sitter parse counted for both** (OmniDiff: parse + AST metadata + diff) | 29,045 ms | 5,345 ms | **5.4** | 8.8 |
+| own work, parse removed on both sides | 24,859 ms | 1,225 ms | 20.3 | 67.7 |
+| matching only (difffold: certified top-down diff with replay + refinement) | 17,405 ms | 119 ms | 146 | 347 |
+
+- **Headline: about 5 times less total time with the parse counted (5.4 on medians of ten passes, 6.4 on minima, 3.6 in the
+  unpaired 350-fixture run).** It is not an order of magnitude: parsing and arena building are 98% of difffold's own
+  end-to-end time, and the matching and refinement are about 2%. Quote matching-only figures only as matching-only.
+- The refinement costs 20 times the (tiny) top-down core's time on these fixtures (119 ms against 6 ms in total) and adds 3.6% to the cold
+  wall time of the command (20.4 s against 19.7 s for 350 fixtures). Its cost is close to linear in tree size (log-log slope 0.88 to 0.91 from 9 to
+  100,456 nodes).
+- OmniDiff was timed in process through its library (not its command line), and the tree-sitter parse counts as OmniDiff's too. The "parse only"
+  variant (without the AST metadata that `diff_code` needs) gives 4.0.
+- Files: `harness/results/paired-t4/SUMMARY.md`, `unpaired-t4/SUMMARY.md`, `SUMMARY-t4.md`, `NOTES-t4.md` (protocol deviations), `machine-t4.txt`.
 
 *Historical (previous corpus snapshot and machine, kept for the record).*
 
