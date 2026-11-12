@@ -467,19 +467,40 @@ its 42 ms median JDT parse of the two files (`times.tsv`); the cold-process comp
 **A second ground truth: DiffBenchmark's Defects4J oracle.** The only other public mapping ground truth we could
 run is the Defects4J oracle of DiffBenchmark (Alikhanifard and Tsantalis; `hrd-oracle/adb-paper/d4j-exp`, 996 files of 800
 bugs, derived from RefactoringMiner's output with manual fixes). It is a second *annotation*, not a second
-*input set*: its source files are the Defects4J files that OmniDiff's fixtures also contain, about half of which fell in the
-dev half, and difffold's top-down and refined mappings were converted onto RefactoringMiner's JDT trees by the adapter in
+*input set*: its source files are OmniDiff's Defects4J fixtures (996 directories; the 444 that carry OmniDiff ground truth are part of
+Section 6.1, about half of them in the dev half), and difffold's top-down and refined mappings were converted onto RefactoringMiner's JDT trees by the adapter in
 `tools/diffbenchmark_adapter/` (byte-range matching, same-type pairs only, plus a completion step for JDT wrapper nodes that
 tree-sitter has no counterpart of; without the completion the precision of the top-down engine collapses, see
 `notes/lanes/DIFFBENCHMARK.md`). We ran DiffBenchmark's own scoring code (`HRDBenchmarkComputer` over HRDGen3 renderings) for RefactoringMiner 3.0.10
 (`RMD`), GumTree 3.0 greedy (`GTG`) and simple (`GTS`), difffold top-down (`DFT_TD`) and difffold refined (`DFT_RF`). The metric is
 the benchmark's: true positives, false positives and false negatives of mappings between nodes of the two JDT trees (abstract
 mappings plus program elements), reported here raw, without the adjustment for mappings all tools share, and the number of files with no false
-positive or negative ("perfect"). <<DFBN>>
+positive or negative ("perfect").
 
-<<DFBTABLE>>
+<!-- DFB:begin -->
+The run reached 550 of the 800 bugs and 710 of the 996 oracle files at the time of writing (the driver processes bugs in alphabetical project order, so the subset is the first projects, not a random sample; it was resumed once after the disk filled, and `conversion.csv` therefore covers only the resumed part).
 
-<<DFBREAD>>
+Table 8. DiffBenchmark Defects4J oracle, 710 files, raw counts. Source: `results/diffbenchmark/rerun-refine/SUMMARY.md` (from `records-NO_FILTER.csv`).
+
+| tool | TP raw | FP | FN | precision (raw) | recall (raw) | F1 (raw) [95% interval] | perfect files |
+|---|---|---|---|---|---|---|---|
+| RMD | 445056 | 104 | 182 | 0.9998 | 0.9996 | 0.9997 [0.9996, 0.9998] | 635 (89.4%) |
+| GTG | 442826 | 722 | 2412 | 0.9984 | 0.9946 | 0.9965 [0.9960, 0.9969] | 142 (20.0%) |
+| GTS | 444551 | 525 | 687 | 0.9988 | 0.9985 | 0.9986 [0.9983, 0.9989] | 474 (66.8%) |
+| DFT_TD | 443793 | 1168 | 1445 | 0.9974 | 0.9968 | 0.9971 [0.9963, 0.9977] | 330 (46.5%) |
+| DFT_RF | 444804 | 665 | 434 | 0.9985 | 0.9990 | 0.9988 [0.9984, 0.9990] | 479 (67.5%) |
+
+Paired F1 difference of DFT_RF to each other tool (same resamples):
+
+| tool | difference | 95% interval |
+|---|---|---|
+| RMD | -0.00091 | [-0.00123, -0.00066] |
+| GTG | +0.00229 | [+0.00201, +0.00260] |
+| GTS | +0.00013 | [-0.00004, +0.00030] |
+| DFT_TD | +0.00170 | [+0.00124, +0.00223] |
+
+Perfect files (no false positive or negative): difffold refined 67.5%, difffold top-down 46.5%, GumTree 3.0 simple 66.8%, GumTree 3.0 greedy 20.0%, RefactoringMiner 89.4%. The refinement lifts the perfect-file rate of the top-down engine by 21.0 points on this oracle and puts it level with GumTree simple (raw F1 difference +0.00013, interval [-0.00004, +0.00030]; it includes zero); it remains below RefactoringMiner (difference -0.00091, interval [-0.00123, -0.00066]), from whose output the oracle was built. Raw F1 differences are tiny because almost all mappings are shared by every tool; the perfect-file rate and the paired intervals are the informative columns. Calibration against the earlier recorded run on all 996 files (`results/diffbenchmark/summary-NO_FILTER.csv`, `notes/lanes/DIFFBENCHMARK.md`): RefactoringMiner 881 perfect files (88.5%), GumTree simple 649 (65.2%), greedy 209 (21.0%), difffold top-down 449 (45.1%); the partial run lands within a few points of these for every tool, so the harness reproduces. This is a second annotation of overlapping inputs and a partial run, the adapter's conversion between tree-sitter and JDT trees is part of what is measured, and the oracle favours RefactoringMiner.
+<!-- DFB:end -->
 
 
 ### 6.4 RQ4: speed with and without the parse
