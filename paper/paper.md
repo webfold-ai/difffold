@@ -259,11 +259,149 @@ converted to tree-sitter preorder indices (every node, named and anonymous).
 
 ### 5.3 Setup
 
-<<SETUP>>
+**Corpus.** The public OmniDiff repository (https://github.com/ivankovic/omnidiff, commit
+`ee5ee5b43b39602ef68b6ebb30ddeeea5e843265`, crate 0.4.0) ships `src/test/data/diffs`, 1,761 before/after
+fixtures with hand-authored `human_mapping.json` ground truth (Defects4J-derived, handmade, "full" and
+stratified real-world changes). A fixture is *scorable* if it is in a language for which a tree-sitter
+grammar is wired in here (C, Go, Java, JavaScript, Python, Rust, TSX, TypeScript), its ground truth loads
+and has pairs, and node counts agree with OmniDiff's. 998 of 1,761 are scorable (515 Java); 763 are not,
+761 of them for language (C++, C#, Kotlin, shell, HTML, JSON and others; the list is
+`results/accuracy/unscorable.csv`). No fixture was dropped for a node-count mismatch. An earlier version
+of this work scored 1,001 fixtures on a private fork of OmniDiff; the public corpus is a different
+snapshot and those numbers are not mixed with these (`results/accuracy/previous-fork-run/`).
+
+**Split.** To keep parameter choice apart from reporting, fixtures are split by the low bit of the upper
+half of the FNV-1a hash of `dataset/name` (`DFOLD_SPLIT=dev|test`): 505 *dev* and 493 *test* fixtures.
+Phase thresholds (`dice`, `keep`, `anchor_below`, `min_exact`, `hops`) were swept one at a time on dev;
+`anchor_below` = 3 was chosen as the value with the highest dev changed-span F1 (tied with 2, the larger
+taken) and everything was then frozen before the test half was scored. Two phases (descend, retarget)
+were designed while looking at dev failures. The sweeps are not in the repository as files (they were
+exploratory runs); the dev and test results are (`results/accuracy/split-dev`, `split-test`).
+
+**Systems compared.** (a) *top-down*: `diff_checked` followed by `mapping::correspondence`, no
+refinement. (b) *difffold*: top-down plus `refine` with `Options::FULL`. (c) *OmniDiff*: its own node
+mapping dumped by `tools/omni_dump` (default `HeuristicConfig`), scored by the same scorer. (d) *GumTree*
+4.0.0-beta4: run for timing only (Section 6.4); its accuracy was not re-measured here (Section 7).
+
+**Machine and toolchain.** <<MACHINE>>
+
 
 ## 6 Results
 
-<<RESULTS>>
+### 6.1 RQ1: accuracy on 998 fixtures
+
+Table 1. Micro averages over all 998 scorable fixtures. Source: `results/accuracy/topdown/summary_tables.md`
+(top-down and OmniDiff rows), `results/accuracy/summary_tables.md` (refined and OmniDiff rows). The OmniDiff
+rows of the two files agree.
+
+| metric | top-down | difffold (refined) | OmniDiff |
+|---|---:|---:|---:|
+| micro pair F1 | 0.998 | 1.000 | 1.000 |
+| node-correspondence accuracy | 0.996 | 0.999 | 0.999 |
+| changed-span precision | 0.741 | 0.974 | 0.962 |
+| changed-span recall | 0.980 | 0.956 | 0.984 |
+| **changed-span F1** | **0.844** | **0.965** | **0.973** |
+| fixtures with zero visible mismatches | 56.8% | 75.3% | 82.1% |
+| near-perfect fixtures | 85.4% | 92.5% | 96.4% |
+
+Table 2. Percentile bootstrap over fixtures (10,000 resamples, 95%). Source: `results/accuracy/ci.md`.
+
+<<CI>>
+
+Pair F1 is saturated (99.8% of ground-truth pairs are unchanged context) and is reported for
+continuity only. The refinement removes most of the changed-span gap: 0.844 to 0.965, against OmniDiff's
+0.973. The paired difference to OmniDiff is -0.008 with an interval that includes zero; OmniDiff's
+perfect-fixture rate remains higher by 6.8 percentage points and that interval excludes zero. The
+change is a trade: precision rises from 0.741 to 0.974 (the top-down matcher reported moved and wrapped
+code as changed) while recall falls from 0.980 to 0.956 (the refinement sometimes pairs tokens the ground
+truth calls changed). By language, difffold's changed-span F1 is above OmniDiff's on C (0.892 against
+0.885), Go (0.989 against 0.966) and TSX (0.978 against 0.970) and below it on the other five, the
+largest gap being Python (0.951 against 0.990); `results/accuracy/summary_tables.md`.
+
+Micro changed-span F1 is dominated by a few large fixtures: ten of the 998 carry 50% of difffold's
+changed-token errors (1,171 false plus missed tokens) and 50% of OmniDiff's (923). The bootstrap interval, the
+macro averages in the same file and the per-fixture perfect rate should be read next to it.
+
+Table 3. Decision accuracy by root-cause class (share of that class's graded decisions that are correct).
+Source: `results/accuracy/topdown/summary_tables.md` and `results/accuracy/summary_tables.md`, section "Failures
+by root-cause class".
+
+| class | decisions (refined run) | top-down | refined | OmniDiff |
+|---|---:|---:|---:|---:|
+| local edit | 559 | 0.941 | 0.921 | 0.918 |
+| sibling insert/delete | 42,186 | 0.936 | 0.942 | 0.972 |
+| repeated children | 3,375 | 0.621 | 0.679 | 0.741 |
+| reorder | 1,044 | 0.034 | 0.832 | 0.905 |
+| cross-parent move | 1,101 | 0.186 | 0.860 | 0.809 |
+| wrap / unwrap | 20,845 | 0.401 | 0.902 | 0.947 |
+| wholesale rewrite | 3,983 | 0.952 | 0.969 | 0.968 |
+| context | 5,033,129 | 1.000 | 1.000 | 1.000 |
+
+Reorder, move and wrap decisions, which a top-down matcher cannot make, go from 0.034, 0.186 and 0.401 to
+0.832, 0.860 and 0.902. On cross-parent moves the refined mapping is above OmniDiff's (0.860 against
+0.809); on reorder and wrap/unwrap it is below. The decisions in these classes are decisions about
+pairs, deletions and insertions of the nodes involved, not a recall of move operations; the corpus has
+127 ground-truth move roots, 1,301 wrap/unwrap roots and 108 reordered pairs (`results/accuracy/taxonomy.csv`).
+
+### 6.2 RQ2: ablation of the refinement phases
+
+Table 4. Cumulative phases on the 998 fixtures (difffold only, `DFOLD_REFINE` = the listed phases, all
+other parameters as frozen). Source: `results/accuracy/ablation/*/SUMMARY-difffold-only.md`.
+
+| phases | pair F1 | span P | span R | span F1 | perfect |
+|---|---:|---:|---:|---:|---:|
+| seed (top-down minus kind-changing pairs) | 0.998 | 0.741 | 0.980 | 0.844 | 59.1% |
+| + exact | 1.000 | 0.952 | 0.965 | 0.958 | 69.8% |
+| + validate | 1.000 | 0.952 | 0.965 | 0.958 | 69.8% |
+| + containers | 1.000 | 0.952 | 0.965 | 0.958 | 69.8% |
+| + recover | 1.000 | 0.955 | 0.964 | 0.960 | 70.3% |
+| + descend | 1.000 | 0.971 | 0.957 | 0.964 | 74.4% |
+| + retarget (= full) | 1.000 | 0.974 | 0.956 | 0.965 | 75.3% |
+
+The exact-subtree phase accounts for almost all of the gain in span F1 (+0.114 of +0.121). The validate
+and containers phases change none of the reported aggregates on this corpus: they are included because
+they are the bottom-up half of the usual two-phase design and because recovery depends on container
+pairs, but this ablation gives no evidence that either helps on these fixtures (the recover phase,
+which consumes container pairs, adds +0.002). Descend and retarget add +0.005 span F1 and 5.0
+percentage points of perfect fixtures, mostly by pairing leaves that the top-down seed relabelled.
+The ablation is cumulative and in one order; interactions between phases are not separated.
+
+### 6.3 RQ3: held-out half and a second dataset
+
+Table 5. Parameters chosen on dev, scored on test. Source: `results/accuracy/split-dev/` and
+`results/accuracy/split-test/` (`summary_tables.md`).
+
+| half | fixtures | difffold span F1 | OmniDiff span F1 | difffold perfect | OmniDiff perfect |
+|---|---:|---:|---:|---:|---:|
+| dev | 505 | 0.966 | 0.974 | 75.6% | 81.0% |
+| test | 493 | 0.964 | 0.972 | 74.8% | 83.2% |
+
+The held-out half is within 0.002 of the dev half in changed-span F1 and the ordering to OmniDiff is
+the same. This supports that the thresholds are not overfitted to individual fixtures; it is not an
+out-of-corpus test, because both halves come from the same collection, and the design of two phases
+(descend, retarget) was guided by dev failures. `results/accuracy/sweeps/dev-sweep.tsv` records the
+one-at-a-time sweeps: changed-span F1 moves by 0.01 or less over `dice` 0.3 to 0.7, `keep` 0.2 to 0.5 and
+`min_exact` 2 to 5; `anchor_below` and `hops` matter more (Section 7).
+
+<<SECOND>>
+
+<<SPEED>>
+
+### 6.5 RQ5: where the remaining errors are
+
+Measured as the excess of difffold's failed decisions over OmniDiff's, 58.1% of the net excess is in the
+sibling insert/delete class and 42.5% in wrap/unwrap, 9.6% in repeated children and 3.5% in reorder;
+classes where difffold fails less (cross-parent move, local edit, context) contribute negatively, so the
+shares sum to more than 100% (`results/accuracy/summary_tables.md`, section "Failures by root-cause
+class"). Fixtures where difffold has more visible mismatches than OmniDiff:
+164 of 998 (16.4%), 114 of them containing a wrap or unwrap; OmniDiff is perfect and difffold is not in
+94 (9.4%). Inspection of the dev-half failures shows two recurring patterns: (i) a repeated or
+long-distance identical subtree is paired as a move when the ground truth records a deletion and an
+insertion, and (ii) punctuation tokens (`(`, `)`, `{`, `}`, `;`) around a changed wrapper are paired
+with a nearby equal token instead of being left unmatched. Two attempted fixes, restricting cross-parent
+moves to subtrees that are unique on both sides and excluding punctuation from the leaf descent, did not
+improve changed-span F1 on dev and were not adopted (they are not in the repository).
+
 
 ## 7 Threats to validity and what was not run
 

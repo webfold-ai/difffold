@@ -6,7 +6,7 @@
 #   DFB        DiffBenchmark checkout (provides hrd-oracle/adb-paper/d4j-exp and the benchmark sources)
 #   FIXTURES   OmniDiff Defects4J fixtures (omnidiff-apeiron/src/test/data/diffs/defects4j)
 #   WORK       scratch directory for build products and outputs
-# Optional: TOOLS (default RMD,GTG,GTS,DFT_TD,DFT_TED,DFT_RF), THREADS (3), LIMIT (0 = all bugs),
+# Optional: TED_MAP (prebuilt ted_map), TOOLS (default RMD,GTG,GTS,DFT_TD,DFT_TED,DFT_RF), THREADS (3), LIMIT (0 = all bugs),
 #           TIMEOUT (seconds per difffold call, 120), CARGO_TARGET_DIR.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -20,8 +20,11 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$WORK/cargo-target}"
 mkdir -p "$WORK"
 
 # 1. difffold mapping binary.
-(cd "$REPO" && cargo build --release --features ts --bin ted_map)
-TED_MAP="$CARGO_TARGET_DIR/release/ted_map"
+# Set TED_MAP to a prebuilt binary to skip the build.
+if [ -z "${TED_MAP:-}" ]; then
+  (cd "$REPO" && cargo build --release --features ts --bin ted_map)
+  TED_MAP="$CARGO_TARGET_DIR/release/ted_map"
+fi
 
 # 2. RefactoringMiner 3.0.10 and its dependencies (the release closest to the 3.0.10-SNAPSHOT the
 #    benchmark was written against; 3.1.x changed the Constants API).

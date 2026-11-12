@@ -48,7 +48,10 @@ fn subtree_paired(m: &Mapping, bf: &Flat, b: usize, a: usize) -> bool {
 
 /// Preorder index of the `nth` node of `f` whose subtree id is `id`.
 fn at(f: &Flat, id: Id, nth: usize) -> usize {
-    (0..f.len()).filter(|&v| f.id[v] == id).nth(nth).expect("node present")
+    (0..f.len())
+        .filter(|&v| f.id[v] == id)
+        .nth(nth)
+        .expect("node present")
 }
 
 fn check_invariants(bf: &Flat, af: &Flat, m: &Mapping) {
@@ -64,7 +67,10 @@ fn check_invariants(bf: &Flat, af: &Flat, m: &Mapping) {
             assert_eq!(m.b2a[b as usize], a as u32);
         }
     }
-    assert_eq!(m.b2a.iter().filter(|&&a| a != NIL).count(), m.a2b.iter().filter(|&&b| b != NIL).count());
+    assert_eq!(
+        m.b2a.iter().filter(|&&a| a != NIL).count(),
+        m.a2b.iter().filter(|&&b| b != NIL).count()
+    );
 }
 
 #[test]
@@ -78,7 +84,11 @@ fn reorder_of_siblings_is_paired_and_counted_as_a_move() {
     assert!(seed.len() < bf.len());
     let (bf, af2, m) = run(&a, x, y, &Options::FULL);
     check_invariants(&bf, &af2, &m);
-    assert_eq!(m.len(), bf.len(), "every node has a partner after a pure reorder");
+    assert_eq!(
+        m.len(),
+        bf.len(),
+        "every node has a partner after a pure reorder"
+    );
     assert!(m.moves(&bf, &af2) >= 1);
     assert!(subtree_paired(&m, &bf, at(&bf, s3, 0), at(&af2, s3, 0)));
     let _ = af;
@@ -102,10 +112,18 @@ fn subtree_moved_to_another_parent_keeps_all_its_nodes() {
     let (bf, af, m) = run(&a, x, y, &Options::FULL);
     check_invariants(&bf, &af, &m);
     let (pb, pa) = (at(&bf, moved, 0), at(&af, moved, 0));
-    assert!(subtree_paired(&m, &bf, pb, pa), "moved statement must be paired node for node");
+    assert!(
+        subtree_paired(&m, &bf, pb, pa),
+        "moved statement must be paired node for node"
+    );
     assert!(m.moves(&bf, &af) >= 1);
     // The other statement stays under its parent.
-    assert!(subtree_paired(&m, &bf, at(&bf, other, 0), at(&af, other, 0)));
+    assert!(subtree_paired(
+        &m,
+        &bf,
+        at(&bf, other, 0),
+        at(&af, other, 0)
+    ));
     // Without the exact phase the move is lost.
     let (bf, _, plain) = run(&a, x, y, &Options::SEED);
     assert!(!subtree_paired(&plain, &bf, pb, pa));
@@ -123,12 +141,20 @@ fn wrap_pairs_the_wrapped_statement_and_leaves_the_wrapper_unpaired() {
     check_invariants(&bf, &af, &m);
     assert!(subtree_paired(&m, &bf, at(&bf, keep, 0), at(&af, keep, 0)));
     let (pb, pa) = (at(&bf, inner, 0), at(&af, inner, 0));
-    assert!(subtree_paired(&m, &bf, pb, pa), "the wrapped statement keeps its identity");
+    assert!(
+        subtree_paired(&m, &bf, pb, pa),
+        "the wrapped statement keeps its identity"
+    );
     assert_eq!(m.a2b[pa - 1], NIL, "the new wrapper has no partner");
     assert_eq!(af.kind[pa - 1], CALL);
     // Top-down alone loses the identity of the wrapped statement.
     let (bf, af, plain) = run(&a, x, y, &Options::SEED);
-    assert!(!subtree_paired(&plain, &bf, at(&bf, inner, 0), at(&af, inner, 0)));
+    assert!(!subtree_paired(
+        &plain,
+        &bf,
+        at(&bf, inner, 0),
+        at(&af, inner, 0)
+    ));
 }
 
 #[test]
@@ -142,7 +168,10 @@ fn unwrap_is_the_mirror_of_wrap() {
     let (bf, af, m) = run(&a, x, y, &Options::FULL);
     check_invariants(&bf, &af, &m);
     let (pb, pa) = (at(&bf, inner, 0), at(&af, inner, 0));
-    assert!(subtree_paired(&m, &bf, pb, pa), "the unwrapped statement keeps its identity");
+    assert!(
+        subtree_paired(&m, &bf, pb, pa),
+        "the unwrapped statement keeps its identity"
+    );
     assert_eq!(m.b2a[pb - 1], NIL, "the removed wrapper has no partner");
     assert_eq!(bf.kind[pb - 1], CALL);
 }
@@ -224,12 +253,18 @@ fn mapping_is_a_kind_respecting_bijection_and_deterministic() {
             let (bf, af, m) = run(&a, x, y, &opts);
             check_invariants(&bf, &af, &m);
             let (_, _, m2) = run(&a, x, y, &opts);
-            assert_eq!(m.b2a, m2.b2a, "refinement must be deterministic (seed {seed})");
+            assert_eq!(
+                m.b2a, m2.b2a,
+                "refinement must be deterministic (seed {seed})"
+            );
         }
         // The refine entry point agrees with match_trees.
         let d = diff(&a, x, y);
         let corr = correspondence(&a, x, y, &d.edit);
-        let (bf, af) = (Flat::from_arena(&a, x, kind_of), Flat::from_arena(&a, y, kind_of));
+        let (bf, af) = (
+            Flat::from_arena(&a, x, kind_of),
+            Flat::from_arena(&a, y, kind_of),
+        );
         let (m, _) = refine(&a, &bf, &af, &corr, &Options::FULL);
         let (_, _, m3) = run(&a, x, y, &Options::FULL);
         assert_eq!(m.b2a, m3.b2a);
@@ -246,4 +281,3 @@ fn identical_trees_map_node_for_node() {
     assert!(m.pairs().all(|(b, a)| b == a));
     assert_eq!(m.moves(&bf, &af), 0);
 }
-

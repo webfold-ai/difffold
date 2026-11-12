@@ -35,7 +35,8 @@ known producer in this repository.
 ## Accuracy scoring
 
 ```sh
-cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS OMNI_DUMP OUT
+cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS OMNI_DUMP OUT            # top-down
+DFOLD_REFINE=full cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS OMNI_DUMP OUT   # refined
 DFOLD_TED=1 cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS - OUT
 ```
 

@@ -672,7 +672,10 @@ fn descend_phase(
         }
         let old = m.b2a[b];
         if old != NIL
-            && !(retarget && !firm.0[b] && af.is_leaf(old as usize) && af.label[old as usize] != bf.label[b])
+            && !(retarget
+                && !firm.0[b]
+                && af.is_leaf(old as usize)
+                && af.label[old as usize] != bf.label[b])
         {
             continue;
         }

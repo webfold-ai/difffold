@@ -10,8 +10,8 @@
 //! (`difffold::refine`, all phases).
 
 use difffold::mapping::correspondence;
-use difffold::ted::{ted_mapping, PostTree};
 use difffold::refine::{refine, Flat, Options};
+use difffold::ted::{ted_mapping, PostTree};
 use difffold::ts::{convert, Interner, Tree, NIL};
 use difffold::{diff_checked, Arena};
 use std::fmt::Write as _;
