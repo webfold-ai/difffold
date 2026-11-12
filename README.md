@@ -80,7 +80,7 @@ Read these before using the numbers below.
   (`ts` feature): C, Go, Java, JavaScript, Python, Rust, TSX and TypeScript. The library itself has no parser
   dependency.
 - **Speed numbers depend on machine load.** The newest timing run (tag `t4`) was taken on a shared VM with a load
-  average of 20 to 36; per-fixture minima and medians of ten passes are reported, not an idle-machine figure.
+  average of 20 to 85; per-fixture minima and medians of ten passes are reported, not an idle-machine figure.
   Older files are single runs; the repeated `ted-*` files below show how much the same cohort moves between runs.
 
 ## Evidence

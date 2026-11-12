@@ -5,7 +5,8 @@ usage: gumtree_compare.py SCORED_DIR FIXTURES.csv OUT.md [--matchers a,b,c] [--g
 
 SCORED_DIR is the `scored/` directory written by tools/gumtree_eval/run_scoring.sh (it holds, per generator and matcher, a `raw`
 and a `scoped` run of score_accuracy in which the `omnidiff` rows are GumTree's mapping). FIXTURES.csv is
-results/accuracy/fixtures.csv (difffold and OmniDiff rows). Only fixtures GumTree parsed and all three tools scored are
+results/accuracy/fixtures.csv (difffold and OmniDiff rows). Pair F1 is not compared here: the scoped scoring adjusts GumTree's pair counts by the pairs it
+grants for nodes GumTree cannot express, which this script does not subtract; use the aggregator's gumtree-summary-all.csv for that. Only fixtures GumTree parsed and all three tools scored are
 compared. `raw` charges GumTree for every tree-sitter node its JDT tree does not contain (and is therefore not meaningful for
 perfect-fixture rates); `scoped` judges only the nodes GumTree's tree can express and is lenient to GumTree.
 """
@@ -41,10 +42,10 @@ for m in a.matchers.split(","):
             gt[(r["dataset"], r["fixture"])] = r
     keys = sorted(set(gt) & set(ours["difffold"]) & set(ours["omnidiff"]))
     rows = [("GumTree " + m + " (scoped, lenient)", [gt[k] for k in keys]), ("difffold", [ours["difffold"][k] for k in keys]), ("OmniDiff", [ours["omnidiff"][k] for k in keys])]
-    out += [f"### {m}: {len(keys)} Java fixtures scored by all three", "", "| tool | micro pair F1 | micro changed-span F1 | perfect fixtures |", "|---|---:|---:|---:|"]
+    out += [f"### {m}: {len(keys)} Java fixtures scored by all three", "", "| tool | micro changed-span F1 | perfect fixtures |", "|---|---:|---:|"]
     for name, rs in rows:
         pf, sf, perf = stats(rs)
-        out.append(f"| {name} | {pf:.4f} | {sf:.4f} | {perf:.1%} |")
+        out.append(f"| {name} | {sf:.4f} | {perf:.1%} |")
     out.append("")
 txt = "\n".join(out)
 open(a.out, "w").write(txt + "\n")

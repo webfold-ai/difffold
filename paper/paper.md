@@ -199,7 +199,7 @@ worst-case bound; Section 6.4 reports the measured scaling.
 For every input the refined result is (i) a partial bijection, (ii) kind-compatible on every pair,
 (iii) deterministic (no hashing order or randomness reaches the output), and (iv) with all later phases
 switched off, equal to the top-down mapping minus kind-changing internal pairs. These are tested
-(`tests/refine.rs`) on hand-built moves, reorders, wraps and unwraps and on 60 random tree pairs. The
+(`tests/refine.rs`) on hand-built moves, reorders, wraps and unwraps and on 59 random tree pairs. The
 refined mapping is not a top-down mapping, not order-preserving and not an optimum of the top-down or
 any other objective; it carries no certificate beyond (i) to (iv).
 
@@ -295,7 +295,9 @@ this split existed) fixed `dice` = 0.5, `keep` = 0.3, `min_exact` = 2 and the va
 after exploratory runs over all fixtures that were not recorded; these were not re-selected. What was
 chosen on dev alone: `anchor_below` = 3 (highest dev changed-span F1, tied with 2, the larger taken),
 `hops` = 3, and the design of the descend and retarget phases from dev failures. The test half was scored
-after these were frozen, and had also been scored once earlier with the same configuration.
+after these were frozen. It had also been scored earlier in the work, with the configuration before the descend and retarget
+phases existed (changed-span F1 0.955), and that number was seen before the phases were designed, so the test half is not
+blind to their design.
 Sweeps over the inherited thresholds on dev show they sit on a plateau (`results/accuracy/sweeps/dev-sweep.tsv`).
 
 **Systems compared.** (a) *top-down*: `diff_checked` followed by `mapping::correspondence`, no
@@ -451,13 +453,13 @@ the *scoped* scoring, which judges only the nodes GumTree's tree contains and is
 
 Table 7. Java fixtures only (515), micro averages, same scorer. Source: `results/accuracy/gumtree-4.0.0-beta4/COMPARE.md`.
 
-| tool | pair F1 | changed-span F1 | perfect fixtures | in-process matching, median |
-|---|---:|---:|---:|---:|
-| GumTree `gumtree-simple` (default), scoped | 0.9997 | 0.958 | 74.2% | 1.19 ms |
-| GumTree `gumtree-hybrid-id`, scoped | 0.9998 | 0.961 | 74.0% | 1.61 ms |
-| GumTree `gumtree-classic`, scoped | 0.9995 | 0.846 | 31.3% | 429 ms |
-| difffold (refined) | 0.9996 | 0.965 | 75.9% | see Table 6 |
-| OmniDiff | 0.9998 | 0.978 | 83.9% | see Table 6 |
+| tool | changed-span F1 | perfect fixtures | in-process matching, median |
+|---|---:|---:|---:|
+| GumTree `gumtree-simple` (default), scoped | 0.958 | 74.2% | 1.19 ms |
+| GumTree `gumtree-hybrid-id`, scoped | 0.961 | 74.0% | 1.61 ms |
+| GumTree `gumtree-classic`, scoped | 0.846 | 31.3% | 429 ms |
+| difffold (refined) | 0.965 | 75.9% | see Table 6 |
+| OmniDiff | 0.978 | 83.9% | see Table 6 |
 
 On this corpus and scoring, difffold's refined mapping is level with GumTree's default and hybrid matchers (changed-span F1 0.965 against 0.958 and 0.961;
 perfect fixtures 75.9% against 74.2% and 74.0%) and ahead of `gumtree-classic`; OmniDiff is ahead of all of them. We did not compute intervals for the GumTree
@@ -608,7 +610,7 @@ corpus (few unmatched same-kind containers remain after the exact phase); we did
 on which they matter.
 
 **Timing.** The machine is a shared four-vCPU VM. During every timing run the one-minute load average was
-between 20 and 36 (recorded per fixture in `harness/results/cli-t4.csv` and in the paired file), mostly
+between 20 and 85 (recorded per fixture in `harness/results/cli-t4.csv` and in the paired file), mostly
 other jobs of the same host, and all of our timed processes ran at `nice` 10. Absolute times are therefore
 several times those of an earlier run on a quiet machine of the same size (`results/fixtures-java-go-c.csv`,
 OmniDiff median 9.6 ms there); we report per-fixture minima beside medians for that reason and
@@ -640,7 +642,8 @@ Everything below runs from a clean checkout plus an OmniDiff checkout at the rec
 ```sh
 # tests (no parser needed)
 cargo test --release --locked -p difffold            # includes tests/refine.rs
-cargo fmt --all --check && cargo clippy --release --locked -p difffold --features ts --all-targets -- -D warnings
+cargo fmt --all --check && cargo clippy --release --locked -p difffold -p difffold-harness -p gitcompat --all-targets --features difffold/ts -- -D warnings
+#   with Rust 1.97 add `-A clippy::manual_is_multiple_of -A clippy::unnecessary_sort_by` (two pre-existing lints); linebench does not build on main
 
 # OmniDiff's own mappings, and the accuracy tables (results/accuracy/)
 #   tools/omni_dump is its own workspace; edit the absolute `omnidiff` path in its Cargo.toml to your checkout
