@@ -157,6 +157,19 @@ Fixture-level attribution: a fixture flagged wholesale rewrite counts all its de
 | wholesale_rewrite | 2 | 3122 | 121 | 127 | 0.961 | 0.959 | -6 | 0.0% | 0.0% | 0.0% |
 | context | 491 | 2532938 | 452 | 552 | 1.000 | 1.000 | -100 | 0.0% | 75.2% | 83.5% |
 
+### Pair recall by root-cause class (ground-truth pairs only)
+
+| class | ground-truth pairs | difffold pairs correct | omnidiff pairs correct | difffold recall | omnidiff recall |
+|---|---|---|---|---|---|
+| local_edit | 320 | 296 | 301 | 0.925 | 0.941 |
+| sibling_ins_del | 0 | 0 | 0 | 0.000 | 0.000 |
+| repeated_children | 0 | 0 | 0 | 0.000 | 0.000 |
+| reorder | 382 | 345 | 355 | 0.903 | 0.929 |
+| cross_parent_move | 329 | 287 | 253 | 0.872 | 0.769 |
+| wrap_unwrap | 4527 | 4116 | 4325 | 0.909 | 0.955 |
+| wholesale_rewrite | 2745 | 2718 | 2699 | 0.990 | 0.983 |
+| context | 2532938 | 2532486 | 2532386 | 1.000 | 1.000 |
+
 Fixtures containing any wrap/unwrap: 157/493 (31.8%); any cross-parent move: 25/493 (5.1%); any reorder: 18/493 (3.7%).
 Fixtures where difffold has more visible mismatches than OmniDiff: 86/493 (17.4%); of those, 53 contain a wrap/unwrap.
 

@@ -333,7 +333,21 @@ rows of the two files agree.
 
 Table 2. Percentile bootstrap over fixtures (10,000 resamples, 95%). Source: `results/accuracy/ci.md`.
 
-<<CI>>
+Percentile bootstrap, 10000 resamples of 998 fixtures, seed 1. 95% interval.
+
+| tool | micro pair F1 | micro changed-span F1 | perfect fixtures |
+|---|---|---|---|
+| difffold | 0.9995 [0.9993, 0.9997] | 0.9649 [0.9525, 0.9752] | 0.7525 [0.7265, 0.7786] |
+| omnidiff | 0.9997 [0.9995, 0.9998] | 0.9729 [0.9625, 0.9815] | 0.8206 [0.7966, 0.8447] |
+| difffold-baseline | 0.9980 [0.9973, 0.9985] | 0.8437 [0.7990, 0.8808] | 0.5681 [0.5381, 0.5982] |
+
+Paired difference difffold minus omnidiff (same resamples):
+
+| metric | difference |
+|---|---|
+| micro pair F1 | -0.0001 [-0.0003, -0.0000] |
+| micro changed-span F1 | -0.0080 [-0.0175, +0.0013] |
+| perfect fixtures | -0.0681 [-0.0892, -0.0471] |
 
 Pair F1 is saturated (99.8% of ground-truth pairs are unchanged context) and is reported for
 continuity only. The refinement removes most of the changed-span gap: 0.844 to 0.965, against OmniDiff's
@@ -396,7 +410,18 @@ which consumes container pairs, adds +0.002). Descend and retarget add +0.005 sp
 percentage points of perfect fixtures, mostly by pairing leaves that the top-down seed relabelled.
 Table 4b. What each phase did, summed over the 998 fixtures. Source: `results/accuracy/phase-counts.md`.
 
-<<PHASECOUNTS>>
+Refinement counters summed over 998 fixtures (Options::FULL).
+
+| counter | total | fixtures where it is non-zero | meaning |
+|---|---:|---:|---|
+| seed | 5171228 | 998 | top-down pairs kept (kind-changing pairs removed) |
+| dropped | 2534 | 363 | top-down pairs dropped for changing kind |
+| exact | 12385 | 283 | nodes paired by the exact-subtree phase |
+| invalid | 259 | 96 | tentative pairs dropped by validate |
+| containers | 212 | 59 | container pairs made |
+| recovered | 325 | 53 | nodes paired by recover |
+| descended | 694 | 176 | leaves paired by descend and retarget |
+| orphans | 316 | 99 | leaf pairs dropped by the orphan rule |
 
 The ablation is cumulative and in one order; interactions between phases are not separated.
 

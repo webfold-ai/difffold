@@ -1,0 +1,9 @@
+class,gt_pairs,difffold_correct,omnidiff_correct
+local_edit,320,296,301
+sibling_ins_del,0,0,0
+repeated_children,0,0,0
+reorder,382,345,355
+cross_parent_move,329,287,253
+wrap_unwrap,4527,4116,4325
+wholesale_rewrite,2745,2718,2699
+context,2532938,2532486,2532386

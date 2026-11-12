@@ -31,11 +31,13 @@ def f1(tp, fp, fn):
     d = 2 * tp + fp + fn
     return 1.0 if d == 0 else 2 * tp / d
 
+def pack(r):
+    return (int(r["pair_tp"]), int(r["pair_fp"]), int(r["pair_fn"]), int(r["span_tp"]), int(r["span_fp"]), int(r["span_fn"]), int(r["perfect"]))
+
 def stats(rows):
-    pt = sum(int(r["pair_tp"]) for r in rows); pf = sum(int(r["pair_fp"]) for r in rows); pn = sum(int(r["pair_fn"]) for r in rows)
-    st = sum(int(r["span_tp"]) for r in rows); sf = sum(int(r["span_fp"]) for r in rows); sn = sum(int(r["span_fn"]) for r in rows)
-    perf = sum(int(r["perfect"]) for r in rows) / len(rows)
-    return f1(pt, pf, pn), f1(st, sf, sn), perf
+    """rows: list of packed tuples."""
+    sums = [sum(c) for c in zip(*rows)]
+    return f1(sums[0], sums[1], sums[2]), f1(sums[3], sums[4], sums[5]), sums[6] / len(rows)
 
 def pct(v, p):
     v = sorted(v); k = (len(v) - 1) * p; lo = int(k); hi = min(lo + 1, len(v) - 1)
@@ -48,12 +50,13 @@ if a.baseline:
 keys = sorted(set.intersection(*[set(s) for s in sets.values()]))
 names = list(sets)
 rng = random.Random(a.seed)
-point = {t: stats([sets[t][k] for k in keys]) for t in names}
+packed = {t: [pack(sets[t][k]) for k in keys] for t in names}
+point = {t: stats(packed[t]) for t in names}
 reps = {t: [] for t in names}
 diff = []
 for _ in range(a.n):
-    idx = [keys[rng.randrange(len(keys))] for _ in keys]
-    cur = {t: stats([sets[t][k] for k in idx]) for t in names}
+    idx = [rng.randrange(len(keys)) for _ in keys]
+    cur = {t: stats([packed[t][i] for i in idx]) for t in names}
     for t in names:
         reps[t].append(cur[t])
     if len(names) >= 2:
