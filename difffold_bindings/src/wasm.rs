@@ -159,7 +159,9 @@ pub fn merge3_text(base: &str, left: &str, right: &str, algorithm: &str) -> Resu
 }
 
 /// The edit distance between two ordered labelled trees, each as preorder `labels` and `parents`
-/// (`-1` for the root). `objective` is `"top-down"` or `"general"`.
+/// (`-1` for the root). `objective` is `"top-down"` or `"general"`. Throws for a tree with more than
+/// 20,000 nodes or more than 128 levels: WebAssembly has no threads and a 1 MiB stack, so the depth
+/// limit is the stack divided by 8 KiB a level. (Native builds allow 8,192 levels.)
 #[wasm_bindgen(js_name = treeDistance)]
 pub fn tree_distance(
     labels_a: Vec<String>,

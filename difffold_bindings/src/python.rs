@@ -138,7 +138,9 @@ fn merge3<'py>(
 /// The edit distance between two ordered labelled trees, each given as preorder `labels` and
 /// `parents` (the index of each node's parent, `-1` for the root at index 0). `objective` is
 /// `"top-down"` or `"general"`. Raises `ValueError` for an empty or malformed tree, one with more
-/// than 20,000 nodes, or one deeper than 128 levels.
+/// than 20,000 nodes, or one deeper than 8,192 levels (128 on WebAssembly, which has a 1 MiB stack).
+/// A tree deeper than 32 levels is compared on a thread with a 64 MiB stack, so the limit does not
+/// depend on the calling thread's stack.
 #[pyfunction]
 #[pyo3(signature = (labels_a, parents_a, labels_b, parents_b, objective = "top-down"))]
 fn tree_distance(

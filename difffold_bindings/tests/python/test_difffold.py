@@ -7,6 +7,7 @@ import random
 import shutil
 import subprocess
 import tempfile
+import threading
 import unittest
 
 import difffold
@@ -168,17 +169,38 @@ class TreeDistance(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             difffold.tree_distance(["x"] * n, [-1] + [0] * (n - 1), *self.ab)
         self.assertIn("the limit is", str(cm.exception))
-        d = 130
+        # The depth limit is 8,192 here (128 on WebAssembly, which has a 1 MiB stack): 8,194 nodes
+        # in a chain is one level too many.
+        d = 8194
         with self.assertRaises(ValueError) as cm:
             difffold.tree_distance(["x"] * d, list(range(-1, d - 1)), *self.ab)
-        self.assertIn("deeper than", str(cm.exception))
+        self.assertIn("deeper than 8192 levels", str(cm.exception))
 
-    def test_the_deepest_allowed_tree_works(self):
-        d = 129
+    def test_trees_far_deeper_than_the_wasm_limit_work(self):
+        d = 2000  # WebAssembly stops at 128
         labels, parents = [f"n{i % 3}" for i in range(d)], list(range(-1, d - 1))
         other = [f"n{(i + 1) % 3}" for i in range(d)]
         for obj in ("top-down", "general"):
             self.assertGreater(difffold.tree_distance(labels, parents, other, parents, obj), 0)
+            self.assertEqual(difffold.tree_distance(labels, parents, labels, parents, obj), 0)
+
+    def test_deep_trees_do_not_depend_on_the_callers_stack(self):
+        # A deep tree is compared on a thread of its own, so a caller on a small stack is safe.
+        d = 2000
+        labels, parents = [f"n{i % 3}" for i in range(d)], list(range(-1, d - 1))
+        other = [f"n{(i + 1) % 3}" for i in range(d)]
+        out = []
+        old = threading.stack_size(256 * 1024)
+        try:
+            t = threading.Thread(
+                target=lambda: out.append(difffold.tree_distance(labels, parents, other, parents, "general"))
+            )
+            t.start()
+            t.join()
+        finally:
+            threading.stack_size(old)
+        self.assertEqual(len(out), 1)
+        self.assertGreater(out[0], 0)
 
 
 class Meta(unittest.TestCase):

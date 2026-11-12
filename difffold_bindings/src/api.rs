@@ -14,11 +14,29 @@ use difffold::unified::unified;
 /// unbounded tree from an untrusted caller is a way to burn unbounded time and memory.
 pub const MAX_TREE_NODES: usize = 20_000;
 
-/// The deepest a tree may be. The tree engines recurse over the tree, so depth is stack depth, and
-/// a WebAssembly stack is small (1 MiB by default). Measured on a 1 MiB stack, the deepest chain
-/// that completed was about 207 levels for `top-down` and 860 for `general` in an unoptimised build,
-/// and about 1,030 and 4,090 optimised. 128 keeps a margin under the worst of those.
-pub const MAX_TREE_DEPTH: usize = 128;
+/// Stack bytes budgeted for each level of a tree. The tree engines recurse over the tree, so depth
+/// is stack depth. The worst measured use is about 5 KiB per level (`top-down`, unoptimised: on a
+/// 1 MiB stack the deepest chain that completed was about 207 levels; `general` managed 860, and
+/// optimised builds about 1,030 and 4,090), so 8 KiB leaves a margin under the worst of them.
+const STACK_PER_LEVEL: usize = 8 * 1024;
+
+/// The stack a tree call may use. WebAssembly has no threads and a 1 MiB stack by default, so it
+/// uses what it has. Everywhere else a deep tree is computed on a thread of its own with this much
+/// stack (address space that is only touched as the recursion goes deep), so the limit does not
+/// depend on how big the caller's stack is.
+#[cfg(target_arch = "wasm32")]
+const STACK_BYTES: usize = 1 << 20;
+#[cfg(not(target_arch = "wasm32"))]
+const STACK_BYTES: usize = 64 << 20;
+
+/// The deepest a tree may be: the stack a tree call may use, divided by 8 KiB a level. That is 128
+/// levels on WebAssembly (1 MiB of stack) and 8,192 everywhere else (a 64 MiB thread of its own).
+pub const MAX_TREE_DEPTH: usize = STACK_BYTES / STACK_PER_LEVEL;
+
+/// The depth that always fits on the caller's own stack, even a small one (a secondary thread on
+/// some platforms has half a MiB). Deeper trees run on a thread with [`STACK_BYTES`] of stack.
+#[cfg(not(target_arch = "wasm32"))]
+const INLINE_DEPTH: usize = 32;
 
 /// Why a call failed. The text is meant for a person.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -256,7 +274,7 @@ fn build(
     labels: &[String],
     parents: &[i32],
     which: &str,
-) -> Result<Id, ApiError> {
+) -> Result<(Id, usize), ApiError> {
     let n = labels.len();
     if n == 0 {
         return Err(ApiError::new(format!("tree {which} has no nodes")));
@@ -292,7 +310,7 @@ fn build(
         depth[i] = depth[p] + 1;
         if depth[i] > MAX_TREE_DEPTH {
             return Err(ApiError::new(format!(
-                "tree {which} is deeper than {MAX_TREE_DEPTH} levels"
+                "tree {which} is deeper than {MAX_TREE_DEPTH} levels (the limit for this build)"
             )));
         }
         kids[p].push(i);
@@ -307,7 +325,8 @@ fn build(
         let child_ids: Vec<Id> = kids[i].iter().filter_map(|k| made[*k]).collect();
         made[i] = Some(arena.mk(label, &child_ids));
     }
-    made[0].ok_or_else(|| ApiError::new("internal error: no root"))
+    let root = made[0].ok_or_else(|| ApiError::new("internal error: no root"))?;
+    Ok((root, depth.into_iter().max().unwrap_or(0)))
 }
 
 /// The edit distance between two ordered, labelled trees, each given as preorder `labels` and
@@ -327,15 +346,45 @@ pub fn tree_distance(
     let obj = objective(objective_name)?;
     let mut arena = Arena::new();
     let mut ids = HashMap::new();
-    let a = build(&mut arena, &mut ids, labels_a, parents_a, "a")?;
-    let b = build(&mut arena, &mut ids, labels_b, parents_b, "b")?;
-    Ok(match obj {
-        Objective::TopDown => diff(&arena, a, b).cost,
+    let (a, depth_a) = build(&mut arena, &mut ids, labels_a, parents_a, "a")?;
+    let (b, depth_b) = build(&mut arena, &mut ids, labels_b, parents_b, "b")?;
+    #[cfg(not(target_arch = "wasm32"))]
+    if depth_a.max(depth_b) > INLINE_DEPTH {
+        return on_a_big_stack(arena, a, b, obj);
+    }
+    #[cfg(target_arch = "wasm32")]
+    let _ = (depth_a, depth_b);
+    Ok(distance(&arena, a, b, obj))
+}
+
+/// The distance itself, on whatever stack the caller is on.
+fn distance(arena: &Arena, a: Id, b: Id, obj: Objective) -> u32 {
+    match obj {
+        Objective::TopDown => diff(arena, a, b).cost,
         Objective::General => ted(
-            &PostTree::from_arena(&arena, a),
-            &PostTree::from_arena(&arena, b),
+            &PostTree::from_arena(arena, a),
+            &PostTree::from_arena(arena, b),
         ),
-    })
+    }
+}
+
+/// [`distance`] on a thread with [`STACK_BYTES`] of stack, so the depth limit is the same whatever
+/// thread called and however small its stack is.
+#[cfg(not(target_arch = "wasm32"))]
+fn on_a_big_stack(arena: Arena, a: Id, b: Id, obj: Objective) -> Result<u32, ApiError> {
+    let handle = std::thread::Builder::new()
+        .name("difffold-tree".into())
+        .stack_size(STACK_BYTES)
+        .spawn(move || distance(&arena, a, b, obj))
+        .map_err(|e| {
+            ApiError::new(format!(
+                "could not reserve {} MiB of stack to compare a tree this deep: {e}",
+                STACK_BYTES >> 20
+            ))
+        })?;
+    handle
+        .join()
+        .map_err(|_| ApiError::new("internal error: the tree comparison panicked"))
 }
 
 #[cfg(test)]
@@ -653,24 +702,78 @@ mod tests {
         assert!(e.contains("deeper than"), "{e}");
     }
 
+    /// The depth WebAssembly's 1 MiB stack allows: the same budget per level as everywhere else.
+    const WASM_DEPTH: usize = (1 << 20) / STACK_PER_LEVEL;
+
+    fn chain(d: usize, shift: usize) -> (Vec<String>, Vec<i32>) {
+        (
+            (0..d).map(|i| format!("n{}", (i + shift) % 3)).collect(),
+            (0..d as i32).map(|i| i - 1).collect(),
+        )
+    }
+
     #[test]
-    fn the_deepest_allowed_tree_fits_a_one_mebibyte_stack() {
-        // WebAssembly's default stack is 1 MiB; run on a thread with that much to prove the depth
-        // limit leaves room.
+    fn the_wasm_depth_fits_a_one_mebibyte_stack() {
+        // WebAssembly's default stack is 1 MiB and it cannot spawn a thread, so `distance` runs on
+        // the caller's stack there. Prove the 128-level budget fits one, on every platform: call
+        // `distance` directly on a thread with exactly that much.
+        assert_eq!(WASM_DEPTH, 128);
         let h = std::thread::Builder::new()
             .stack_size(1 << 20)
             .spawn(|| {
-                let d = MAX_TREE_DEPTH + 1;
-                let labels: Vec<String> = (0..d).map(|i| format!("n{}", i % 3)).collect();
-                let parents: Vec<i32> = (0..d as i32).map(|i| i - 1).collect();
-                let other: Vec<String> = (0..d).map(|i| format!("n{}", (i + 1) % 3)).collect();
-                for o in ["top-down", "general"] {
-                    let v =
-                        tree_distance(&labels, &parents, &other, &parents, o).expect("distance");
-                    assert!(v > 0, "{o}");
+                let (la, pa) = chain(WASM_DEPTH + 1, 0);
+                let (lb, pb) = chain(WASM_DEPTH + 1, 1);
+                for (name, obj) in [
+                    ("top-down", Objective::TopDown),
+                    ("general", Objective::General),
+                ] {
+                    let mut arena = Arena::new();
+                    let mut ids = HashMap::new();
+                    let (a, _) = build(&mut arena, &mut ids, &la, &pa, "a").expect("a");
+                    let (b, _) = build(&mut arena, &mut ids, &lb, &pb, "b").expect("b");
+                    assert!(distance(&arena, a, b, obj) > 0, "{name}");
                 }
             })
             .expect("spawn");
         h.join().expect("no stack overflow");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn the_limit_is_unlocked_off_wasm_and_does_not_depend_on_the_callers_stack() {
+        assert_eq!(MAX_TREE_DEPTH, 8_192);
+        // Far past WebAssembly's 128, called from a thread with a small (256 KiB) stack: the work
+        // moves to its own big-stack thread, so this neither overflows nor is refused.
+        let h = std::thread::Builder::new()
+            .stack_size(256 << 10)
+            .spawn(|| {
+                let d = 2_000;
+                let (la, pa) = chain(d, 0);
+                let (lb, pb) = chain(d, 1);
+                for o in ["top-down", "general"] {
+                    let v = tree_distance(&la, &pa, &lb, &pb, o).expect(o);
+                    assert!(v > 0, "{o}");
+                    assert_eq!(tree_distance(&la, &pa, &la, &pa, o).expect(o), 0, "{o}");
+                }
+            })
+            .expect("spawn");
+        h.join().expect("no stack overflow");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn a_tree_at_the_native_limit_is_accepted_by_validation_and_one_past_it_is_refused() {
+        // Validation only (the quadratic comparison of an 8,192-level chain is not a unit test).
+        let ok = t(&["a"], &[-1]);
+        let (l, p) = chain(MAX_TREE_DEPTH + 1, 0);
+        // `MAX_TREE_DEPTH + 1` nodes in a chain is depth MAX_TREE_DEPTH: allowed by `build`.
+        let mut arena = Arena::new();
+        let mut ids = HashMap::new();
+        assert!(build(&mut arena, &mut ids, &l, &p, "a").is_ok());
+        let (l, p) = chain(MAX_TREE_DEPTH + 2, 0);
+        let e = tree_distance(&l, &p, &ok.0, &ok.1, "top-down")
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("deeper than 8192 levels"), "{e}");
     }
 }
