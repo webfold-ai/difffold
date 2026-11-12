@@ -28,7 +28,7 @@ fn header(n: Node, src: &[u8], body_kind: &str) -> String {
 
 fn private(n: Node, src: &[u8]) -> bool {
     (0..n.child_count())
-        .filter_map(|i| n.child(i))
+        .filter_map(|i| n.child(i as _))
         .any(|c| c.kind() == "modifiers" && text(c, src).split_whitespace().any(|w| w == "private"))
 }
 
@@ -65,7 +65,7 @@ fn walk(n: Node, src: &[u8], owner: &str, out: &mut BTreeSet<String>) {
         _ => {}
     }
     (0..n.child_count())
-        .filter_map(|i| n.child(i))
+        .filter_map(|i| n.child(i as _))
         .for_each(|c| walk(c, src, &next_owner, out));
 }
 

@@ -2,8 +2,7 @@
 //! usage: linebench <diffs-dir> <out.csv> [reps]
 //! Every algorithm is timed from raw bytes (line splitting and hashing included) to an edit cost.
 use difffold::lines::{diff_text, diff_text_with, replay_ok, Algo};
-use imara_diff::intern::InternedInput;
-use imara_diff::{diff as imara, Algorithm as IA};
+mod imara;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -93,32 +92,20 @@ fn main() {
             "histogram replay failed on {name}"
         );
         row("difffold-histogram", us, dh.cost(), &mut out);
-        let (us, c) = time(reps, || {
-            let input = InternedInput::new(bt, at);
-            let c = imara(IA::Myers, &input, imara_diff::sink::Counter::default());
-            (c.insertions + c.removals) as usize
-        });
-        row("imara-myers", us, c, &mut out);
-        if CHECK_IMARA_COST && c != ours {
-            mismatches += 1;
-            eprintln!("cost mismatch vs imara-myers on {name}: ours {ours} imara {c}");
+        let myers = time(reps, || imara::cost(imara::Algo::Myers, bt, at));
+        if let (us, Some(c)) = myers {
+            row("imara-myers", us, c, &mut out);
+            if CHECK_IMARA_COST && c != ours {
+                mismatches += 1;
+                eprintln!("cost mismatch vs imara-myers on {name}: ours {ours} imara {c}");
+            }
         }
-        let (us, c) = time(reps, || {
-            let input = InternedInput::new(bt, at);
-            let c = imara(
-                IA::MyersMinimal,
-                &input,
-                imara_diff::sink::Counter::default(),
-            );
-            (c.insertions + c.removals) as usize
-        });
-        row("imara-myers-minimal", us, c, &mut out);
-        let (us, c) = time(reps, || {
-            let input = InternedInput::new(bt, at);
-            let c = imara(IA::Histogram, &input, imara_diff::sink::Counter::default());
-            (c.insertions + c.removals) as usize
-        });
-        row("imara-histogram", us, c, &mut out);
+        if let (us, Some(c)) = time(reps, || imara::cost(imara::Algo::MyersMinimal, bt, at)) {
+            row("imara-myers-minimal", us, c, &mut out);
+        }
+        if let (us, Some(c)) = time(reps, || imara::cost(imara::Algo::Histogram, bt, at)) {
+            row("imara-histogram", us, c, &mut out);
+        }
         let (us, c) = time(reps, || {
             let ops = similar::capture_diff_slices(
                 similar::Algorithm::Myers,
@@ -157,16 +144,9 @@ fn main() {
                 .len()
         });
         row("patch-similar-myers", us, p, &mut out);
-        let (us, p) = time(reps, || {
-            let input = InternedInput::new(bt, at);
-            imara(
-                IA::Myers,
-                &input,
-                imara_diff::UnifiedDiffBuilder::new(&input),
-            )
-            .len()
-        });
-        row("patch-imara-myers", us, p, &mut out);
+        if let (us, Some(p)) = time(reps, || imara::patch_len(imara::Algo::Myers, bt, at)) {
+            row("patch-imara-myers", us, p, &mut out);
+        }
         n += 1;
     }
     eprintln!("{n} fixtures, {mismatches} cost mismatches vs similar-myers");
