@@ -220,9 +220,10 @@ O(1) subtree equality from hash consing; truediff (Erdweg et al. 2021) also iden
 different design: a linearly typed edit-script language, with a proof of linear run time for its
 algorithm.
 
-**Benchmarks.** Fan et al. (2021) test AST mapping algorithms differentially and report that a
-nontrivial share of file revisions receive inaccurate mappings; Alikhanifard and Tsantalis (2025)
-construct a benchmark of mapping ground truth from Defects4J and refactoring commits. OmniDiff, the
+**Benchmarks.** Fan et al. (2021) test AST mapping algorithms differentially and report inaccurate
+mappings for 20-29% (GumTree), 25-36% (MTDiff) and 21-30% (IJM) of the file revisions they examined; Alikhanifard and Tsantalis (2025)
+build a benchmark of AST node mappings from 800 bug-fixing and 188 refactoring commits and
+measure precision and recall against it. OmniDiff, the
 baseline here, is an open-source tree-sitter based structural diff tool distributed with
 hand-authored node mappings; it has no accompanying paper that we know of, so we cite its repository
 and commit. Its fixtures are the only ground truth used in this paper.
