@@ -281,3 +281,89 @@ fn identical_trees_map_node_for_node() {
     assert!(m.pairs().all(|(b, a)| b == a));
     assert_eq!(m.moves(&bf, &af), 0);
 }
+
+fn opts(spec: &str) -> Options {
+    Options::parse(spec).expect("valid phase list")
+}
+
+#[test]
+fn container_phase_pairs_a_container_that_gained_a_wrapper_by_shared_descendants() {
+    // A list of two statements gains a third statement and is wrapped in a new call node. Top-down
+    // pairs the list with the wrapper (a kind change, dropped by the seed), so only the statements
+    // are paired across levels by the exact phase; the container phase pairs the two lists.
+    let mut a = Arena::new();
+    let (p, q, r) = (stmt(&mut a, 100), stmt(&mut a, 110), stmt(&mut a, 120));
+    let list_b = node(&mut a, LIST, &[p, q]);
+    let list_a = node(&mut a, LIST, &[p, q, r]);
+    let wrapper = node(&mut a, CALL, &[list_a]);
+    let x = node(&mut a, BLOCK, &[list_b]);
+    let y = node(&mut a, BLOCK, &[wrapper]);
+    let (bf, af, no) = run(&a, x, y, &opts("exact"));
+    let (lb, la) = (
+        (0..bf.len()).find(|&v| bf.kind[v] == LIST).unwrap(),
+        (0..af.len()).find(|&v| af.kind[v] == LIST).unwrap(),
+    );
+    assert_eq!(
+        no.b2a[lb], NIL,
+        "without the container phase the lists stay unpaired"
+    );
+    let (bf, af, yes) = run(&a, x, y, &opts("exact,containers"));
+    check_invariants(&bf, &af, &yes);
+    assert_eq!(yes.b2a[lb], la as u32);
+    assert!(subtree_paired(&yes, &bf, at(&bf, p, 0), at(&af, p, 0)));
+    assert!(subtree_paired(&yes, &bf, at(&bf, q, 0), at(&af, q, 0)));
+}
+
+#[test]
+fn validate_phase_drops_a_tentative_pair_that_shares_almost_nothing() {
+    // Same-kind statements at the same position, but only one of six leaves is common.
+    let mut a = Arena::new();
+    let ls: Vec<Id> = (0..6).map(|i| leaf(&mut a, 200 + i)).collect();
+    let s_b = node(&mut a, STMT, &ls);
+    let s_a = {
+        let k = [leaf(&mut a, 200)];
+        node(&mut a, STMT, &k)
+    };
+    let x = node(&mut a, BLOCK, &[s_b]);
+    let y = node(&mut a, BLOCK, &[s_a]);
+    let (bf, af, kept) = run(&a, x, y, &opts("exact"));
+    check_invariants(&bf, &af, &kept);
+    let s_idx = (0..bf.len()).find(|&v| bf.kind[v] == STMT).unwrap();
+    assert_ne!(kept.b2a[s_idx], NIL, "top-down pairs the two statements");
+    let (bf, af, dropped) = run(&a, x, y, &opts("exact,validate"));
+    check_invariants(&bf, &af, &dropped);
+    assert_eq!(
+        dropped.b2a[s_idx], NIL,
+        "validate removes the implausible pair"
+    );
+    // The block pair stays.
+    assert_eq!(dropped.b2a[0], 0);
+}
+
+#[test]
+fn descend_phase_pairs_a_leaf_that_moved_between_branches_and_retarget_prefers_equal_text() {
+    // Leaf 9 moves from one statement to the other (small subtrees, so the exact phase does not move them).
+    let mut a = Arena::new();
+    let (l1, l2, l3, l9) = (
+        leaf(&mut a, 1),
+        leaf(&mut a, 2),
+        leaf(&mut a, 3),
+        leaf(&mut a, 9),
+    );
+    let (s1b, s2b) = (node(&mut a, CALL, &[l1, l9]), node(&mut a, CALL, &[l2]));
+    let (s1a, s2a) = (node(&mut a, CALL, &[l1]), node(&mut a, CALL, &[l2, l9]));
+    let (x, y) = (
+        node(&mut a, BLOCK, &[s1b, s2b, l3]),
+        node(&mut a, BLOCK, &[s1a, s2a, l3]),
+    );
+    let (bf, af, without) = run(&a, x, y, &opts("exact,validate,containers,recover"));
+    let nine_b = (0..bf.len()).find(|&v| bf.label[v] == 9).unwrap();
+    let nine_a = (0..af.len()).find(|&v| af.label[v] == 9).unwrap();
+    assert_ne!(
+        without.b2a[nine_b], nine_a as u32,
+        "the top-down skeleton cannot move a leaf"
+    );
+    let (bf, af, with) = run(&a, x, y, &opts("exact,validate,containers,recover,descend"));
+    check_invariants(&bf, &af, &with);
+    assert_eq!(with.b2a[nine_b], nine_a as u32);
+}

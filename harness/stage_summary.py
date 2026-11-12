@@ -2,18 +2,27 @@
 """Per-stage speed summary: difffold (dfold-cli --reps N, hot in-process view) against OmniDiff
 (`tools/omni_dump` `omni_time`), on the fixtures both ran.
 
-usage: stage_summary.py --cli cli.csv --omni omni_time.csv --out DIR [--machine machine.txt]
+usage: stage_summary.py (--paired paired.csv | --cli cli.csv --omni omni_time.csv) --out DIR
+
+  --paired   written by harness/paired_speed.py: the three measurements of each fixture run back to back in
+             shuffled order. This is the primary input: both tools saw the same load.
+  --cli/--omni  the cold-process harness rows (`difffold-hot`, `difffold-refine-hot` via cli_bench) joined
+             with a separate omni_time run. The two were taken in different load windows, so ratios from
+             this mode are secondary.
 
 Inputs
   cli.csv        written by cli_bench; rows for the tools `difffold-hot` (top-down) and
                  `difffold-refine-hot` (top-down + refinement) carry dfold-cli's key=value line in
                  `stdout_line`: parse_*, convert_*, match_*, prod_* (and refine_* for refine) as med/min/max
-                 over the in-process repetitions, in milliseconds.
+                 over the in-process repetitions, in milliseconds. `prod` is the production path (certified
+                 top-down diff with replay; for the refined tool also correspondence, flatten and refine),
+                 timed first in each pass; `match` omits the replay and runs second on a warm cache, so
+                 this script reports `prod`.
   omni_time.csv  parse_*, load_* (parse + AST metadata), diff_* as med/min/max over repetitions.
 Views (milliseconds, per fixture, then summarised over fixtures)
-  matching only      difffold `match` (top-down diff; refined: diff + correspondence + flatten + refine)
-                     against OmniDiff `diff`.
-  with parse         difffold parse + convert + match against OmniDiff load + diff (`load` includes the
+  matching only      difffold `prod` (top-down: diff_checked; refined: diff_checked + correspondence +
+                     flatten + refine) against OmniDiff `diff`.
+  with parse         difffold parse + convert + prod against OmniDiff load + diff (`load` includes the
                      AST metadata `diff_code` needs) and against OmniDiff parse + diff (tree-sitter only,
                      which omits the metadata and understates OmniDiff).
 Each view is given for the per-fixture median and for the per-fixture minimum over repetitions (the
@@ -22,8 +31,9 @@ minimum is the least disturbed by other load on the machine). Ratios are OmniDif
 import argparse, csv, os, statistics as st
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--cli", required=True)
-ap.add_argument("--omni", required=True)
+ap.add_argument("--cli")
+ap.add_argument("--omni")
+ap.add_argument("--paired")
 ap.add_argument("--out", required=True)
 a = ap.parse_args()
 
@@ -35,42 +45,56 @@ def kv(line):
             d[k] = v
     return d
 
-hot = {"difffold-hot": {}, "difffold-refine-hot": {}}
-for r in csv.DictReader(open(a.cli)):
-    if r["tool"] in hot and r["status"] == "ok":
-        hot[r["tool"]][r["dataset"] + "/" + r["fixture"]] = (kv(r["stdout_line"]), r)
-omni = {r["dataset"] + "/" + r["fixture"]: r for r in csv.DictReader(open(a.omni))}
-keys = sorted(set(omni) & set(hot["difffold-hot"]) & set(hot["difffold-refine-hot"]))
-
 def f(d, k):
     return float(d[k])
+
+rows = []
+if a.paired:
+    for r in csv.DictReader(open(a.paired)):
+        row = {"fixture": r["fixture"], "nodes_before": int(r["nodes_before"]), "nodes_after": int(r["nodes_after"]), "reps": int(r["reps"])}
+        for stat in ("med", "min"):
+            row[f"parse_{stat}"] = f(r, f"td_parse_{stat}")
+            row[f"convert_{stat}"] = f(r, f"td_convert_{stat}")
+            row[f"td_match_{stat}"] = f(r, f"td_prod_{stat}")
+            row[f"rf_match_{stat}"] = f(r, f"rf_prod_{stat}")
+            row[f"rf_refine_{stat}"] = f(r, f"rf_refine_{stat}")
+            row[f"omni_diff_{stat}"] = f(r, f"omni_diff_{stat}")
+            row[f"omni_load_{stat}"] = f(r, f"omni_load_{stat}")
+            row[f"omni_parse_{stat}"] = f(r, f"omni_parse_{stat}")
+        row["loadavg1_cli"] = r["loadavg1"]
+        rows.append(row)
+else:
+    hot = {"difffold-hot": {}, "difffold-refine-hot": {}}
+    for r in csv.DictReader(open(a.cli)):
+        if r["tool"] in hot and r["status"] == "ok":
+            hot[r["tool"]][r["dataset"] + "/" + r["fixture"]] = (kv(r["stdout_line"]), r)
+    omni = {r["dataset"] + "/" + r["fixture"]: r for r in csv.DictReader(open(a.omni))}
+    for k in sorted(set(omni) & set(hot["difffold-hot"]) & set(hot["difffold-refine-hot"])):
+        td, _ = hot["difffold-hot"][k]
+        rf, rr = hot["difffold-refine-hot"][k]
+        o = omni[k]
+        row = {"fixture": k, "nodes_before": int(td["nodes_b"]), "nodes_after": int(td["nodes_a"]), "reps": int(td["reps"])}
+        for stat in ("med", "min"):
+            row[f"parse_{stat}"] = f(td, f"parse_{stat}")
+            row[f"convert_{stat}"] = f(td, f"convert_{stat}")
+            row[f"td_match_{stat}"] = f(td, f"prod_{stat}")
+            row[f"rf_match_{stat}"] = f(rf, f"prod_{stat}")
+            row[f"rf_refine_{stat}"] = f(rf, f"refine_{stat}")
+            row[f"omni_diff_{stat}"] = float(o[f"diff_{stat}_ms"])
+            row[f"omni_load_{stat}"] = float(o[f"load_{stat}_ms"])
+            row[f"omni_parse_{stat}"] = float(o[f"parse_{stat}_ms"])
+        row["loadavg1_cli"] = rr["loadavg1"]
+        rows.append(row)
+for row in rows:
+    for stat in ("med", "min"):
+        row[f"td_total_{stat}"] = row[f"parse_{stat}"] + row[f"convert_{stat}"] + row[f"td_match_{stat}"]
+        row[f"rf_total_{stat}"] = row[f"parse_{stat}"] + row[f"convert_{stat}"] + row[f"rf_match_{stat}"]
+        row[f"omni_total_{stat}"] = row[f"omni_load_{stat}"] + row[f"omni_diff_{stat}"]
+        row[f"omni_total_parseonly_{stat}"] = row[f"omni_parse_{stat}"] + row[f"omni_diff_{stat}"]
 
 def pct(v, p):
     v = sorted(v); i = (len(v) - 1) * p; lo = int(i); hi = min(lo + 1, len(v) - 1)
     return v[lo] + (v[hi] - v[lo]) * (i - lo)
-
-rows = []
-for k in keys:
-    td, _ = hot["difffold-hot"][k]
-    rf, rr = hot["difffold-refine-hot"][k]
-    o = omni[k]
-    row = {"fixture": k, "nodes_before": int(td["nodes_b"]), "nodes_after": int(td["nodes_a"]), "reps": int(td["reps"])}
-    for stat in ("med", "min"):
-        parse = f(td, f"parse_{stat}"); conv = f(td, f"convert_{stat}")
-        row[f"parse_{stat}"] = parse
-        row[f"convert_{stat}"] = conv
-        row[f"td_match_{stat}"] = f(td, f"match_{stat}")
-        row[f"rf_match_{stat}"] = f(rf, f"match_{stat}")
-        row[f"rf_refine_{stat}"] = f(rf, f"refine_{stat}")
-        row[f"td_total_{stat}"] = parse + conv + f(td, f"match_{stat}")
-        row[f"rf_total_{stat}"] = parse + conv + f(rf, f"match_{stat}")
-        row[f"omni_diff_{stat}"] = float(o[f"diff_{stat}_ms"])
-        row[f"omni_load_{stat}"] = float(o[f"load_{stat}_ms"])
-        row[f"omni_parse_{stat}"] = float(o[f"parse_{stat}_ms"])
-        row[f"omni_total_{stat}"] = row[f"omni_load_{stat}"] + row[f"omni_diff_{stat}"]
-        row[f"omni_total_parseonly_{stat}"] = row[f"omni_parse_{stat}"] + row[f"omni_diff_{stat}"]
-    row["loadavg1_cli"] = rr["loadavg1"]
-    rows.append(row)
 
 os.makedirs(a.out, exist_ok=True)
 with open(os.path.join(a.out, "stages.csv"), "w", newline="") as fh:

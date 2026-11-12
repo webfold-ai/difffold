@@ -24,6 +24,7 @@ for spec in seed exact exact,validate exact,validate,containers exact,validate,c
   DFOLD_REFINE=$spec nice -n 10 "$B" "$D" - "$tmp/abl" >/dev/null 2>&1
   cp "$tmp/abl/SUMMARY-difffold-only.md" "$tmp/abl/accuracy-difffold-only.csv" "$R/ablation/$name/"
 done
+DFOLD_REFINE=full DFOLD_DEBUG= nice -n 10 "$B" "$D" - "$tmp/dbg" 2>&1 >/dev/null | python3 -I "$here/harness/phase_counts.py" > "$R/phase-counts.md"
 python3 -I "$here/harness/bootstrap_ci.py" "$R/fixtures.csv" --baseline "$R/topdown/fixtures.csv" --n 10000 --seed 1 --out "$R/ci.md" >/dev/null
 "$here/harness/record_machine.sh" "$R/machine.txt" "$OMNI" 
 rm -rf "$tmp"

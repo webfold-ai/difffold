@@ -366,7 +366,9 @@ indicative, not like for like, and was not repeated for the current corpus.
 | `results/lines/sync.csv`, `merge.csv`, `merge-nomergiraf.csv`, `abi.csv` | `syncbench`, `mergebench` (abi: `src/bin/abi_cutoff.rs`) | No | Historical/preliminary |
 | `results/lines/ted-*.csv` | `tedbench` for the 17-column files; unknown for the rest (see table above) | No | Historical/preliminary |
 | `results/fixtures-java-go-c.csv` | `src/bin/bench_fixtures.rs` | Partly: "4 vCPU cloud VM" only; no CPU, rustc, or OmniDiff commit | Historical/preliminary |
-| `results/accuracy/*` | `src/bin/score_accuracy.rs`, `tools/omni_dump` | Scorer inputs are named; no machine or commit. Accuracy is not timing-sensitive, but the `ted` configuration is not recorded | Result tied to engine/config as stated above |
+| `results/accuracy/*` (except `previous-fork-run/`, `gumtree/`) | `harness/accuracy.sh` (`src/bin/score_accuracy/`, `tools/omni_dump`, `harness/bootstrap_ci.py`) | Yes: `results/accuracy/machine.txt` (CPU, kernel, rustc, difffold commit, OmniDiff commit `ee5ee5b`, tree-sitter crate versions). The scorer is deterministic and not timing-sensitive | Reproducible; regenerated at the recorded commit |
+| `results/accuracy/previous-fork-run/` | The same scorer at an earlier commit, on a private OmniDiff fork | No machine or commit; `ted` configuration not recorded | Historical/superseded |
+| `harness/results/*-t4.*`, `SUMMARY-t4.md`, `machine-t4.txt` | `harness/run_all.sh` rows, `cli_bench`, `harness/paired_speed.py`, `harness/stage_summary.py`, `tools/omni_dump` (`omni_time`) | Yes: `machine-t4.txt`, with the load average per run | Recorded run under load (see Limitations) |
 | `notes/lanes/RESULTS.md` | Narrative summary of the lanes | "Shared cloud VM, single run unless stated" | Historical/preliminary; not a source for new claims |
 
 ### Measurement setup

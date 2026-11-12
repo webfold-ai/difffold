@@ -30,8 +30,8 @@ A diff consumer such as a reviewer, a selective-testing tool or an agent that wa
 needs to know which old node *is* which new node. Edit-distance algorithms answer a different
 question: they return a cheapest script under an operation set. For ordered trees the choice of
 operation set fixes what a correspondence can say. General tree edit distance (Zhang and Shasha)
-lets a deleted node promote its children and has a cubic-time algorithm family that is believed
-optimal in the worst case; the *top-down* variant (Selkow) deletes whole subtrees and requires
+lets a deleted node promote its children and has cubic-time algorithms that are optimal in the worst
+case unless a standard conjecture fails; the *top-down* variant (Selkow) deletes whole subtrees and requires
 matched parents, which makes it quadratic and amenable to pruning, but it reports a moved function
 as one deletion plus one insertion.
 
@@ -93,8 +93,8 @@ preserve order.
 **Why not general tree edit distance.** General (Zhang-Shasha-style) edit distance can express wraps
 and unwraps but not moves, and its best known algorithms are cubic in tree size in the worst
 case; conditional lower bounds say that no strongly subcubic algorithm exists unless the all-pairs
-shortest-paths conjecture fails (Bringmann et al.). The top-down objective avoids that barrier by
-construction. We keep the top-down core exact and fast and repair its output.
+shortest-paths conjecture fails (Bringmann et al.). The top-down objective has a quadratic-time
+algorithm (Selkow). We keep the top-down core exact and fast and repair its output.
 
 ## 3 The difffold algorithm
 
@@ -108,7 +108,7 @@ copy of each distinct subtree.
 
 Cost: one pass over each tree, expected O(n + m) hash operations. A test that injects a constant
 bucket function exists because an earlier version of the interner failed exactly in that case
-(`tests/contracts.rs`).
+(`tests/boundaries.rs`, `constant_bucket_function_keeps_identity_and_distance_exact`).
 
 ### 3.2 Certified top-down alignment (C2) and replay (C3)
 
@@ -144,7 +144,7 @@ re-checked with Lean for this paper. Everything else is tested against an indepe
 ### 3.3 Cross-level refinement
 
 The top-down result is converted into a correspondence on preorder indices and then repaired. All
-phases act only on nodes that are still unmapped, except phase 2, which may replace a *tentative*
+phases act only on nodes that are still unmapped, except phase 1, which may replace a *tentative*
 pair (one inside a subtree that is not identical on both sides). `Options::FULL` runs all of the
 following, in order (`src/refine.rs`).
 
@@ -187,7 +187,7 @@ real code because small subtrees are excluded; linking is O(size) and every node
 in this phase. Phase 2 is O((n + m)·d). Phase 3 walks, for each unmapped before-node, its mapped
 descendants and the ancestors of their partners: O(n·d²) in the worst case. Phase 4 runs the top-down
 aligner on subtrees of pairs made in phase 3, so its cost is at most d times the top-down cost in the
-worst case (nested pairs); on the fixtures few pairs are made in phase 3 (Section 6.2). Phase 5 is
+worst case (nested pairs); on the corpus phase 3 makes 212 pairs in 59 of 998 fixtures (Table 4b). Phase 5 is
 O(L·hops·(log m + k)) for L unmapped leaves and k same-label candidates inside the range. The worst
 case for the refinement as a whole is therefore O((n + m)·d² + d·T) with T the top-down time, and
 quadratic in the adversarial case of very many identical small subtrees. We do not have a better
@@ -211,8 +211,7 @@ Bringmann et al. (2018) give a conditional cubic lower bound for it. `difffold` 
 optimum as its core because it admits an admissible pruning bound.
 
 **Change extraction and heuristic matching.** Chawathe et al. (1996) derive edit scripts from a
-matching of hierarchical data; ChangeDistiller (Fluri et al. 2007) matches leaves by text similarity
-and inner nodes bottom-up by shared leaves. GumTree (Falleri et al. 2014) matches the largest
+matching of hierarchical data; ChangeDistiller (Fluri et al. 2007) matches nodes bottom-up from leaf similarity. GumTree (Falleri et al. 2014) matches the largest
 isomorphic subtrees top-down by height and then inner nodes bottom-up by Dice similarity of mapped
 descendants, followed by a recovery step; a later version makes the matching scalable (Falleri and
 Martinez 2024). MTDiff (Dotzler and Philippsen 2016) optimises scripts for moves. The refinement
@@ -374,6 +373,10 @@ they are the bottom-up half of the usual two-phase design and because recovery d
 pairs, but this ablation gives no evidence that either helps on these fixtures (the recover phase,
 which consumes container pairs, adds +0.002). Descend and retarget add +0.005 span F1 and 5.0
 percentage points of perfect fixtures, mostly by pairing leaves that the top-down seed relabelled.
+Table 4b. What each phase did, summed over the 998 fixtures. Source: `results/accuracy/phase-counts.md`.
+
+<<PHASECOUNTS>>
+
 The ablation is cumulative and in one order; interactions between phases are not separated.
 
 ### 6.3 RQ3: held-out half and a second dataset
@@ -476,7 +479,35 @@ process on a 40-fixture subset. All timings are single-threaded for the Rust too
 
 ## 8 Reproducing
 
-<<REPRO>>
+Everything below runs from a clean checkout plus an OmniDiff checkout at the recorded commit. Paths in
+`results/` and `harness/results/` that name scratch directories are the recording machine's.
+
+```sh
+# tests (no parser needed)
+cargo test --release --locked -p difffold            # includes tests/refine.rs
+cargo fmt --all --check && cargo clippy --release --locked -p difffold --features ts --all-targets -- -D warnings
+
+# OmniDiff's own mappings, and the accuracy tables (results/accuracy/)
+#   tools/omni_dump is its own workspace; edit the absolute `omnidiff` path in its Cargo.toml to your checkout
+(cd tools/omni_dump && cargo build --profile ci) && tools/omni_dump/target/ci/omni_dump DIFFS DUMP
+cargo build --release --locked -p difffold --features ts --bin score_accuracy
+harness/accuracy.sh DIFFS DUMP target/release/score_accuracy OMNIDIFF_CHECKOUT
+harness/dev_sweep.sh DIFFS target/release/score_accuracy results/accuracy/sweeps/dev-sweep.tsv
+
+# speed (harness/results/*-t4.*)
+python3 harness/select_fixtures.py --diffs DIFFS --baseline BASELINE.csv --work WORK --out manifest-t4.tsv --slowest 50 --sample 300 --seed 1
+cargo build --release --locked -p difffold-harness     # dfold-cli, cli_bench
+(cd tools/omni_dump && cargo build --profile ci --bin omni_time)
+target/release/cli_bench --manifest manifest-t4.tsv --tools tools-t4.tsv --out cli-t4.csv --max-reps 10 --slow-ms 5000 --seed 1 --tmp TMP
+python3 harness/paired_speed.py --manifest manifest-t4.tsv --diffs DIFFS --dfold-cli target/release/dfold-cli --omni-time OMNI_TIME --out paired-t4.csv --n 100 --reps 10
+python3 harness/stage_summary.py --paired paired-t4.csv --out harness/results/paired-t4
+```
+
+`BASELINE.csv` for `select_fixtures.py` is a table with columns `repository,path,language,status,bytes_before,
+bytes_after,elapsed_ms`; for `t4` it was built from file sizes (so "slowest 50" means the 50 largest inputs),
+because OmniDiff's own `benchmark_diff_pairs` timings were not produced here. `harness/results/machine-t4.txt`
+and `results/accuracy/machine.txt` record the machine, toolchain and source revisions.
+
 
 ## References
 
