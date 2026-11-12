@@ -21,5 +21,5 @@ nice: every timed process ran at nice 10 on a shared 4-vCPU VM with other jobs (
 timing: Rust tools single-threaded; in-process stage times are medians/minima of 10 passes per fixture
 fixture_selection: harness/select_fixtures.py --slowest 50 --sample 300 --seed 1 on a size-derived baseline (bytes_before + bytes_after as elapsed_ms), so 'slowest' means largest input
 omnidiff_timing: in process via tools/omni_dump/src/bin/omni_time.rs (library parse, metadata load, diff_code_with_config), not the omnidiff command line
-gumtree_timing: cold JVM process via 'gumtree textdiff' on a 40-fixture subset
+gumtree_timing: cold JVM process via gumtree textdiff on a 24-fixture subset (cli-gtcmp-t4.csv), interleaved with difffold cold in the same rounds
 binary_note: dfold-cli, cli_bench and omni_time were built from the working tree of this branch before commit 0e8bf37; between that build and difffold_commit above, src/refine.rs changed only in formatting and doc comments (git diff 00a1931..0e8bf37 -- src/refine.rs) and the other changes are tests, scripts and docs

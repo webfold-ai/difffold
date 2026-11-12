@@ -19,7 +19,7 @@ Deviations from the protocol, all caused by what was available or by the machine
 3. **The machine was heavily loaded** by other jobs (one-minute load average 20 to 85 on 4 vCPUs; per-run values in `machine-t4.txt` and in
    `paired-t4/paired.csv`) and all timed processes ran at `nice` 10. Absolute times are several times those of an idle machine. The paired run
    interleaves the tools so that load is shared; unpaired ratios (`unpaired-t4/`) are secondary.
-4. **GumTree** was timed on a reduced set (see `cli-gumtree-t4.csv` if present) instead of all 350 fixtures, because a cold JVM per round was too slow under this load.
+4. **GumTree** was timed on 24 of the 350 fixtures (seed 1), up to 10 rounds, in the same shuffled rounds as difffold's cold process (`cli-gtcmp-t4.csv`, `tools-gtcmp-t4.tsv`), because a cold JVM per round was too slow under this load for all 350. A first attempt on 40 fixtures was aborted when the paired run needed the machine; its partial rows are not kept.
 5. **The tool table's objective strings contained commas** and shifted CSV columns in `cli-t4.csv`; the commas were replaced after the run (`sed`) and
    `tools-t4.tsv` has the fixed strings. No numbers were altered.
 6. `difffold-hot` and `difffold-refine-hot` wall times include ten in-process passes; their `stdout_line` carries the per-stage medians used by `stage_summary.py`.

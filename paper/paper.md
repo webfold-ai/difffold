@@ -166,7 +166,7 @@ following, in order (`src/refine.rs`).
    after-node of the same kind how many of its descendants' partners lie inside it; pair with the best
    candidate if the Dice similarity reaches `dice` = 0.5.
 4. **Recover.** For each container pair made in phase 3 (outermost first) run the certified top-down
-   aligner on the two subtrees and add its pairs where both nodes are unmapped and kind-compatible;
+   aligner on the two subtrees and add its pairs where both nodes are unmapped and of equal kind;
    then pair unmapped leaf children of equal label under paired parents, in order.
 5. **Descend and retarget.** For each unmapped leaf (or tentative leaf pair whose texts differ), climb at
    most `hops` = 3 ancestors to the nearest mapped one and pair the leaf with the unmapped (or
@@ -593,7 +593,7 @@ timed in process through its library (parse, AST metadata load, `diff_code_with_
 command-line binary, whose JSON rendering and process start are not included; OmniDiff's load step
 computes AST metadata that `diff_code` needs, difffold's convert step builds the arena that `diff`
 needs, and the with-parse view adds each tool's own preparation. GumTree was timed as a cold JVM
-process on a 40-fixture subset. All timings are single-threaded for the Rust tools.
+process on a 24-fixture subset, interleaved with difffold's cold process in the same rounds. All timings are single-threaded for the Rust tools.
 
 **Not run.**
 - GumTree accuracy outside Java (its Go and C generators were not run for accuracy) and any interval for the GumTree
