@@ -418,6 +418,27 @@ one-at-a-time sweeps on dev: changed-span F1 stays within 0.963 to 0.966 over `d
 0.2 to 0.5 and 0.963 to 0.966 over `min_exact` 2 to 5, but ranges from 0.948 to 0.966 over `anchor_below` 2 to 12 and from
 0.950 to 0.966 over `hops` 0 to 12; precision and recall trade against each other along both.
 
+**GumTree on the Java fixtures.** We ran GumTree 4.0.0-beta4 in process (`tools/gumtree_eval/java/Eval.java`, JDT generator, one pass
+per matcher after warm-up) on the 515 Java fixtures, converted its mappings by byte range onto the tree-sitter preorder numbering
+(`tools/gumtree_eval/gt2map`) and scored them with the same scorer. GumTree's JDT tree has no node for punctuation and for some wrappers,
+so scoring every tree-sitter node (*raw*) charges it for nodes it cannot express and gives 0% perfect fixtures for every matcher; we report
+the *scoped* scoring, which judges only the nodes GumTree's tree contains and is therefore lenient to GumTree and not to difffold or OmniDiff.
+
+Table 7. Java fixtures only (515), micro averages, same scorer. Source: `results/accuracy/gumtree-4.0.0-beta4/COMPARE.md`.
+
+| tool | pair F1 | changed-span F1 | perfect fixtures | in-process matching, median |
+|---|---:|---:|---:|---:|
+| GumTree `gumtree-simple` (default), scoped | 0.9997 | 0.958 | 74.2% | 1.19 ms |
+| GumTree `gumtree-hybrid-id`, scoped | 0.9998 | 0.961 | 74.0% | 1.61 ms |
+| GumTree `gumtree-classic`, scoped | 0.9995 | 0.846 | 31.3% | 429 ms |
+| difffold (refined) | 0.9996 | 0.965 | 75.9% | see Table 6 |
+| OmniDiff | 0.9998 | 0.978 | 83.9% | see Table 6 |
+
+On this corpus and scoring, difffold's refined mapping is level with GumTree's default and hybrid matchers (changed-span F1 0.965 against 0.958 and 0.961;
+perfect fixtures 75.9% against 74.2% and 74.0%) and ahead of `gumtree-classic`; OmniDiff is ahead of all of them. We did not compute intervals for the GumTree
+comparison, the leniency of the scoped scoring favours GumTree, and the corpus is OmniDiff's. GumTree's matching time excludes
+its 42 ms median JDT parse of the two files (`times.tsv`); the cold-process comparison is in Section 6.4.
+
 **A second ground truth: DiffBenchmark's Defects4J oracle.** The only other public mapping ground truth we could
 run is the Defects4J oracle of DiffBenchmark (Alikhanifard and Tsantalis; `hrd-oracle/adb-paper/d4j-exp`, 996 files of 800
 bugs, derived from RefactoringMiner's output with manual fixes). It is a second *annotation*, not a second
