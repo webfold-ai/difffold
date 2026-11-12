@@ -84,7 +84,7 @@ public class D4JAccuracyDriver {
             shardN = Integer.parseInt(a.get("--shard").split("/")[1]);
         }
         List<ASTDiffToolEnum> tools = new ArrayList<>();
-        for (String t : a.getOrDefault("--tools", "RMD,GTG,GTS,DFT_TD,DFT_TED").split(","))
+        for (String t : a.getOrDefault("--tools", "RMD,GTG,GTS,DFT_TD,DFT_TED,DFT_RF").split(","))
             tools.add(ASTDiffToolEnum.valueOf(t));
         Files.createDirectories(out);
 

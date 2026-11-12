@@ -6,13 +6,13 @@
 #   DFB        DiffBenchmark checkout (provides hrd-oracle/adb-paper/d4j-exp and the benchmark sources)
 #   FIXTURES   OmniDiff Defects4J fixtures (omnidiff-apeiron/src/test/data/diffs/defects4j)
 #   WORK       scratch directory for build products and outputs
-# Optional: TOOLS (default RMD,GTG,GTS,DFT_TD,DFT_TED), THREADS (3), LIMIT (0 = all bugs),
+# Optional: TOOLS (default RMD,GTG,GTS,DFT_TD,DFT_TED,DFT_RF), THREADS (3), LIMIT (0 = all bugs),
 #           TIMEOUT (seconds per difffold call, 120), CARGO_TARGET_DIR.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 : "${DFB:?}" "${FIXTURES:?}" "${WORK:?}"
-TOOLS="${TOOLS:-RMD,GTG,GTS,DFT_TD,DFT_TED}"
+TOOLS="${TOOLS:-RMD,GTG,GTS,DFT_TD,DFT_TED,DFT_RF}"
 THREADS="${THREADS:-3}"
 LIMIT="${LIMIT:-0}"
 TIMEOUT="${TIMEOUT:-120}"

@@ -1,6 +1,8 @@
 //! Times OmniDiff in process on the fixtures, split the way `difffold`'s `dfold-cli --reps N` is.
 //!
-//! usage: omni_time <diffs-dir> <out.csv> <reps>
+//! usage: omni_time <diffs-dir> <out.csv> <reps> [fixtures.txt]
+//!
+//! `fixtures.txt` (optional) lists `dataset/fixture` lines; only those are timed.
 //!
 //! For every fixture with a `human_mapping.json` whose pair OmniDiff parses, per pass:
 //!   parse_ms  read and tree-sitter parse both files (`code_pair_from_dir_without_metadata`)
@@ -22,6 +24,7 @@ fn stats(v: &mut [f64]) -> (f64, f64, f64) {
 fn run(args: Vec<String>) -> Result<()> {
     let dir = PathBuf::from(&args[1]);
     let reps: usize = args[3].parse()?;
+    let only: Option<std::collections::HashSet<String>> = args.get(4).map(|f| std::fs::read_to_string(f).unwrap().lines().map(str::to_string).collect());
     let config = omnidiff::diff::HeuristicConfig::default();
     let mut out = std::fs::File::create(&args[2])?;
     writeln!(out, "dataset,fixture,reps,nodes_before,nodes_after,parse_med_ms,parse_min_ms,parse_max_ms,load_med_ms,load_min_ms,load_max_ms,diff_med_ms,diff_min_ms,diff_max_ms")?;
@@ -32,6 +35,11 @@ fn run(args: Vec<String>) -> Result<()> {
         let mut fxs: Vec<PathBuf> = std::fs::read_dir(&ds)?.flatten().map(|e| e.path()).filter(|p| p.join("human_mapping.json").exists()).collect();
         fxs.sort();
         for fx in fxs {
+            if let Some(o) = &only {
+                if !o.contains(&format!("{}/{}", ds.file_name().unwrap().to_string_lossy(), fx.file_name().unwrap().to_string_lossy())) {
+                    continue;
+                }
+            }
             let run1 = || -> Result<Option<(f64, f64, f64, usize, usize)>> {
                 let t = Instant::now();
                 let Some(_) = helper::code_pair_from_dir_without_metadata(&fx)? else { return Ok(None) };
