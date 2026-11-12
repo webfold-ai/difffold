@@ -1,0 +1,9 @@
+class,fixtures,decisions,difffold_fails,omnidiff_fails
+local_edit,152,320,24,19
+sibling_ins_del,315,19957,1061,665
+repeated_children,118,1732,507,542
+reorder,18,382,37,27
+cross_parent_move,25,329,42,76
+wrap_unwrap,157,9090,782,408
+wholesale_rewrite,2,3122,121,127
+context,491,2532938,452,552

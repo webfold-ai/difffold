@@ -256,7 +256,7 @@ impl Options {
         retarget: false,
         dice: 0.5,
         min_exact: 2,
-        anchor_below: 6,
+        anchor_below: 3,
     };
     /// All phases.
     pub const FULL: Options = Options {

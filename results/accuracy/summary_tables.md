@@ -1,4 +1,4 @@
-## Fixtures scored: 1001 (unscorable: 748)
+## Fixtures scored: 998 (unscorable: 763)
 
 ### All scorable fixtures
 
@@ -6,47 +6,47 @@ Micro (sums over fixtures):
 
 | lang | tool | fixtures | node-corr. accuracy | pair P | pair R | pair F1 | span P | span R | span F1 | perfect | near-perfect | strict perfect |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| c | difffold | 88 | 0.997 | 0.998 | 0.998 | 0.998 | 0.632 | 0.937 | 0.755 | 65.9% | 89.8% | 65.9% |
-| c | omnidiff | 88 | 0.998 | 0.999 | 0.999 | 0.999 | 0.852 | 0.914 | 0.882 | 78.4% | 96.6% | 77.3% |
-| go | difffold | 79 | 0.996 | 0.999 | 0.998 | 0.998 | 0.846 | 0.997 | 0.915 | 63.3% | 84.8% | 63.3% |
-| go | omnidiff | 79 | 0.999 | 1.000 | 0.999 | 1.000 | 0.952 | 0.981 | 0.966 | 75.9% | 96.2% | 75.9% |
-| java | difffold | 515 | 0.996 | 0.998 | 0.997 | 0.998 | 0.709 | 0.981 | 0.823 | 48.0% | 86.0% | 47.8% |
-| java | omnidiff | 515 | 0.999 | 1.000 | 1.000 | 1.000 | 0.969 | 0.983 | 0.976 | 82.7% | 97.1% | 80.8% |
-| javascript | difffold | 53 | 0.998 | 0.999 | 0.998 | 0.999 | 0.691 | 0.991 | 0.814 | 66.0% | 73.6% | 64.2% |
-| javascript | omnidiff | 53 | 0.999 | 1.000 | 1.000 | 1.000 | 0.943 | 1.000 | 0.971 | 84.9% | 92.5% | 83.0% |
-| python | difffold | 71 | 0.995 | 0.998 | 0.998 | 0.998 | 0.808 | 0.947 | 0.872 | 71.8% | 88.7% | 71.8% |
-| python | omnidiff | 71 | 1.000 | 1.000 | 1.000 | 1.000 | 0.983 | 0.996 | 0.990 | 85.9% | 98.6% | 85.9% |
-| rust | difffold | 111 | 0.995 | 0.998 | 0.997 | 0.998 | 0.760 | 0.989 | 0.860 | 55.9% | 81.1% | 55.9% |
-| rust | omnidiff | 111 | 0.999 | 1.000 | 1.000 | 1.000 | 0.971 | 0.991 | 0.981 | 73.9% | 91.0% | 73.9% |
-| tsx | difffold | 41 | 0.995 | 0.998 | 0.997 | 0.998 | 0.715 | 0.986 | 0.829 | 68.3% | 82.9% | 68.3% |
+| c | difffold | 88 | 0.998 | 0.999 | 0.999 | 0.999 | 0.915 | 0.870 | 0.892 | 75.0% | 93.2% | 73.9% |
+| c | omnidiff | 88 | 0.998 | 0.999 | 0.999 | 0.999 | 0.854 | 0.918 | 0.885 | 79.5% | 97.7% | 77.3% |
+| go | difffold | 79 | 0.999 | 1.000 | 1.000 | 1.000 | 0.995 | 0.983 | 0.989 | 73.4% | 98.7% | 73.4% |
+| go | omnidiff | 79 | 0.999 | 1.000 | 1.000 | 1.000 | 0.952 | 0.981 | 0.966 | 78.5% | 96.2% | 78.5% |
+| java | difffold | 515 | 0.999 | 0.999 | 1.000 | 1.000 | 0.975 | 0.956 | 0.965 | 75.9% | 93.8% | 71.7% |
+| java | omnidiff | 515 | 0.999 | 1.000 | 1.000 | 1.000 | 0.971 | 0.985 | 0.978 | 83.9% | 97.3% | 80.4% |
+| javascript | difffold | 50 | 0.999 | 1.000 | 1.000 | 1.000 | 0.947 | 0.985 | 0.965 | 72.0% | 82.0% | 72.0% |
+| javascript | omnidiff | 50 | 0.999 | 1.000 | 1.000 | 1.000 | 0.942 | 1.000 | 0.970 | 84.0% | 92.0% | 82.0% |
+| python | difffold | 71 | 0.998 | 0.999 | 1.000 | 0.999 | 0.975 | 0.928 | 0.951 | 80.3% | 91.5% | 78.9% |
+| python | omnidiff | 71 | 1.000 | 1.000 | 1.000 | 1.000 | 0.983 | 0.996 | 0.990 | 84.5% | 98.6% | 84.5% |
+| rust | difffold | 111 | 0.998 | 0.999 | 0.999 | 0.999 | 0.980 | 0.969 | 0.974 | 66.7% | 87.4% | 64.9% |
+| rust | omnidiff | 111 | 0.999 | 1.000 | 1.000 | 1.000 | 0.977 | 0.991 | 0.984 | 73.9% | 91.9% | 73.9% |
+| tsx | difffold | 41 | 0.999 | 1.000 | 0.999 | 1.000 | 0.975 | 0.981 | 0.978 | 73.2% | 87.8% | 73.2% |
 | tsx | omnidiff | 41 | 0.999 | 1.000 | 0.999 | 1.000 | 0.943 | 1.000 | 0.970 | 73.2% | 92.7% | 73.2% |
-| typescript | difffold | 43 | 0.999 | 1.000 | 0.999 | 0.999 | 0.876 | 1.000 | 0.934 | 88.4% | 93.0% | 88.4% |
-| typescript | omnidiff | 43 | 1.000 | 1.000 | 1.000 | 1.000 | 0.995 | 1.000 | 0.997 | 93.0% | 100.0% | 90.7% |
-| ALL | difffold | 1001 | 0.996 | 0.998 | 0.997 | 0.998 | 0.740 | 0.979 | 0.843 | 56.8% | 85.4% | 56.6% |
-| ALL | omnidiff | 1001 | 0.999 | 1.000 | 1.000 | 1.000 | 0.960 | 0.983 | 0.971 | 81.2% | 96.1% | 79.9% |
+| typescript | difffold | 43 | 1.000 | 1.000 | 1.000 | 1.000 | 0.989 | 0.989 | 0.989 | 90.7% | 95.3% | 90.7% |
+| typescript | omnidiff | 43 | 1.000 | 1.000 | 1.000 | 1.000 | 0.995 | 1.000 | 0.997 | 95.3% | 100.0% | 93.0% |
+| ALL | difffold | 998 | 0.999 | 0.999 | 1.000 | 1.000 | 0.974 | 0.956 | 0.965 | 75.3% | 92.5% | 72.6% |
+| ALL | omnidiff | 998 | 0.999 | 1.000 | 1.000 | 1.000 | 0.962 | 0.984 | 0.973 | 82.1% | 96.4% | 79.9% |
 
 Macro (mean of per-fixture values):
 
 | lang | tool | accuracy | pair P | pair R | pair F1 | span P | span R | span F1 |
 |---|---|---|---|---|---|---|---|---|
-| c | difffold | 0.978 | 0.967 | 0.970 | 0.967 | 0.867 | 0.980 | 0.896 |
-| c | omnidiff | 0.993 | 0.990 | 0.987 | 0.987 | 0.967 | 0.980 | 0.970 |
-| go | difffold | 0.984 | 0.990 | 0.985 | 0.987 | 0.884 | 0.994 | 0.911 |
+| c | difffold | 0.988 | 0.981 | 0.977 | 0.978 | 0.981 | 0.970 | 0.973 |
+| c | omnidiff | 0.993 | 0.991 | 0.987 | 0.988 | 0.968 | 0.984 | 0.972 |
+| go | difffold | 0.996 | 0.998 | 0.997 | 0.997 | 0.992 | 0.990 | 0.991 |
 | go | omnidiff | 0.996 | 0.999 | 0.999 | 0.999 | 0.978 | 0.992 | 0.981 |
-| java | difffold | 0.986 | 0.993 | 0.991 | 0.992 | 0.837 | 0.982 | 0.870 |
-| java | omnidiff | 0.998 | 0.999 | 0.999 | 0.999 | 0.985 | 0.990 | 0.987 |
-| javascript | difffold | 0.937 | 0.964 | 0.956 | 0.957 | 0.873 | 0.996 | 0.901 |
-| javascript | omnidiff | 0.991 | 0.997 | 0.995 | 0.996 | 0.974 | 1.000 | 0.983 |
-| python | difffold | 0.983 | 0.989 | 0.986 | 0.987 | 0.895 | 0.994 | 0.916 |
+| java | difffold | 0.996 | 0.997 | 0.999 | 0.998 | 0.987 | 0.990 | 0.987 |
+| java | omnidiff | 0.998 | 0.999 | 0.999 | 0.999 | 0.987 | 0.992 | 0.989 |
+| javascript | difffold | 0.984 | 0.991 | 0.991 | 0.991 | 0.953 | 0.995 | 0.965 |
+| javascript | omnidiff | 0.991 | 0.997 | 0.994 | 0.996 | 0.972 | 1.000 | 0.982 |
+| python | difffold | 0.997 | 0.998 | 0.998 | 0.998 | 0.987 | 0.990 | 0.986 |
 | python | omnidiff | 0.999 | 1.000 | 1.000 | 1.000 | 0.983 | 0.992 | 0.986 |
-| rust | difffold | 0.967 | 0.981 | 0.973 | 0.976 | 0.861 | 0.984 | 0.888 |
-| rust | omnidiff | 0.992 | 0.997 | 0.995 | 0.996 | 0.980 | 0.997 | 0.987 |
-| tsx | difffold | 0.983 | 0.990 | 0.988 | 0.989 | 0.871 | 0.999 | 0.898 |
+| rust | difffold | 0.990 | 0.995 | 0.994 | 0.995 | 0.982 | 0.989 | 0.984 |
+| rust | omnidiff | 0.992 | 0.997 | 0.995 | 0.996 | 0.988 | 0.997 | 0.992 |
+| tsx | difffold | 0.986 | 0.990 | 0.989 | 0.989 | 0.998 | 0.995 | 0.997 |
 | tsx | omnidiff | 0.983 | 0.986 | 0.984 | 0.985 | 0.968 | 1.000 | 0.975 |
-| typescript | difffold | 0.983 | 0.982 | 0.977 | 0.979 | 0.952 | 1.000 | 0.963 |
+| typescript | difffold | 0.993 | 0.994 | 0.992 | 0.993 | 0.988 | 0.996 | 0.991 |
 | typescript | omnidiff | 0.999 | 1.000 | 0.999 | 0.999 | 0.991 | 1.000 | 0.994 |
-| ALL | difffold | 0.980 | 0.987 | 0.984 | 0.985 | 0.858 | 0.986 | 0.887 |
-| ALL | omnidiff | 0.996 | 0.998 | 0.997 | 0.997 | 0.981 | 0.992 | 0.984 |
+| ALL | difffold | 0.993 | 0.995 | 0.995 | 0.995 | 0.985 | 0.989 | 0.985 |
+| ALL | omnidiff | 0.996 | 0.998 | 0.997 | 0.997 | 0.983 | 0.993 | 0.986 |
 
 ### Excluding wholesale-rewrite fixtures
 
@@ -54,52 +54,53 @@ Micro (sums over fixtures):
 
 | lang | tool | fixtures | node-corr. accuracy | pair P | pair R | pair F1 | span P | span R | span F1 | perfect | near-perfect | strict perfect |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| c | difffold | 86 | 0.997 | 0.999 | 0.998 | 0.998 | 0.614 | 0.940 | 0.743 | 67.4% | 90.7% | 67.4% |
-| c | omnidiff | 86 | 0.998 | 0.999 | 0.999 | 0.999 | 0.846 | 0.924 | 0.883 | 80.2% | 97.7% | 79.1% |
-| go | difffold | 79 | 0.996 | 0.999 | 0.998 | 0.998 | 0.846 | 0.997 | 0.915 | 63.3% | 84.8% | 63.3% |
-| go | omnidiff | 79 | 0.999 | 1.000 | 0.999 | 1.000 | 0.952 | 0.981 | 0.966 | 75.9% | 96.2% | 75.9% |
-| java | difffold | 514 | 0.996 | 0.998 | 0.997 | 0.998 | 0.702 | 0.980 | 0.818 | 47.9% | 86.0% | 47.7% |
-| java | omnidiff | 514 | 0.999 | 1.000 | 1.000 | 1.000 | 0.968 | 0.983 | 0.976 | 82.7% | 97.1% | 80.7% |
-| javascript | difffold | 53 | 0.998 | 0.999 | 0.998 | 0.999 | 0.691 | 0.991 | 0.814 | 66.0% | 73.6% | 64.2% |
-| javascript | omnidiff | 53 | 0.999 | 1.000 | 1.000 | 1.000 | 0.943 | 1.000 | 0.971 | 84.9% | 92.5% | 83.0% |
-| python | difffold | 71 | 0.995 | 0.998 | 0.998 | 0.998 | 0.808 | 0.947 | 0.872 | 71.8% | 88.7% | 71.8% |
-| python | omnidiff | 71 | 1.000 | 1.000 | 1.000 | 1.000 | 0.983 | 0.996 | 0.990 | 85.9% | 98.6% | 85.9% |
-| rust | difffold | 110 | 0.995 | 0.998 | 0.997 | 0.997 | 0.759 | 0.990 | 0.859 | 56.4% | 80.9% | 56.4% |
-| rust | omnidiff | 110 | 0.999 | 1.000 | 1.000 | 1.000 | 0.974 | 0.991 | 0.983 | 74.5% | 90.9% | 74.5% |
-| tsx | difffold | 41 | 0.995 | 0.998 | 0.997 | 0.998 | 0.715 | 0.986 | 0.829 | 68.3% | 82.9% | 68.3% |
+| c | difffold | 86 | 0.999 | 0.999 | 0.999 | 0.999 | 0.912 | 0.875 | 0.893 | 76.7% | 94.2% | 75.6% |
+| c | omnidiff | 86 | 0.998 | 0.999 | 0.999 | 0.999 | 0.848 | 0.928 | 0.886 | 81.4% | 98.8% | 79.1% |
+| go | difffold | 79 | 0.999 | 1.000 | 1.000 | 1.000 | 0.995 | 0.983 | 0.989 | 73.4% | 98.7% | 73.4% |
+| go | omnidiff | 79 | 0.999 | 1.000 | 1.000 | 1.000 | 0.952 | 0.981 | 0.966 | 78.5% | 96.2% | 78.5% |
+| java | difffold | 514 | 0.999 | 0.999 | 1.000 | 1.000 | 0.974 | 0.954 | 0.964 | 75.9% | 93.8% | 71.8% |
+| java | omnidiff | 514 | 0.999 | 1.000 | 1.000 | 1.000 | 0.970 | 0.985 | 0.977 | 83.9% | 97.3% | 80.4% |
+| javascript | difffold | 50 | 0.999 | 1.000 | 1.000 | 1.000 | 0.947 | 0.985 | 0.965 | 72.0% | 82.0% | 72.0% |
+| javascript | omnidiff | 50 | 0.999 | 1.000 | 1.000 | 1.000 | 0.942 | 1.000 | 0.970 | 84.0% | 92.0% | 82.0% |
+| python | difffold | 71 | 0.998 | 0.999 | 1.000 | 0.999 | 0.975 | 0.928 | 0.951 | 80.3% | 91.5% | 78.9% |
+| python | omnidiff | 71 | 1.000 | 1.000 | 1.000 | 1.000 | 0.983 | 0.996 | 0.990 | 84.5% | 98.6% | 84.5% |
+| rust | difffold | 110 | 0.998 | 0.999 | 0.999 | 0.999 | 0.980 | 0.969 | 0.975 | 67.3% | 87.3% | 65.5% |
+| rust | omnidiff | 110 | 0.999 | 1.000 | 1.000 | 1.000 | 0.977 | 0.991 | 0.984 | 74.5% | 91.8% | 74.5% |
+| tsx | difffold | 41 | 0.999 | 1.000 | 0.999 | 1.000 | 0.975 | 0.981 | 0.978 | 73.2% | 87.8% | 73.2% |
 | tsx | omnidiff | 41 | 0.999 | 1.000 | 0.999 | 1.000 | 0.943 | 1.000 | 0.970 | 73.2% | 92.7% | 73.2% |
-| typescript | difffold | 43 | 0.999 | 1.000 | 0.999 | 0.999 | 0.876 | 1.000 | 0.934 | 88.4% | 93.0% | 88.4% |
-| typescript | omnidiff | 43 | 1.000 | 1.000 | 1.000 | 1.000 | 0.995 | 1.000 | 0.997 | 93.0% | 100.0% | 90.7% |
-| ALL | difffold | 997 | 0.996 | 0.998 | 0.997 | 0.998 | 0.736 | 0.980 | 0.841 | 57.0% | 85.5% | 56.8% |
-| ALL | omnidiff | 997 | 0.999 | 1.000 | 1.000 | 1.000 | 0.961 | 0.983 | 0.972 | 81.4% | 96.2% | 80.1% |
+| typescript | difffold | 43 | 1.000 | 1.000 | 1.000 | 1.000 | 0.989 | 0.989 | 0.989 | 90.7% | 95.3% | 90.7% |
+| typescript | omnidiff | 43 | 1.000 | 1.000 | 1.000 | 1.000 | 0.995 | 1.000 | 0.997 | 95.3% | 100.0% | 93.0% |
+| ALL | difffold | 994 | 0.999 | 0.999 | 1.000 | 1.000 | 0.974 | 0.956 | 0.965 | 75.5% | 92.6% | 72.9% |
+| ALL | omnidiff | 994 | 0.999 | 1.000 | 1.000 | 1.000 | 0.962 | 0.984 | 0.973 | 82.3% | 96.5% | 80.1% |
 
 Macro (mean of per-fixture values):
 
 | lang | tool | accuracy | pair P | pair R | pair F1 | span P | span R | span F1 |
 |---|---|---|---|---|---|---|---|---|
-| c | difffold | 0.986 | 0.987 | 0.983 | 0.985 | 0.865 | 0.981 | 0.894 |
-| c | omnidiff | 0.997 | 0.998 | 0.998 | 0.998 | 0.968 | 0.982 | 0.971 |
-| go | difffold | 0.984 | 0.990 | 0.985 | 0.987 | 0.884 | 0.994 | 0.911 |
+| c | difffold | 0.992 | 0.991 | 0.990 | 0.991 | 0.981 | 0.971 | 0.974 |
+| c | omnidiff | 0.997 | 0.999 | 0.998 | 0.998 | 0.968 | 0.986 | 0.973 |
+| go | difffold | 0.996 | 0.998 | 0.997 | 0.997 | 0.992 | 0.990 | 0.991 |
 | go | omnidiff | 0.996 | 0.999 | 0.999 | 0.999 | 0.978 | 0.992 | 0.981 |
-| java | difffold | 0.986 | 0.993 | 0.991 | 0.992 | 0.836 | 0.982 | 0.870 |
-| java | omnidiff | 0.998 | 0.999 | 0.999 | 0.999 | 0.985 | 0.990 | 0.987 |
-| javascript | difffold | 0.937 | 0.964 | 0.956 | 0.957 | 0.873 | 0.996 | 0.901 |
-| javascript | omnidiff | 0.991 | 0.997 | 0.995 | 0.996 | 0.974 | 1.000 | 0.983 |
-| python | difffold | 0.983 | 0.989 | 0.986 | 0.987 | 0.895 | 0.994 | 0.916 |
+| java | difffold | 0.996 | 0.997 | 0.999 | 0.998 | 0.987 | 0.990 | 0.987 |
+| java | omnidiff | 0.998 | 0.999 | 0.999 | 0.999 | 0.987 | 0.992 | 0.989 |
+| javascript | difffold | 0.984 | 0.991 | 0.991 | 0.991 | 0.953 | 0.995 | 0.965 |
+| javascript | omnidiff | 0.991 | 0.997 | 0.994 | 0.996 | 0.972 | 1.000 | 0.982 |
+| python | difffold | 0.997 | 0.998 | 0.998 | 0.998 | 0.987 | 0.990 | 0.986 |
 | python | omnidiff | 0.999 | 1.000 | 1.000 | 1.000 | 0.983 | 0.992 | 0.986 |
-| rust | difffold | 0.967 | 0.980 | 0.972 | 0.976 | 0.860 | 0.984 | 0.887 |
-| rust | omnidiff | 0.992 | 0.997 | 0.995 | 0.996 | 0.982 | 0.997 | 0.989 |
-| tsx | difffold | 0.983 | 0.990 | 0.988 | 0.989 | 0.871 | 0.999 | 0.898 |
+| rust | difffold | 0.990 | 0.995 | 0.994 | 0.994 | 0.982 | 0.989 | 0.984 |
+| rust | omnidiff | 0.992 | 0.997 | 0.995 | 0.996 | 0.988 | 0.997 | 0.992 |
+| tsx | difffold | 0.986 | 0.990 | 0.989 | 0.989 | 0.998 | 0.995 | 0.997 |
 | tsx | omnidiff | 0.983 | 0.986 | 0.984 | 0.985 | 0.968 | 1.000 | 0.975 |
-| typescript | difffold | 0.983 | 0.982 | 0.977 | 0.979 | 0.952 | 1.000 | 0.963 |
+| typescript | difffold | 0.993 | 0.994 | 0.992 | 0.993 | 0.988 | 0.996 | 0.991 |
 | typescript | omnidiff | 0.999 | 1.000 | 0.999 | 0.999 | 0.991 | 1.000 | 0.994 |
-| ALL | difffold | 0.981 | 0.988 | 0.985 | 0.986 | 0.858 | 0.986 | 0.887 |
-| ALL | omnidiff | 0.996 | 0.998 | 0.998 | 0.998 | 0.982 | 0.992 | 0.985 |
+| ALL | difffold | 0.994 | 0.996 | 0.996 | 0.996 | 0.985 | 0.989 | 0.985 |
+| ALL | omnidiff | 0.996 | 0.998 | 0.998 | 0.998 | 0.983 | 0.993 | 0.986 |
 
 ### Unscorable fixtures by reason (full list: unscorable.csv)
 
 | reason | fixtures |
 |---|---|
+| ground truth | 3 |
 | ground truth has no pairs | 2 |
 | language not parsed here: .BUILD | 1 |
 | language not parsed here: .R | 1 |
@@ -121,6 +122,7 @@ Macro (mean of per-fixture values):
 | language not parsed here: .scala | 20 |
 | language not parsed here: .scss | 6 |
 | language not parsed here: .sh | 54 |
+| language not parsed here: .sql | 12 |
 | language not parsed here: .swift | 41 |
 | language not parsed here: .vim | 33 |
 | language not parsed here: .xml | 39 |
@@ -131,15 +133,15 @@ Macro (mean of per-fixture values):
 
 | lang | fixtures | GT pairs | identical pairs | changed pairs | GT deleted nodes | GT inserted nodes | cross-parent move roots | wrap/unwrap roots | reorder pairs | top-down ceiling (pair recall) | fixtures at ceiling 100% |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| c | 88 | 674563 | 673503 | 1060 | 1134 | 2041 | 10 | 122 | 43 | 0.998 | 68.2% |
-| go | 79 | 474622 | 473671 | 951 | 953 | 5707 | 10 | 122 | 6 | 0.998 | 69.6% |
-| java | 515 | 2376718 | 2371515 | 5203 | 4400 | 18729 | 72 | 652 | 36 | 0.997 | 55.1% |
-| javascript | 53 | 208872 | 208542 | 330 | 335 | 887 | 1 | 53 | 2 | 0.998 | 67.9% |
-| python | 71 | 179963 | 179004 | 959 | 1003 | 2676 | 4 | 61 | 1 | 0.998 | 71.8% |
-| rust | 111 | 850907 | 849240 | 1667 | 4372 | 10418 | 28 | 246 | 15 | 0.997 | 62.2% |
+| c | 88 | 674563 | 673505 | 1058 | 1134 | 2041 | 10 | 118 | 43 | 0.998 | 68.2% |
+| go | 79 | 474619 | 473668 | 951 | 956 | 5710 | 10 | 119 | 6 | 0.998 | 69.6% |
+| java | 515 | 2376713 | 2371527 | 5186 | 4390 | 18728 | 71 | 634 | 36 | 0.997 | 55.0% |
+| javascript | 50 | 205978 | 205668 | 310 | 334 | 882 | 1 | 50 | 2 | 0.998 | 66.0% |
+| python | 71 | 179961 | 179002 | 959 | 996 | 2675 | 4 | 60 | 1 | 0.998 | 71.8% |
+| rust | 111 | 850907 | 849242 | 1665 | 4372 | 10418 | 28 | 244 | 15 | 0.997 | 62.2% |
 | tsx | 41 | 117757 | 117215 | 542 | 241 | 1031 | 0 | 65 | 5 | 0.997 | 68.3% |
-| typescript | 43 | 168500 | 168294 | 206 | 47 | 1334 | 3 | 11 | 0 | 0.999 | 88.4% |
-| ALL | 1001 | 5051902 | 5040984 | 10918 | 12485 | 42823 | 128 | 1332 | 108 | 0.998 | 62.0% |
+| typescript | 43 | 168501 | 168295 | 206 | 46 | 1333 | 3 | 11 | 0 | 0.999 | 88.4% |
+| ALL | 998 | 5048999 | 5038122 | 10877 | 12469 | 42818 | 127 | 1301 | 108 | 0.998 | 61.8% |
 
 ### Failures by root-cause class (decisions: pair, delete, insert and group-member checks)
 
@@ -147,57 +149,58 @@ Fixture-level attribution: a fixture flagged wholesale rewrite counts all its de
 
 | class | fixtures containing | decisions | difffold fails | omnidiff fails | difffold acc | omnidiff acc | gap (fails) | share of gap | perfect fixtures difffold | perfect fixtures omnidiff |
 |---|---|---|---|---|---|---|---|---|---|---|
-| local_edit | 281 | 568 | 42 | 49 | 0.926 | 0.914 | -7 | 0.0% | 72.2% | 80.4% |
-| sibling_ins_del | 670 | 42249 | 2739 | 1237 | 0.935 | 0.971 | 1502 | 10.0% | 56.6% | 77.3% |
-| repeated_children | 231 | 3392 | 1274 | 895 | 0.624 | 0.736 | 379 | 2.5% | 32.9% | 57.6% |
-| reorder | 38 | 1044 | 1009 | 101 | 0.034 | 0.903 | 908 | 6.0% | 0.0% | 55.3% |
-| cross_parent_move | 57 | 1104 | 896 | 213 | 0.188 | 0.807 | 683 | 4.5% | 0.0% | 17.5% |
-| wrap_unwrap | 334 | 20790 | 12475 | 1164 | 0.400 | 0.944 | 11311 | 75.2% | 0.3% | 57.2% |
-| wholesale_rewrite | 4 | 3983 | 190 | 144 | 0.952 | 0.964 | 46 | 0.3% | 25.0% | 25.0% |
-| context | 997 | 5036030 | 1278 | 1054 | 1.000 | 1.000 | 224 | 1.5% | 57.0% | 81.4% |
+| local_edit | 278 | 559 | 44 | 46 | 0.921 | 0.918 | -2 | 0.0% | 77.0% | 80.9% |
+| sibling_ins_del | 659 | 42186 | 2447 | 1185 | 0.942 | 0.972 | 1262 | 58.1% | 71.9% | 77.8% |
+| repeated_children | 230 | 3375 | 1083 | 875 | 0.679 | 0.741 | 208 | 9.6% | 51.3% | 57.0% |
+| reorder | 38 | 1044 | 175 | 99 | 0.832 | 0.905 | 76 | 3.5% | 34.2% | 55.3% |
+| cross_parent_move | 56 | 1101 | 154 | 210 | 0.860 | 0.809 | -56 | 0.0% | 23.2% | 17.9% |
+| wrap_unwrap | 333 | 20845 | 2035 | 1112 | 0.902 | 0.947 | 923 | 42.5% | 48.6% | 58.9% |
+| wholesale_rewrite | 4 | 3983 | 124 | 128 | 0.969 | 0.968 | -4 | 0.0% | 25.0% | 25.0% |
+| context | 994 | 5033129 | 772 | 1006 | 1.000 | 1.000 | -234 | 0.0% | 75.5% | 82.3% |
 
-Fixtures containing any wrap/unwrap: 335/1001 (33.5%); any cross-parent move: 58/1001 (5.8%); any reorder: 38/1001 (3.8%).
-Fixtures where difffold has more visible mismatches than OmniDiff: 385/1001 (38.5%); of those, 301 contain a wrap/unwrap.
+Fixtures containing any wrap/unwrap: 334/998 (33.5%); any cross-parent move: 57/998 (5.7%); any reorder: 38/998 (3.8%).
+Fixtures where difffold has more visible mismatches than OmniDiff: 164/998 (16.4%); of those, 114 contain a wrap/unwrap.
 
 Primary cause of the gap in the fixtures where difffold is worse (class with the largest excess of failed decisions):
 
 | class | fixtures | excess failed decisions |
 |---|---|---|
-| context | 15 | 217 |
-| cross_parent_move | 13 | 382 |
-| reorder | 17 | 848 |
-| repeated_children | 13 | 80 |
-| sibling_ins_del | 52 | 754 |
-| wholesale_rewrite | 2 | 88 |
-| wrap_unwrap | 273 | 10744 |
+| context | 31 | 143 |
+| cross_parent_move | 4 | 52 |
+| local_edit | 1 | 1 |
+| reorder | 4 | 28 |
+| repeated_children | 8 | 188 |
+| sibling_ins_del | 51 | 1060 |
+| wholesale_rewrite | 1 | 20 |
+| wrap_unwrap | 64 | 938 |
 
-Fixtures where OmniDiff is perfect and difffold is not: 250 (25.0% of all). Classes present in them:
+Fixtures where OmniDiff is perfect and difffold is not: 94 (9.4% of all). Classes present in them:
 
-- local_edit: 28
-- sibling_ins_del: 143
-- repeated_children: 59
-- reorder: 21
-- cross_parent_move: 10
-- wrap_unwrap: 190
+- local_edit: 18
+- sibling_ins_del: 61
+- repeated_children: 25
+- reorder: 9
+- cross_parent_move: 5
+- wrap_unwrap: 56
 - wholesale_rewrite: 0
-- context: 250
-- none of move, wrap/unwrap, reorder, repeated, rewrite: 29
+- context: 94
+- none of move, wrap/unwrap, reorder, repeated, rewrite: 20
 
 ### 10 worst fixtures for difffold (visible mismatches minus OmniDiff's)
 
 | fixture | lang | difffold vis. mismatches | omnidiff | decisions | difffold excess fails by cause |
 |---|---|---|---|---|---|
-| handmade/rust-next-font-imports-generator | rust | 726 | 0 | 2397 | context:+5 reorder:+2 wrap_unwrap:+1077 |
-| full/java-pdftk-java-pdftk-real-change-all-across-the-file | java | 860 | 234 | 4938 | context:+99 cross_parent_move:+26 local_edit:-5 reorder:+396 repeated_children:+7 sibling_ins_del:+75 wrap_unwrap:+372 |
-| defects4j/java-defects4j-chart-25-statisticalbarrenderer | java | 476 | 20 | 3200 | cross_parent_move:+20 wrap_unwrap:+622 |
-| full/python-aboutcode-org-license-expression-excellent-test-case | python | 243 | 7 | 13687 | context:+74 cross_parent_move:+4 reorder:+4 repeated_children:+15 sibling_ins_del:+187 wrap_unwrap:+39 |
-| defects4j/java-defects4j-closure-137-makedeclarednamesunique | java | 325 | 111 | 3630 | context:+27 cross_parent_move:+1 sibling_ins_del:+61 wrap_unwrap:+252 |
-| defects4j/java-defects4j-chart-21-defaultboxandwhiskercategorydataset | java | 182 | 0 | 3131 | context:-1 wrap_unwrap:+272 |
-| full/c-sched-ext-scx-many-many-moves-some-deletes-some-adds | c | 180 | 3 | 2590 | context:+103 local_edit:-1 reorder:+122 sibling_ins_del:+16 |
-| stratified/go-jesseduffield-lazygit-many-multi-maps-very-difficult | go | 231 | 55 | 717 | repeated_children:+30 sibling_ins_del:+24 wrap_unwrap:+186 |
-| handmade/rust-turbopack-module-rule | rust | 214 | 43 | 2134 | cross_parent_move:+111 sibling_ins_del:+6 wrap_unwrap:+176 |
-| small/rust-rustdesk-rustdesk-large-file-40k-normal-feature-work | rust | 162 | 2 | 46183 | repeated_children:+49 sibling_ins_del:+18 wrap_unwrap:+198 |
+| full/java-pdftk-java-pdftk-real-change-all-across-the-file | java | 398 | 233 | 4938 | context:-11 cross_parent_move:+17 local_edit:-5 reorder:+83 repeated_children:+2 sibling_ins_del:+59 wrap_unwrap:+84 |
+| defects4j/java-defects4j-closure-137-makedeclarednamesunique | java | 273 | 115 | 3630 | context:+11 cross_parent_move:-16 sibling_ins_del:+85 wrap_unwrap:+131 |
+| small/rust-rustdesk-rustdesk-actual-logic-change-in-io-loop-medium-sized-file | rust | 163 | 5 | 23711 | context:-1 repeated_children:+107 sibling_ins_del:+81 wrap_unwrap:+53 |
+| full/java-jakartaee-rest-real-logic-change-of-a-significant-chunck | java | 180 | 50 | 997 | context:+2 sibling_ins_del:+187 |
+| stratified/c-postgres-postgres-preprocessor-heavy-change | c | 116 | 0 | 362 | sibling_ins_del:+12 wrap_unwrap:+159 |
+| full/python-aboutcode-org-license-expression-excellent-test-case | python | 111 | 7 | 13686 | context:+2 repeated_children:+15 sibling_ins_del:+102 wrap_unwrap:+5 |
+| full/rust-tiffany352-rink-rs-real-change | rust | 131 | 28 | 4554 | context:+8 local_edit:+1 repeated_children:+1 sibling_ins_del:+114 wrap_unwrap:+4 |
+| small/python-django-django-update-unit-tests-actual-logic-change | python | 98 | 4 | 4461 | repeated_children:+3 sibling_ins_del:+123 |
+| small/rust-rustdesk-rustdesk-large-file-40k-normal-feature-work | rust | 75 | 2 | 46177 | context:+1 repeated_children:+53 sibling_ins_del:+43 wrap_unwrap:+15 |
+| stratified/go-jesseduffield-lazygit-many-multi-maps-very-difficult | go | 124 | 55 | 712 | context:+1 repeated_children:+25 sibling_ins_del:+5 wrap_unwrap:+56 |
 
 ### Calibration of this scorer against OmniDiff's own checker
 
-On 1001 fixtures with a native result: OmniDiff native visible mismatches total 3405, this scorer's 3405; zero/non-zero agreement 100.0%. The scorer ignores operation kinds (Identical vs Update) and the subtree-closure step of groups; the native checker enforces both.
+On 998 fixtures with a native result: OmniDiff native visible mismatches total 3251, this scorer's 3251; zero/non-zero agreement 100.0%. The scorer ignores operation kinds (Identical vs Update) and the subtree-closure step of groups; the native checker enforces both.
