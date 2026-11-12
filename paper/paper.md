@@ -816,7 +816,7 @@ apeiron's own axiom-audit policy, which was not read against these results.
 - Falleri, J.-R., Morandat, F., Blanc, X., Martinez, M., Monperrus, M. (2014). Fine-grained and accurate source code differencing (GumTree). ASE 2014.
 - Hammer, M. A., Phang, K. Y., Hicks, M., Foster, J. S. (2014). Adapton: composable, demand-driven incremental computation. PLDI 2014.
 - Backurs, A., Indyk, P. (2015). Edit distance cannot be computed in strongly subquadratic time (unless SETH is false). STOC 2015.
-- Pawlik, M., Augsten, N. (2016). Tree edit distance: robust and memory-efficient. Information Systems 56 (arXiv:1805.06869).
+- Pawlik, M., Augsten, N. (2016). Tree edit distance: robust and memory-efficient. Information Systems 56 (2016). (An earlier version of this entry gave arXiv:1805.06869, which is a different paper: a tutorial on tree edit distance; the identifier is removed rather than guessed.)
 - Dotzler, G., Philippsen, M. (2016). Move-optimized source code tree differencing. ASE 2016.
 - Bringmann, K., Gawrychowski, P., Mozes, S., Weimann, O. (2018). Tree edit distance cannot be computed in strongly subcubic time (unless APSP can be). SODA 2018.
 - Marco-Sola, S., Moure, J. C., Moreto, M., Espinosa, A. (2021). Fast gap-affine pairwise alignment using the wavefront algorithm. Bioinformatics 37(4).
