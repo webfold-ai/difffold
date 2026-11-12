@@ -22,6 +22,8 @@ Inputs
 Views (milliseconds, per fixture, then summarised over fixtures)
   matching only      difffold `prod` (top-down: diff_checked; refined: diff_checked + correspondence +
                      flatten + refine) against OmniDiff `diff`.
+  own work           each tool's preparation and matching with the shared tree-sitter parse taken out
+                     (difffold convert + prod; OmniDiff load - parse + diff).
   with parse         difffold parse + convert + prod against OmniDiff load + diff (`load` includes the
                      AST metadata `diff_code` needs) and against OmniDiff parse + diff (tree-sitter only,
                      which omits the metadata and understates OmniDiff).
@@ -91,6 +93,11 @@ for row in rows:
         row[f"rf_total_{stat}"] = row[f"parse_{stat}"] + row[f"convert_{stat}"] + row[f"rf_match_{stat}"]
         row[f"omni_total_{stat}"] = row[f"omni_load_{stat}"] + row[f"omni_diff_{stat}"]
         row[f"omni_total_parseonly_{stat}"] = row[f"omni_parse_{stat}"] + row[f"omni_diff_{stat}"]
+        # Each tool's own work with the tree-sitter parse taken out of both: OmniDiff's AST metadata
+        # (load minus parse) plus its diff; difffold's arena build plus matching.
+        row[f"omni_own_{stat}"] = max(row[f"omni_load_{stat}"] - row[f"omni_parse_{stat}"], 0.0) + row[f"omni_diff_{stat}"]
+        row[f"td_own_{stat}"] = row[f"convert_{stat}"] + row[f"td_match_{stat}"]
+        row[f"rf_own_{stat}"] = row[f"convert_{stat}"] + row[f"rf_match_{stat}"]
 
 def pct(v, p):
     v = sorted(v); i = (len(v) - 1) * p; lo = int(i); hi = min(lo + 1, len(v) - 1)
@@ -119,6 +126,8 @@ for stat, title in (("med", "per-fixture median over the passes"), ("min", "per-
         ("with parse, top-down core (OmniDiff load incl. metadata)", "omni_total_{}", "td_total_{}"),
         ("with parse, with refinement (OmniDiff load incl. metadata)", "omni_total_{}", "rf_total_{}"),
         ("with parse, with refinement (OmniDiff tree-sitter parse only)", "omni_total_parseonly_{}", "rf_total_{}"),
+        ("own work without the parse on either side, top-down core", "omni_own_{}", "td_own_{}"),
+        ("own work without the parse on either side, with refinement", "omni_own_{}", "rf_own_{}"),
     ):
         out.append(summ(name, num, den, stat))
     out.append("")
