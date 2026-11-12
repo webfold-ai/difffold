@@ -1,6 +1,6 @@
 //! End-to-end CLI for difffold and the two in-process reference algorithms.
 //!
-//! usage: dfold-cli --algo <difffold|difffold-distance|selkow|zs> [--reps N] [--timeout-s S]
+//! usage: dfold-cli --algo <difffold|difffold-distance|difffold-refine|selkow|zs> [--reps N] [--timeout-s S]
 //!                  [--max-cells C] BEFORE AFTER
 //!
 //! Prints one `key=value` line. With `--reps 1` this is the cold production path and is meant to
@@ -11,6 +11,9 @@
 //!   difffold           parse + intern + diff_checked (script built and replayed against the
 //!                      after-tree, cost asserted). This is difffold's production path.
 //!   difffold-distance  parse + intern + diff (no replay).
+//!   difffold-refine    difffold's production path (`difffold`) followed by the cross-level
+//!                      refinement (`difffold::refine`, all phases): the top-down mapping is
+//!                      repaired for moves, reorders, wraps and unwraps.
 //!   selkow             parse + flatten + plain Selkow DP (objective-matched reference).
 //!   zs                 parse + flatten + Zhang-Shasha (cross-objective reference).
 
@@ -133,6 +136,55 @@ fn real_main() -> i32 {
                 " nodes_b={} nodes_a={} cost={cost}",
                 sizes.0, sizes.1
             ));
+            status = "ok";
+        }
+        "difffold-refine" => {
+            let opts = difffold::refine::Options::FULL;
+            let mut sizes = (0, 0);
+            let (mut cost, mut pairs, mut moved) = (0, 0, 0);
+            let mut refine_v = vec![];
+            for r in 0..reps {
+                let mut arena = Arena::new();
+                let mut it = Interner::default();
+                let t = Instant::now();
+                let ids = (
+                    convert(tb.root_node(), &bs, &mut arena, &mut it),
+                    convert(ta.root_node(), &as_, &mut arena, &mut it),
+                );
+                conv_v.push(ms(t));
+                if r == 0 {
+                    sizes = (arena.size(ids.0), arena.size(ids.1));
+                }
+                let run_refine = |arena: &Arena, edit: &difffold::Diff| {
+                    let corr = difffold::mapping::correspondence(arena, ids.0, ids.1, &edit.edit);
+                    let tr = Instant::now();
+                    let bf = difffold::refine::Flat::from_arena(arena, ids.0, |l| it.kind_of(l));
+                    let af = difffold::refine::Flat::from_arena(arena, ids.1, |l| it.kind_of(l));
+                    let (m, _) = difffold::refine::refine(arena, &bf, &af, &corr, &opts);
+                    (ms(tr), m.len(), m.moves(&bf, &af))
+                };
+                // Production: certified top-down seed, then refinement.
+                let t = Instant::now();
+                let d = diff_checked(&mut arena, ids.0, ids.1);
+                cost = d.cost;
+                let (rt, p, mv) = run_refine(&arena, &d);
+                prod_v.push(ms(t));
+                refine_v.push(rt);
+                pairs = p;
+                moved = mv;
+                if reps > 1 {
+                    // Hot view: matching without the replay certificate.
+                    let t = Instant::now();
+                    let d = diff(&arena, ids.0, ids.1);
+                    let _ = run_refine(&arena, &d);
+                    match_v.push(ms(t));
+                }
+            }
+            out.push_str(&format!(
+                " nodes_b={} nodes_a={} cost={cost} pairs={pairs} moves={moved}",
+                sizes.0, sizes.1
+            ));
+            stat("refine", &mut refine_v, &mut out);
             status = "ok";
         }
         "selkow" | "zs" => {

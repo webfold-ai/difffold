@@ -828,6 +828,12 @@ fn one(ds: &str, dir: &Path, dump: &Path) -> Result<Fx, String> {
         {
             opts.dice = d;
         }
+        if let Some(d) = std::env::var("DFOLD_HOPS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+        {
+            opts.hops = d;
+        }
         if let Some(d) = std::env::var("DFOLD_KEEP")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -1088,6 +1094,17 @@ fn csv_row(r: &Row) -> String {
     )
 }
 
+/// Which half a fixture falls in: 0 (dev) or 1 (test). FNV-1a over `dataset/name`, so the split
+/// does not depend on directory order or on how many fixtures are scorable.
+fn split_of(key: &str) -> u64 {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in key.bytes() {
+        h ^= u64::from(b);
+        h = h.wrapping_mul(0x0100_0000_01b3);
+    }
+    (h >> 32) & 1
+}
+
 fn run(args: Vec<String>) {
     let (diffs, dump, out) = (
         PathBuf::from(&args[1]),
@@ -1096,6 +1113,13 @@ fn run(args: Vec<String>) {
     );
     // Pass `-` as the dump directory to score difffold alone.
     std::fs::create_dir_all(&out).unwrap();
+    // `DFOLD_SPLIT=dev|test` keeps one half of the fixtures, chosen by a hash of dataset/name.
+    let split = match std::env::var("DFOLD_SPLIT").as_deref() {
+        Ok("dev") => Some(0),
+        Ok("test") => Some(1),
+        Ok("all") | Err(_) => None,
+        Ok(other) => panic!("DFOLD_SPLIT must be dev, test or all, not {other:?}"),
+    };
     let mut fixtures: Vec<Fx> = Vec::new();
     let mut unscorable: Vec<(String, String, String)> = Vec::new();
     let mut datasets: Vec<PathBuf> = std::fs::read_dir(&diffs)
@@ -1115,6 +1139,12 @@ fn run(args: Vec<String>) {
             .collect();
         fxs.sort();
         for fx in fxs {
+            if let Some(want) = split {
+                let key = format!("{dsn}/{}", fx.file_name().unwrap().to_string_lossy());
+                if split_of(&key) != want {
+                    continue;
+                }
+            }
             match one(&dsn, &fx, &dump) {
                 Ok(x) => fixtures.push(x),
                 Err(e) => unscorable.push((

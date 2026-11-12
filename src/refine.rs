@@ -222,6 +222,14 @@ pub struct Options {
     pub containers: bool,
     /// Phase 4: align the interior of phase-3 pairs, then pair equal leaves under mapped parents.
     pub recover: bool,
+    /// Phase 5: pair still-unmapped leaves of equal label that lie inside a mapped ancestor pair,
+    /// at any depth (a leaf that moved into or out of a wrapper).
+    pub descend: bool,
+    /// Phase 5 also moves a tentative update (a leaf paired with a leaf of different text) onto a
+    /// free leaf of the same text inside the ancestor pair.
+    pub retarget: bool,
+    /// Phase 5 climbs at most this many ancestors above a leaf looking for a mapped one.
+    pub hops: u32,
     /// Between phases 2 and 3: drop a tentative top-down pair of internal nodes whose Dice
     /// similarity (mapped descendants shared) is below `keep`.
     pub validate: bool,
@@ -243,6 +251,9 @@ impl Options {
         keep: 0.3,
         containers: false,
         recover: false,
+        descend: false,
+        hops: 3,
+        retarget: false,
         dice: 0.5,
         min_exact: 2,
         anchor_below: 6,
@@ -254,6 +265,9 @@ impl Options {
         keep: 0.3,
         containers: true,
         recover: true,
+        descend: true,
+        hops: 3,
+        retarget: true,
         dice: 0.5,
         min_exact: 2,
         anchor_below: 6,
@@ -275,6 +289,8 @@ impl Options {
                 "validate" => o.validate = true,
                 "containers" => o.containers = true,
                 "recover" => o.recover = true,
+                "descend" => o.descend = true,
+                "retarget" => o.retarget = true,
                 "full" => o = Self::FULL,
                 other => return Err(format!("unknown phase {other:?}")),
             }
@@ -304,6 +320,8 @@ pub struct RefineStats {
     pub containers: usize,
     /// Nodes paired by phase 4.
     pub recovered: usize,
+    /// Leaves paired by phase 5 (descendants of a mapped pair).
+    pub descended: usize,
     /// Leaf pairs dropped because their parents are not paired.
     pub orphans: usize,
 }
@@ -374,6 +392,10 @@ pub fn refine(
         }
         m.cur = 5;
         st.recovered += leaf_phase(bf, af, &mut m);
+    }
+    if opts.descend {
+        m.cur = 6;
+        st.descended = descend_phase(bf, af, &mut m, &mut firm, opts.hops, opts.retarget);
     }
     st.orphans = drop_orphans(bf, af, &mut m, &firm);
     (m, st)
@@ -619,6 +641,73 @@ fn leaf_phase(bf: &Flat, af: &Flat, m: &mut Mapping) -> usize {
                 m.link(c, a);
                 added += 1;
             }
+        }
+    }
+    added
+}
+
+/// Pairs each unmapped leaf of `bf` with an unmapped leaf of `af` of equal label that lies inside the
+/// after-partner of its nearest mapped ancestor, trying the innermost ancestor pair first. Among the
+/// candidates the one whose offset from the ancestor's partner is closest to the leaf's own offset wins.
+/// Pairs made here are marked firm: they are cross-level by construction, so the orphan rule must
+/// not drop them.
+fn descend_phase(
+    bf: &Flat,
+    af: &Flat,
+    m: &mut Mapping,
+    firm: &mut (Vec<bool>, Vec<bool>),
+    hops: u32,
+    retarget: bool,
+) -> usize {
+    let mut free: std::collections::HashMap<u32, Vec<u32>> = std::collections::HashMap::new();
+    for a in 0..af.len() {
+        if m.a2b[a] == NIL && af.is_leaf(a) {
+            free.entry(af.label[a]).or_default().push(a as u32);
+        }
+    }
+    let mut added = 0;
+    for b in 0..bf.len() {
+        if !bf.is_leaf(b) {
+            continue;
+        }
+        let old = m.b2a[b];
+        if old != NIL
+            && !(retarget && !firm.0[b] && af.is_leaf(old as usize) && af.label[old as usize] != bf.label[b])
+        {
+            continue;
+        }
+        let Some(list) = free.get_mut(&bf.label[b]) else {
+            continue;
+        };
+        let mut anc = bf.parent[b];
+        let mut climbed = 0;
+        while anc != NIL && climbed < hops {
+            climbed += 1;
+            let pa = m.b2a[anc as usize];
+            if pa != NIL {
+                let (lo, hi) = (pa as usize, pa as usize + af.size[pa as usize] as usize);
+                let want = b as i64 - i64::from(anc);
+                let start = list.partition_point(|&a| (a as usize) < lo);
+                let mut best: Option<(u64, usize)> = None;
+                for (i, &a) in list[start..].iter().enumerate() {
+                    if a as usize >= hi {
+                        break;
+                    }
+                    let d = ((i64::from(a) - i64::from(pa)) - want).unsigned_abs();
+                    if best.is_none_or(|(bd, _)| d < bd) {
+                        best = Some((d, start + i));
+                    }
+                }
+                if let Some((_, i)) = best {
+                    let a = list.remove(i) as usize;
+                    m.link(b, a);
+                    firm.0[b] = true;
+                    firm.1[a] = true;
+                    added += 1;
+                    break;
+                }
+            }
+            anc = bf.parent[anc as usize];
         }
     }
     added

@@ -34,15 +34,25 @@ pub fn ext_of(path: &str) -> &str {
 #[derive(Default)]
 pub struct Interner {
     labels: HashMap<(u16, Option<Vec<u8>>), u32>,
+    kinds: Vec<u32>,
 }
 
 impl Interner {
     pub fn label(&mut self, kind: u16, text: Option<&[u8]>) -> u32 {
         let next = u32::try_from(self.labels.len()).unwrap();
-        *self
+        let l = *self
             .labels
             .entry((kind, text.map(<[u8]>::to_vec)))
-            .or_insert(next)
+            .or_insert(next);
+        if l == next {
+            self.kinds.push(u32::from(kind));
+        }
+        l
+    }
+
+    /// The tree-sitter kind of a label (used by the refinement phases).
+    pub fn kind_of(&self, label: u32) -> u32 {
+        self.kinds[label as usize]
     }
 }
 
