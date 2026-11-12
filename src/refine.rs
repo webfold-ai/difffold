@@ -270,7 +270,7 @@ impl Options {
         retarget: true,
         dice: 0.5,
         min_exact: 2,
-        anchor_below: 6,
+        anchor_below: 3,
     };
 }
 
