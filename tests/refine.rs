@@ -174,6 +174,14 @@ fn unwrap_is_the_mirror_of_wrap() {
     );
     assert_eq!(m.b2a[pb - 1], NIL, "the removed wrapper has no partner");
     assert_eq!(bf.kind[pb - 1], CALL);
+    // Top-down alone loses the identity of the unwrapped statement.
+    let (bf, af, plain) = run(&a, x, y, &Options::SEED);
+    assert!(!subtree_paired(
+        &plain,
+        &bf,
+        at(&bf, inner, 0),
+        at(&af, inner, 0)
+    ));
 }
 
 #[test]

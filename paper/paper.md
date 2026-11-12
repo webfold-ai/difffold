@@ -214,8 +214,8 @@ optimum as its core because it admits an admissible pruning bound.
 **Change extraction and heuristic matching.** Chawathe et al. (1996) derive edit scripts from a
 matching of hierarchical data; ChangeDistiller (Fluri et al. 2007) matches nodes bottom-up from leaf similarity. GumTree (Falleri et al. 2014) matches the largest
 isomorphic subtrees top-down by height and then inner nodes bottom-up by Dice similarity of mapped
-descendants, followed by a recovery step; a later version makes the matching scalable (Falleri and
-Martinez 2024). MTDiff (Dotzler and Philippsen 2016) optimises scripts for moves. The refinement
+descendants, followed by a recovery step (Falleri et al. 2014); Falleri and Martinez (2024) revisit it for accuracy and
+scalability. MTDiff (Dotzler and Philippsen 2016) optimises scripts for moves. The refinement
 phases of `difffold` follow the same two-phase shape but start from an exact top-down mapping and use
 O(1) subtree equality from hash consing; truediff (Erdweg et al. 2021) also identifies equal subtrees by (cryptographic) hashes, in a
 different design: a linearly typed edit-script language, with a proof of linear run time for its
