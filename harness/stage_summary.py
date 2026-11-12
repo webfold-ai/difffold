@@ -143,6 +143,16 @@ for lo, hi in ((0, 1000), (1000, 5000), (5000, 20000), (20000, 10**9)):
     if b:
         m = lambda k: st.median(r[k] for r in b)
         out.append(f"| {lo} to {hi if hi < 10**9 else 'max'} | {len(b)} | {m('parse_med'):.3f} | {m('convert_med'):.3f} | {m('td_match_med'):.3f} | {m('rf_match_med'):.3f} | {m('omni_load_med'):.3f} | {m('omni_diff_med'):.3f} |")
+import math
+def slope(key):
+    pts = [(math.log(r["nodes_before"]), math.log(r[key])) for r in rows if r[key] > 0 and r["nodes_before"] > 1]
+    mx = sum(x for x, _ in pts) / len(pts); my = sum(y for _, y in pts) / len(pts)
+    return sum((x - mx) * (y - my) for x, y in pts) / sum((x - mx) ** 2 for x, _ in pts)
+out += ["", "### Scaling: least-squares slope of log(time) against log(nodes in the before tree), per-fixture minima over the passes", "",
+        "| stage | slope | meaning |", "|---|---|---|"]
+for key, name in (("parse_min", "tree-sitter parse"), ("convert_min", "arena build"), ("td_match_min", "top-down (certified)"), ("rf_match_min", "top-down + refinement"), ("rf_refine_min", "refinement alone (paired/cli rows that report it)")):
+    if key in rows[0]:
+        out.append(f"| {name} | {slope(key):.2f} | 1.0 is linear |")
 big = max(rows, key=lambda r: r["nodes_before"])
 out += ["", f"Largest fixture: {big['fixture']} ({big['nodes_before']} / {big['nodes_after']} nodes): parse {big['parse_med']:.1f} ms, convert {big['convert_med']:.1f} ms, top-down {big['td_match_med']:.1f} ms, refined matching {big['rf_match_med']:.1f} ms, OmniDiff load {big['omni_load_med']:.1f} ms, OmniDiff diff {big['omni_diff_med']:.1f} ms."]
 open(os.path.join(a.out, "SUMMARY.md"), "w").write("\n".join(out) + "\n")

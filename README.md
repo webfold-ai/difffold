@@ -297,7 +297,15 @@ toolchain are not recorded for either file: **historical/preliminary**.
 OmniDiff is one baseline among these. It is the only one for which this repository holds hand-authored
 ground truth, so it is the main one scored for accuracy.
 
-**Cost (top-down `diff` engine).** 997 Java, Go and C fixtures, `results/fixtures-java-go-c.csv`, the archived draft
+**Speed (run `t4`, current).** 350 Java, Go and C fixtures from the OmniDiff corpus (the 50 largest inputs plus
+300 drawn at random, seed 1), `harness/results/*-t4.*`; 120 of them timed fixture by fixture against OmniDiff in
+`harness/results/paired-t4/`. Machine, toolchain and revisions: `harness/results/machine-t4.txt`. **The
+machine was heavily loaded by other jobs (one-minute load average 20 to 70 on 4 vCPUs) and every timed process ran at
+`nice` 10**, so absolute times are several times those of an idle machine; see the paper, section 7. <<SPEEDNUMBERS>>
+
+*Historical (previous corpus snapshot and machine, kept for the record).*
+
+**Cost (top-down `diff` engine, earlier single run).** 997 Java, Go and C fixtures, `results/fixtures-java-go-c.csv`, the archived draft
 (`notes/archive/paper-draft-0.2.md`, section 8.1). One run on a "4 vCPU cloud VM, release build" (paper wording). The CPU model, rustc version,
 OmniDiff commit and OmniDiff build profile are **not recorded** with this file, so the figures are
 **historical/preliminary**. OmniDiff's figure is its recorded `diff_code` time on already-parsed trees.
