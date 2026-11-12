@@ -19,6 +19,7 @@ s = s.replace("import benchmark.generators.tools.runners.extensions.combined.Mod
 s = s.replace('    SPN_I("Original Spoon (Incompatible)", Spoon::new),',
   '    DFT_TD("difffold top-down", (benchmarkCase, query) -> new DifffoldASTDiffProvider("topdown", benchmarkCase, query)),\n\n'
   '    DFT_TED("difffold tree edit distance", (benchmarkCase, query) -> new DifffoldASTDiffProvider("ted", benchmarkCase, query)),\n\n'
+  '    DFT_RF("difffold top-down + cross-level refinement", (benchmarkCase, query) -> new DifffoldASTDiffProvider("refine", benchmarkCase, query)),\n\n'
   '    SPN_I("Original Spoon (Incompatible)", Spoon::new),', 1)
 open(p, "w").write(s)
 PY

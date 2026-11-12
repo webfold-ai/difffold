@@ -20,9 +20,12 @@ The library has three engines that solve different problems (see [Choose an engi
   promotes its children), with an optimal node mapping, an independent mapping validator and an
   executable replay of the implied edit script.
 
+On top of `diff`, `refine` (in the library, no parser needed) repairs the top-down mapping across levels:
+moves, reorders, wraps and unwraps. Its output is a heuristic mapping, not an optimum of any objective.
+
 Read [SPEC.md](SPEC.md) for the contracts of `diff`, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the
-modules fit together, and [paper/paper.md](paper/paper.md) for the design, measurements and limits (the paper
-is a draft, version 0.2, marked "in progress").
+modules fit together, and [paper/paper.md](paper/paper.md) for the algorithm, the evaluation and its limits
+(draft 1.0). The earlier draft is archived in `notes/archive/` and is superseded.
 
 ## Choose an engine
 
@@ -59,11 +62,13 @@ node for node. Every cross-tool number below is labelled with the objective it m
 Read these before using the numbers below.
 
 - **The objectives are not OmniDiff's.** `diff` computes top-down distance: it does not match across levels,
-  detect moves, or recover wrap/unwrap. `ted` can match across levels by promotion (so it can express
+  detect moves, or recover wrap/unwrap. `refine` repairs its mapping heuristically (no objective, no certificate beyond a bijection that respects kinds). `ted` can match across levels by promotion (so it can express
   wrap/unwrap) but has no move operation, so a moved or reordered subtree is a delete plus an insert.
-- **Accuracy has been scored against one hand-authored ground truth only** (OmniDiff's mappings), for
-  `diff`, for `ted` (a mixed run, see [OmniDiff: cost and accuracy](#omnidiff-cost-and-accuracy)) and,
-  indicatively, for GumTree and RefactoringMiner (`notes/lanes/GUMTREE-RM.md`). Accuracy against
+- **Accuracy has been scored against two ground truths, on overlapping inputs:** OmniDiff's hand-authored mappings
+  (998 fixtures; `diff`, `diff` + `refine`, OmniDiff, and GumTree 4.0.0-beta4 on the Java subset) and DiffBenchmark's
+  Defects4J oracle (`diff`, `diff` + `refine`, RefactoringMiner, GumTree 3.0; see
+  [OmniDiff: cost and accuracy](#omnidiff-cost-and-accuracy)). Both oracles favour the tool they were derived from. `ted`
+  was scored only in an earlier mixed run on the previous corpus (`results/accuracy/previous-fork-run/`). Accuracy against
   difftastic, diffsitter or imara-diff has **not** been measured.
 - **Correctness evidence is of different kinds** and the kinds are not interchangeable: tests, oracle
   comparisons, Lean proofs about a model, and Lean proofs about Aeneas-extracted Rust. See the
@@ -74,9 +79,9 @@ Read these before using the numbers below.
 - **Languages.** The tree engines are measured on the eight languages with tree-sitter parsers wired in
   (`ts` feature): C, Go, Java, JavaScript, Python, Rust, TSX and TypeScript. The library itself has no parser
   dependency.
-- **Speed numbers are mostly one run.** Variance is not characterised, and the paired protocol in paper
-  section 7.4 has not been run. The repeated `ted-*` files below show how much the same cohort moves
-  between runs.
+- **Speed numbers depend on machine load.** The newest timing run (tag `t4`) was taken on a shared VM with a load
+  average of 20 to 85; per-fixture minima and medians of ten passes are reported, not an idle-machine figure.
+  Older files are single runs; the repeated `ted-*` files below show how much the same cohort moves between runs.
 
 ## Evidence
 
@@ -100,7 +105,7 @@ when this table was written; check the command before relying on it.
 | `unified` patches apply with real `git apply`, forward and reverse | Tests with `git` (`tests/roundtrip.rs`, `gitcompat/tests/edge.rs`) | Edge cases: no final newline, CRLF, special filenames, create/delete headers | `cargo test --locked --workspace` (needs `git` on PATH) |
 | Contracts hold on arbitrary small inputs | Fuzz targets `fuzz_tree`, `fuzz_lines`, run seeded under `cargo test` and under libFuzzer in `fuzz.yml` | Trees of at most 96 nodes and depth 4 | `cargo test --locked --manifest-path fuzz/Cargo.toml` |
 | Speed relative to other tools | Benchmarks, single runs | See [Testing against other tools](#testing-against-other-tools); historical/preliminary where marked | per section |
-| Correspondence accuracy | Scoring against OmniDiff's hand-authored mappings | 1,001 scorable fixtures; engine and configuration are named in each table | `score_accuracy` (needs the OmniDiff corpus) |
+| Correspondence accuracy | Scoring against OmniDiff's hand-authored mappings | 998 scorable fixtures of the public OmniDiff corpus; engine and configuration are named in each table | `score_accuracy` (needs the OmniDiff corpus) |
 
 ## Testing against other tools
 
@@ -294,8 +299,32 @@ toolchain are not recorded for either file: **historical/preliminary**.
 OmniDiff is one baseline among these. It is the only one for which this repository holds hand-authored
 ground truth, so it is the main one scored for accuracy.
 
-**Cost (top-down `diff` engine).** 997 Java, Go and C fixtures, `results/fixtures-java-go-c.csv`, paper
-section 8.1. One run on a "4 vCPU cloud VM, release build" (paper wording). The CPU model, rustc version,
+**Speed (run `t4`, current).** 350 Java, Go and C fixtures from the OmniDiff corpus (the 50 largest inputs plus
+300 drawn at random, seed 1), `harness/results/*-t4.*`; 120 of them timed fixture by fixture against OmniDiff in
+`harness/results/paired-t4/`. Machine, toolchain and revisions: `harness/results/machine-t4.txt`. **The
+machine was heavily loaded by other jobs (one-minute load average 20 to 70 on 4 vCPUs) and every timed process ran at
+`nice` 10**, so absolute times are several times those of an idle machine; see the paper, section 7.
+
+| view (OmniDiff over difffold, paired, 120 fixtures, 10 passes each) | OmniDiff total | difffold total | total ratio | median per-fixture ratio |
+|---|---:|---:|---:|---:|
+| **with the tree-sitter parse counted for both** (OmniDiff: parse + AST metadata + diff) | 29,045 ms | 5,345 ms | **5.4** | 8.8 |
+| own work, parse removed on both sides | 24,859 ms | 1,225 ms | 20.3 | 67.7 |
+| matching only (difffold: certified top-down diff with replay + refinement) | 17,405 ms | 119 ms | 146 | 347 |
+
+- **Headline: about 5 times less total time with the parse counted (5.4 on medians of ten passes, 6.4 on minima, 3.6 in the
+  unpaired 350-fixture run).** It is not an order of magnitude: parsing and arena building are 98% of difffold's own
+  end-to-end time, and the matching and refinement are about 2%. Quote matching-only figures only as matching-only.
+- The refinement costs 20 times the (tiny) top-down core's time on these fixtures (119 ms against 6 ms in total) and adds 3.6% to the cold
+  wall time of the command (20.4 s against 19.7 s for 350 fixtures). Its cost is close to linear in tree size (log-log slope 0.88 to 0.91 from 9 to
+  100,456 nodes).
+- OmniDiff was timed in process through its library (not its command line), and the tree-sitter parse counts as OmniDiff's too. The "parse only"
+  variant (without the AST metadata that `diff_code` needs) gives 4.0.
+- Files: `harness/results/paired-t4/SUMMARY.md`, `unpaired-t4/SUMMARY.md`, `SUMMARY-t4.md`, `NOTES-t4.md` (protocol deviations), `machine-t4.txt`.
+
+*Historical (previous corpus snapshot and machine, kept for the record).*
+
+**Cost (top-down `diff` engine, earlier single run).** 997 Java, Go and C fixtures, `results/fixtures-java-go-c.csv`, the archived draft
+(`notes/archive/paper-draft-0.2.md`, section 8.1). One run on a "4 vCPU cloud VM, release build" (paper wording). The CPU model, rustc version,
 OmniDiff commit and OmniDiff build profile are **not recorded** with this file, so the figures are
 **historical/preliminary**. OmniDiff's figure is its recorded `diff_code` time on already-parsed trees.
 difffold's is interning plus `diff`. **Both exclude the tree-sitter parse.** The objectives differ, so this
@@ -309,47 +338,52 @@ compares cost, not quality.
 | p99 | 126.7 ms | 4.3 ms |
 | worst | 302.8 ms | 47.7 ms |
 
-Per-fixture ratio: minimum 1.4, median 9.2, maximum 215 (paper section 8.1). If difffold's time includes the
+Per-fixture ratio: minimum 1.4, median 9.2, maximum 215 (archived draft, section 8.1). If difffold's time includes the
 tree-sitter parse and OmniDiff's does not, the paper's total ratio drops to 4.1. That comparison is not
 symmetric.
 
-**Accuracy** (1,001 scorable fixtures in the eight supported languages; 748 are unscorable because difffold
-has no parser for their language or the ground truth has no pairs). Scorer: `src/bin/score_accuracy.rs`.
-Sources: `results/accuracy/HEAD-TO-HEAD.md`, `SUMMARY-difffold-only.md`, `SUMMARY-ted-only.md`. The
-OmniDiff column is OmniDiff's own mapping (dumped by `tools/omni_dump`) scored by the same scorer; its machine
-and commit are not recorded in the files, only the `ci` build profile.
+**Accuracy** (998 scorable fixtures in the eight supported languages of the public OmniDiff corpus at commit
+`ee5ee5b`; 763 of 1,761 are unscorable, 758 because difffold has no parser for their language). Scorer:
+`src/bin/score_accuracy/`. Outputs: `results/accuracy/` (refined run and OmniDiff), `results/accuracy/topdown/`,
+`results/accuracy/ablation/`, `results/accuracy/split-dev/`, `results/accuracy/split-test/`,
+`results/accuracy/ci.md` (bootstrap), `results/accuracy/sweeps/dev-sweep.tsv`. The OmniDiff column is
+OmniDiff's own mapping (dumped by `tools/omni_dump`) scored by the same scorer. The earlier run on a private
+OmniDiff fork (1,001 fixtures) is kept in `results/accuracy/previous-fork-run/` and is not mixed with these.
 
-Micro averages over the 1,001 fixtures. The three difffold columns are three different engines and
-configurations:
+Micro averages over the 998 fixtures. The difffold columns are the top-down engine alone and the top-down engine
+followed by the cross-level refinement (`refine`, `Options::FULL`; `DFOLD_REFINE=full`):
 
-| metric (micro) | difffold `diff` (top-down) | difffold `ted` (general; mixed run, see below) | OmniDiff |
+| metric (micro) | difffold `diff` (top-down) | difffold `diff` + `refine` | OmniDiff |
 |---|---:|---:|---:|
-| pair F1 | 0.998 | 0.999 | 1.000 |
-| node-correspondence accuracy | 0.996 | 0.998 | 0.999 |
-| changed-span F1 | 0.843 | 0.936 | 0.971 |
-| fixtures with zero visible mismatches | 56.8% | 65.7% | 81.2% |
+| pair F1 | 0.998 | 1.000 | 1.000 |
+| node-correspondence accuracy | 0.996 | 0.999 | 0.999 |
+| changed-span precision / recall | 0.741 / 0.980 | 0.974 / 0.956 | 0.962 / 0.984 |
+| **changed-span F1** | **0.844** | **0.965** | **0.973** |
+| fixtures with zero visible mismatches | 56.8% | 75.3% | 82.1% |
 
-- **`diff` column**: `diff_checked` with the default `Config::PRODUCTION`, then `mapping::correspondence`
-  (`score_accuracy` with no `DFOLD_*` variable). This is the `difffold` row of `HEAD-TO-HEAD.md` and of
-  `SUMMARY-difffold-only.md`.
-- **`ted` column**: `score_accuracy` with `DFOLD_TED` set, which scores `ted_mapping`. It is a **mixed
-  run**: the scorer falls back to the top-down mapping when a tree has more than 20,000 nodes, and 50 of the
-  1,001 fixtures have such a tree (counted from `nodes_before`/`nodes_after` in `accuracy-ted-only.csv`).
-  Whether `DFOLD_KINDS` (kind-aware relabel cost) or `DFOLD_MOVES` (post-hoc recovery of moved identical
-  subtrees) were set for that run is **not recorded** in the file, which says only "general tree edit
-  mapping". Treat the column as a result for "some `ted` configuration", not for a named one.
-- OmniDiff is ahead on every aggregate. Pair F1 is close because about 99.8% of ground-truth pairs are
-  unchanged context. For `diff`, most of the gap is wrap/unwrap decisions (301 of the 385 fixtures where
-  `diff` is worse contain one), which a top-down matcher cannot make; `ted` can express them but has no move
-  operation (`HEAD-TO-HEAD.md`, `notes/lanes/RESULTS.md` Lane 2c).
-- The scorer favours OmniDiff: the ground truth is OmniDiff's own, and OmniDiff was tuned on this corpus.
-  Treat OmniDiff's numbers as the upper end.
+- Bootstrap over fixtures (`results/accuracy/ci.md`): refined changed-span F1 minus OmniDiff's is -0.008
+  with an interval that includes zero; the perfect-fixture difference (-6.8 points) does not.
+- Decision accuracy in the classes a top-down matcher cannot decide: reorder 0.034 to 0.832 (OmniDiff 0.905),
+  cross-parent move 0.186 to 0.860 (OmniDiff 0.809), wrap/unwrap 0.401 to 0.902 (OmniDiff 0.947). These
+  are accuracies over the graded decisions attributed to each class, not move-operation recall.
+- Partial hold-out: `anchor_below`, `hops` and the descend and retarget phases were chosen on one half
+  (`DFOLD_SPLIT=dev`) and frozen; the other half gives changed-span F1 0.966 on dev, 0.964 on test (OmniDiff 0.974
+  and 0.972). `dice`, `keep` and `min_exact` were inherited from earlier unrecorded runs over all fixtures.
+- Ablation (`results/accuracy/ablation/`): the exact-subtree phase gives almost all of the gain
+  (0.844 to 0.958); the validate and container phases change no aggregate on this corpus.
+- The refined mapping is a heuristic repair, not an optimum of any objective, and is not a top-down mapping.
+  Only the top-down core is certified (C2, C3).
+- The scorer favours OmniDiff: the ground truth is OmniDiff's own, and OmniDiff was developed against this
+  corpus. Treat OmniDiff's numbers as the upper end. Details and threats: `paper/paper.md`, sections 6 and 7.
+- The `ted` engine's earlier accuracy (a mixed run on the previous corpus) is in
+  `results/accuracy/previous-fork-run/` and is not comparable to the table above.
 
-GumTree and RefactoringMiner were scored on subsets of the same ground truth with a scoring that is lenient
-to their JDT trees; see `notes/lanes/GUMTREE-RM.md` and `results/accuracy/gumtree/`. That comparison is
-indicative, not like for like, and is not summarised here.
-
-The paper's section 8.5 still reads `PENDING`. The results above are the current source.
+**GumTree 4.0.0-beta4** was run in process on the 515 Java fixtures and scored by the same scorer
+(`results/accuracy/gumtree-4.0.0-beta4/`; `tools/gumtree_eval/`). Scoped scoring (judges only the nodes GumTree's JDT tree can
+express, so it is lenient to GumTree): changed-span F1 0.958 (`gumtree-simple`, the default), 0.961 (`gumtree-hybrid-id`), 0.846 (`gumtree-classic`);
+perfect fixtures 74.2%, 74.0%, 31.3%. On the same Java fixtures difffold (refined) scores 0.965 and 75.9%, OmniDiff 0.978 and 83.9%. No intervals were
+computed for this comparison. RefactoringMiner was not re-run on this corpus; its earlier indicative scoring is in
+`notes/lanes/GUMTREE-RM.md` (a different GumTree snapshot and a different corpus snapshot).
 
 ### Provenance of the recorded results
 
@@ -361,7 +395,9 @@ The paper's section 8.5 still reads `PENDING`. The results above are the current
 | `results/lines/sync.csv`, `merge.csv`, `merge-nomergiraf.csv`, `abi.csv` | `syncbench`, `mergebench` (abi: `src/bin/abi_cutoff.rs`) | No | Historical/preliminary |
 | `results/lines/ted-*.csv` | `tedbench` for the 17-column files; unknown for the rest (see table above) | No | Historical/preliminary |
 | `results/fixtures-java-go-c.csv` | `src/bin/bench_fixtures.rs` | Partly: "4 vCPU cloud VM" only; no CPU, rustc, or OmniDiff commit | Historical/preliminary |
-| `results/accuracy/*` | `src/bin/score_accuracy.rs`, `tools/omni_dump` | Scorer inputs are named; no machine or commit. Accuracy is not timing-sensitive, but the `ted` configuration is not recorded | Result tied to engine/config as stated above |
+| `results/accuracy/*` (except `previous-fork-run/`, `gumtree/`) | `harness/accuracy.sh` (`src/bin/score_accuracy/`, `tools/omni_dump`, `harness/bootstrap_ci.py`) | Yes: `results/accuracy/machine.txt` (CPU, kernel, rustc, difffold commit, OmniDiff commit `ee5ee5b`, tree-sitter crate versions). The scorer is deterministic and not timing-sensitive | Reproducible; regenerated at the recorded commit |
+| `results/accuracy/previous-fork-run/` | The same scorer at an earlier commit, on a private OmniDiff fork | No machine or commit; `ted` configuration not recorded | Historical/superseded |
+| `harness/results/*-t4.*`, `SUMMARY-t4.md`, `machine-t4.txt` | `harness/run_all.sh` rows, `cli_bench`, `harness/paired_speed.py`, `harness/stage_summary.py`, `tools/omni_dump` (`omni_time`) | Yes: `machine-t4.txt`, with the load average per run | Recorded run under load (see Limitations) |
 | `notes/lanes/RESULTS.md` | Narrative summary of the lanes | "Shared cloud VM, single run unless stated" | Historical/preliminary; not a source for new claims |
 
 ### Measurement setup
@@ -371,7 +407,7 @@ The paper's section 8.5 still reads `PENDING`. The results above are the current
 - **Limits:** 60 s wall time per run, SIGKILL on timeout (`harness/results/SUMMARY.md`).
 - **Versions:** difftastic 0.72.0; GumTree 4.0.0-beta4; rustc 1.97.0 for the harness build (the library's
   minimum supported version is 1.89.0, below).
-- **Not done:** the paired timing protocol (paper section 7.4), multi-machine runs, and variance estimates.
+- **Not done:** multi-machine runs and idle-machine timing. Run `t4` (see below) is paired and repeated but taken under load.
 
 ## Theory: all-pairs shortest paths and tree edit distance
 
@@ -397,7 +433,7 @@ is made here about how they would perform on real ASTs.
 
 **What this means for difffold.** `diff` restricts the objective to top-down distance, in which a node can be
 matched only if its parent is (Selkow 1977). The lower bounds above apply to the unrestricted problem. The
-paper (section 2.5) states that whether the top-down objective inherits such a barrier is **open**, because
+archived draft (`notes/archive/paper-draft-0.2.md`, section 2.5) states that whether the top-down objective inherits such a barrier is **open**, because
 it is a restricted recurrence and must be analysed as one. `ted` solves the unrestricted problem exactly;
 its pruning (threshold doubling, bands, label bound) is an exact speed-up whose cost on a given pair depends
 on the distance, and `ted.rs` states no worst-case bound. Running times on the measured fixtures are in the
@@ -432,7 +468,7 @@ status of each stage in [proof/README.md](proof/README.md)):
 
 - `proof/Difffold/` (five modules): theorems about a **Lean model** of the top-down objective: admissibility
   of the size bound, soundness of pruning, correctness of the threshold decision and of the widening loop,
-  and the strip lemma (paper section 8.9). Not linked to the Rust.
+  and the strip lemma (archived draft section 8.9; `proof/README.md`). Not linked to the Rust.
 - `proof/Kernel/`, `proof/Lines/`: theorems about the **Aeneas translation of Rust**: `src/kernel.rs`
   (the threshold DP) and some helpers of `src/lines.rs`, with the hypotheses stated in `proof/README.md`.
 - `proof/Myers/`, `proof/Myers2/`, `proof/Ted/`: models and partial lemmas for the Myers search and for four
@@ -489,7 +525,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - [GumTree](https://github.com/GumTreeDiff/gumtree): a syntax-aware tree differencing tool. It is run here
   with the `gumtree-simple` matcher, through its `textdiff` command.
 - [APTED](https://github.com/DatabaseGroup/apted): exact general tree edit distance, with a node mapping
-  output. Its decomposition strategy is discussed in paper section 2. The `apted` crate used by `tedbench` is
+  output. Its decomposition strategy is discussed in the archived draft, section 2. The `apted` crate used by `tedbench` is
   a Rust port.
 - OmniDiff: a structural diff tool and benchmark with hand-authored mapping ground truth. It is the main
   baseline in this repository with an accuracy ground truth.

@@ -1,0 +1,11 @@
+dataset,fixture,lang,difffold_visible,omnidiff_visible,decisions,cause_breakdown
+handmade,rust-next-font-imports-generator,rust,726,0,2397,"context:+5 reorder:+2 wrap_unwrap:+1077"
+full,java-pdftk-java-pdftk-real-change-all-across-the-file,java,861,233,4937,"context:+99 cross_parent_move:+26 local_edit:-5 reorder:+396 repeated_children:+7 sibling_ins_del:+76 wrap_unwrap:+373"
+defects4j,java-defects4j-chart-25-statisticalbarrenderer,java,476,18,3200,"cross_parent_move:+20 wrap_unwrap:+624"
+full,python-aboutcode-org-license-expression-excellent-test-case,python,243,7,13686,"context:+74 cross_parent_move:+4 reorder:+4 repeated_children:+15 sibling_ins_del:+187 wrap_unwrap:+38"
+defects4j,java-defects4j-closure-137-makedeclarednamesunique,java,325,115,3630,"context:+27 cross_parent_move:+1 sibling_ins_del:+61 wrap_unwrap:+246"
+defects4j,java-defects4j-chart-21-defaultboxandwhiskercategorydataset,java,182,0,3131,"context:-1 wrap_unwrap:+272"
+full,c-sched-ext-scx-many-many-moves-some-deletes-some-adds,c,180,3,2590,"context:+103 local_edit:-1 reorder:+122 sibling_ins_del:+16"
+stratified,go-jesseduffield-lazygit-many-multi-maps-very-difficult,go,231,55,717,"repeated_children:+30 sibling_ins_del:+24 wrap_unwrap:+186"
+handmade,rust-turbopack-module-rule,rust,214,43,2134,"cross_parent_move:+111 sibling_ins_del:+6 wrap_unwrap:+176"
+small,rust-rustdesk-rustdesk-large-file-40k-normal-feature-work,rust,162,2,46183,"repeated_children:+49 sibling_ins_del:+18 wrap_unwrap:+198"

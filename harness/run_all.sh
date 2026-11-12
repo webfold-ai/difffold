@@ -90,7 +90,9 @@ tab() { local IFS=$'\t'; echo "$*"; }
   tab omnidiff "heuristic matching + APTED on residual (own)" "*" "0" '"large_residual": true' 0 "" "$OMNI --mode json {B} {A}"
   tab difffold "top-down Selkow (exact)" "java,go,c" "0" "" 1 "" "$CLI --algo difffold {B} {A}"
   tab difffold-distance "top-down Selkow (exact)" "java,go,c" "0" "" 1 "" "$CLI --algo difffold-distance {B} {A}"
+  tab difffold-refine "top-down + cross-level refinement" "java,go,c" "0" "" 1 "" "$CLI --algo difffold-refine {B} {A}"
   tab difffold-hot "top-down Selkow (exact)" "java,go,c" "0" "" 1 "ROUNDS=2" "$CLI --algo difffold --reps 7 {B} {A}"
+  tab difffold-refine-hot "top-down + cross-level refinement" "java,go,c" "0" "" 1 "ROUNDS=2" "$CLI --algo difffold-refine --reps 7 {B} {A}"
   tab selkow-ref "top-down Selkow (plain DP)" "java,go,c" "0" "" 1 "ROUNDS=3" "$CLI --algo selkow --timeout-s 55 {B} {A}"
   tab zhang-shasha "general TED (promotes children)" "java,go,c" "0" "" 1 "ROUNDS=3" "$CLI --algo zs --timeout-s 55 --max-cells 25000000 {B} {A}"
   if [[ -x $APTED_WORKER ]]; then

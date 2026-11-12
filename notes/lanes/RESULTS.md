@@ -1,3 +1,5 @@
+> **Historical.** The accuracy figures in this file (1,001 fixtures, 0.843 changed-span F1 for the top-down engine) are from the earlier run on a private OmniDiff fork, kept in `results/accuracy/previous-fork-run/`. The current numbers, on the public corpus and with the cross-level refinement, are in `results/accuracy/` and `paper/paper.md`. Timing figures here are single runs without a recorded machine.
+
 # Comparison lanes: measured results and what could not be run
 
 Machine: shared cloud VM, single run unless stated. Corpus: OmniDiff's `src/test/data/diffs` (2,302

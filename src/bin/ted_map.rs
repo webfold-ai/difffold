@@ -1,78 +1,21 @@
 //! Prints the node mapping difffold computes for two Java files as JSON, for external benchmark
 //! adapters (see tools/diffbenchmark_adapter/).
 //!
-//! usage: ted_map [--algo ted|topdown] <before.java> <after.java>
+//! usage: ted_map [--algo ted|topdown|refine] <before.java> <after.java>
 //!
 //! Output: {"pairs":[[bs,be,kind,as,ae,kind], ...],"nb":N,"na":M,"bn":[[s,e],...],"an":[[s,e],...]}, byte ranges and tree-sitter kinds
 //! of matched node pairs, in preorder of the before tree. `topdown` is the ordered top-down mapping
 //! implied by the certified script (`diff_checked` + `correspondence`); `ted` is the optimal general
-//! tree edit mapping (`ted_mapping`).
+//! tree edit mapping (`ted_mapping`); `refine` is `topdown` followed by the cross-level refinement
+//! (`difffold::refine`, all phases).
 
 use difffold::mapping::correspondence;
+use difffold::refine::{refine, Flat, Options};
 use difffold::ted::{ted_mapping, PostTree};
-use difffold::{diff_checked, Arena, Id};
-use std::collections::HashMap;
+use difffold::ts::{convert, Interner, Tree, NIL};
+use difffold::{diff_checked, Arena};
 use std::fmt::Write as _;
-use tree_sitter::{Node, Parser};
-
-const NIL: u32 = u32::MAX;
-
-#[derive(Default)]
-struct Interner {
-    labels: HashMap<(u16, Option<Vec<u8>>), u32>,
-}
-
-impl Interner {
-    fn label(&mut self, kind: u16, text: Option<&[u8]>) -> u32 {
-        let next = u32::try_from(self.labels.len()).unwrap();
-        *self
-            .labels
-            .entry((kind, text.map(<[u8]>::to_vec)))
-            .or_insert(next)
-    }
-}
-
-/// A tree-sitter tree flattened to preorder arrays.
-#[derive(Default)]
-struct Tree {
-    kind: Vec<&'static str>,
-    range: Vec<(usize, usize)>,
-    kids: Vec<Vec<u32>>,
-    label: Vec<u32>,
-}
-
-fn convert(
-    n: Node,
-    src: &[u8],
-    arena: &mut Arena,
-    it: &mut Interner,
-    t: &mut Tree,
-    parent: u32,
-) -> Id {
-    let idx = u32::try_from(t.kind.len()).unwrap();
-    t.kind.push(n.kind());
-    t.range.push((n.start_byte(), n.end_byte()));
-    t.kids.push(Vec::new());
-    t.label.push(0);
-    if parent != NIL {
-        t.kids[parent as usize].push(idx);
-    }
-    let leaf = n.child_count() == 0;
-    let (id, label) = if leaf {
-        let l = it.label(n.kind_id(), Some(&src[n.byte_range()]));
-        (arena.mk(l, &[]), l)
-    } else {
-        let mut kids = Vec::with_capacity(n.child_count());
-        let mut c = n.walk();
-        for ch in n.children(&mut c) {
-            kids.push(convert(ch, src, arena, it, t, idx));
-        }
-        let l = it.label(n.kind_id(), None);
-        (arena.mk(l, &kids), l)
-    };
-    t.label[idx as usize] = label;
-    id
-}
+use tree_sitter::Parser;
 
 /// Optimal general tree edit mapping (deleting a node promotes its children) as preorder index pairs.
 fn ted_pairs(bt: &Tree, at: &Tree) -> Vec<(u32, u32)> {
@@ -147,8 +90,8 @@ fn main() {
             files.push(a);
         }
     }
-    if files.len() != 2 || !matches!(algo.as_str(), "ted" | "topdown") {
-        fail("usage: ted_map [--algo ted|topdown] <before.java> <after.java>");
+    if files.len() != 2 || !matches!(algo.as_str(), "ted" | "topdown" | "refine") {
+        fail("usage: ted_map [--algo ted|topdown|refine] <before.java> <after.java>");
     }
     let (bs, as_) = (
         std::fs::read(&files[0]).unwrap_or_else(|e| fail(&e.to_string())),
@@ -174,7 +117,16 @@ fn main() {
     } else {
         let res = diff_checked(&mut arena, x, y);
         let corr = correspondence(&arena, x, y, &res.edit);
-        corr.pairs.iter().map(|p| (p.before, p.after)).collect()
+        if algo == "refine" {
+            let (bf, af) = (
+                Flat::from_arena(&arena, x, |l| it.kind_of(l)),
+                Flat::from_arena(&arena, y, |l| it.kind_of(l)),
+            );
+            let (m, _) = refine(&arena, &bf, &af, &corr, &Options::FULL);
+            m.pairs().collect()
+        } else {
+            corr.pairs.iter().map(|p| (p.before, p.after)).collect()
+        }
     };
     let mut out = String::with_capacity(pairs.len() * 48 + 64);
     out.push_str("{\"pairs\":[");
@@ -182,7 +134,7 @@ fn main() {
         if i > 0 {
             out.push(',');
         }
-        let ((bs_, be), (as2, ae)) = (bt.range[b as usize], at.range[a as usize]);
+        let ((bs_, be), (as2, ae)) = (bt.span[b as usize], at.span[a as usize]);
         let _ = write!(
             out,
             "[{bs_},{be},{},{as2},{ae},{}]",
@@ -192,7 +144,7 @@ fn main() {
     }
     // All node ranges of both trees, so adapters can tell which target-tree nodes have no counterpart at all.
     let ranges = |t: &Tree| {
-        t.range
+        t.span
             .iter()
             .map(|&(s, e)| format!("[{s},{e}]"))
             .collect::<Vec<_>>()
