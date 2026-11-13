@@ -1,0 +1,47 @@
+# Comparison summary
+
+```
+date: 2026-11-12T08:09:41Z
+cpu: Intel(R) Xeon(R) Processor @ 2.30GHz
+nproc: 4
+mem_total_kb: 16472084
+kernel: Linux 6.18.44-fc-v378 #1 SMP PREEMPT_DYNAMIC @0
+loadavg_at_record: 69.75 75.16 62.01 64/1043 14282
+rustc: rustc 1.97.0 (2d8144b78 2026-07-07)
+cargo: cargo 1.97.0 (c980f4866 2026-06-30)
+profile: release (opt-level 3, no LTO); OmniDiff tools: profile ci (release, lto off, 16 codegen units)
+java: openjdk version "21.0.12.1" 2026-08-18
+git: git version 2.43.0
+difffold_commit: 0e8bf37ba53fd4af4be20d4b8be7fbf577082413 (7 uncommitted paths)
+tree-sitter crates: "tree-sitter" "0.26.13" "tree-sitter-c" "0.24.2" "tree-sitter-go" "0.25.0" "tree-sitter-java" "0.23.5" "tree-sitter-javascript" "0.25.0" "tree-sitter-language" "0.1.7" "tree-sitter-python" "0.25.0" "tree-sitter-rust" "0.24.2" "tree-sitter-typescript" "0.23.2"
+apeiron: source = "git+https://github.com/webfold-ai/apeiron?rev=07ab506#07ab506eb5e8639cf35c9c30a7b87a9ea3b65d9b"
+omnidiff_commit: ee5ee5b43b39602ef68b6ebb30ddeeea5e843265 (crate 0.4.0)
+gumtree: 4.0.0-beta4 release archive sha256 a9f94accb853c993f7b6497949ba9f91c2d1f7e20975b479333d9bf79deca3ea
+load_cli_bench: start 33.17 30.95 24.57 28/590 4682 end 64.80 51.92 38.44 77/579 737
+load_paired: start 69.08 66.86 50.61 64/510 16345 end 69.75 75.16 62.01 69/1035 14038
+load_omni_time: start 29.56 23.14 14.08 32/491 23276
+nice: every timed process ran at nice 10 on a shared 4-vCPU VM with other jobs (load average well above 4 throughout)
+timing: Rust tools single-threaded; in-process stage times are medians/minima of 10 passes per fixture
+fixture_selection: harness/select_fixtures.py --slowest 50 --sample 300 --seed 1 on a size-derived baseline (bytes_before + bytes_after as elapsed_ms), so 'slowest' means largest input
+omnidiff_timing: in process via tools/omni_dump/src/bin/omni_time.rs (library parse, metadata load, diff_code_with_config), not the omnidiff command line
+gumtree_timing: cold JVM process via 'gumtree textdiff' on a 40-fixture subset
+```
+
+## Wall time per tool (ms, median of reps, process start to exit)
+
+| tool | objective | ok | failed | fallback | total | median | p90 | p99 | max |
+|---|---|---|---|---|---|---|---|---|---|
+| difffold | top-down Selkow (exact) - cold process | 350 | 0 | 0 | 19707 | 15.9 | 146.6 | 604.3 | 925.3 |
+| difffold-hot | top-down - in-process stages x10 | 350 | 0 | 0 | 161977 | 164.1 | 1031.4 | 5995.6 | 9634.3 |
+| difffold-refine | top-down + cross-level refinement - cold process | 350 | 0 | 0 | 20424 | 16.2 | 151.0 | 607.9 | 958.0 |
+| difffold-refine-hot | refined - in-process stages x10 | 350 | 0 | 0 | 172133 | 171.8 | 1152.4 | 6381.0 | 9444.5 |
+| git-myers | line-based (text) | 350 | 0 | 0 | 1942 | 3.8 | 12.0 | 25.4 | 37.5 |
+
+## Ratio to difffold (tool time / difffold time, fixtures both completed)
+
+| tool | n | median | min | max | total tool / total difffold |
+|---|---|---|---|---|---|
+| difffold-hot | 350 | 7.9 | 0.37 | 78.9 | 8.2 |
+| difffold-refine | 350 | 1.0 | 0.19 | 6.1 | 1.0 |
+| difffold-refine-hot | 350 | 8.0 | 0.48 | 46.5 | 8.7 |
+| git-myers | 350 | 0.2 | 0.03 | 3.5 | 0.1 |

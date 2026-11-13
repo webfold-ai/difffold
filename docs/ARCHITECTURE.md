@@ -20,8 +20,8 @@ in `src/lib.rs`). Callers supply already-structured input.
 
 Tree engines take labels as `u32`. Turning a source file into labelled trees is the caller's job. The
 research binaries (`ts` feature) and the harness do it with tree-sitter: every node is kept, a leaf's label
-is its (kind, text) pair, an inner node's label is its kind (see `Interner` in `src/bin/score_accuracy.rs`
-and `src/bin/ted_map.rs`).
+is its (kind, text) pair, an inner node's label is its kind (see `Interner` in `src/ts.rs`, shared by
+`src/bin/score_accuracy/` and `src/bin/ted_map.rs`).
 
 ## Main path
 
@@ -96,6 +96,17 @@ caller's tree  ->  PostTree::from_kids(label, kids)      postorder, children bef
 objective-matched baseline. `replay_script` places inserts using the structure of `b`, so it shows the
 mapping is executable and the operations compose to `b`; it does not derive the script independently of `b`
 (doc comment in `src/ted.rs`).
+
+### Cross-level refinement
+
+`refine::match_trees` (or `refine::refine` on a `mapping::Correspondence` you already have) repairs the
+top-down result: it flattens both trees to preorder arrays, drops kind-changing internal pairs, pairs
+identical unmapped subtrees by arena id (moves, reorders), drops implausible tentative pairs, pairs
+containers by Dice similarity of mapped descendants, runs the certified top-down aligner inside the new
+container pairs, and pairs remaining equal leaves inside mapped ancestors. The output (`refine::Mapping`)
+is a partial bijection that respects kinds; it is not top-down, not order-preserving and not optimal for
+any objective. `Options::SEED` switches every repair off. See paper section 3.3 for the phases and their
+cost.
 
 ## Key modules
 

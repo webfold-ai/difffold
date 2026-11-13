@@ -1,0 +1,11 @@
+dataset,fixture,lang,difffold_visible,omnidiff_visible,decisions,cause_breakdown
+full,java-pdftk-java-pdftk-real-change-all-across-the-file,java,398,233,4938,"context:-11 cross_parent_move:+17 local_edit:-5 reorder:+83 repeated_children:+2 sibling_ins_del:+59 wrap_unwrap:+84"
+defects4j,java-defects4j-closure-137-makedeclarednamesunique,java,273,115,3630,"context:+11 cross_parent_move:-16 sibling_ins_del:+85 wrap_unwrap:+131"
+small,rust-rustdesk-rustdesk-actual-logic-change-in-io-loop-medium-sized-file,rust,163,5,23711,"context:-1 repeated_children:+107 sibling_ins_del:+81 wrap_unwrap:+53"
+full,java-jakartaee-rest-real-logic-change-of-a-significant-chunck,java,180,50,997,"context:+2 sibling_ins_del:+187"
+full,rust-tiffany352-rink-rs-real-change,rust,131,28,4554,"context:+8 local_edit:+1 repeated_children:+1 sibling_ins_del:+114 wrap_unwrap:+4"
+small,python-django-django-update-unit-tests-actual-logic-change,python,98,4,4461,"repeated_children:+3 sibling_ins_del:+123"
+small,rust-rustdesk-rustdesk-large-file-40k-normal-feature-work,rust,75,2,46177,"context:+1 repeated_children:+53 sibling_ins_del:+43 wrap_unwrap:+15"
+stratified,go-jesseduffield-lazygit-many-multi-maps-very-difficult,go,124,55,712,"context:+1 repeated_children:+25 sibling_ins_del:+5 wrap_unwrap:+56"
+small,rust-vercel-nextjs-refactoring-would-require-mulitmap-mapping,rust,42,8,8965,"cross_parent_move:+41 repeated_children:-1 sibling_ins_del:-2 wrap_unwrap:+4"
+handmade,rust-turbopack-module-rule,rust,76,43,2134,"repeated_children:+1 sibling_ins_del:+6 wrap_unwrap:+38"

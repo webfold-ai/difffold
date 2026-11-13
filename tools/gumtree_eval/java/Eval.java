@@ -46,6 +46,9 @@ public class Eval {
     static long nowMs(long t0) { return (System.nanoTime() - t0) / 1000; } // microseconds
 
     public static void main(String[] a) throws Exception {
+        // GumTree 4.0.0-beta4 fills its registries from the command-line entry point only.
+        com.github.gumtreediff.client.Run.initGenerators();
+        com.github.gumtreediff.client.Run.initMatchers();
         if (a[0].equals("list")) {
             for (var e : Matchers.getInstance().getEntries()) System.out.println("matcher " + e.id + " prio=" + e.priority + " " + e.toString());
             System.out.println("default matcher: " + Matchers.getInstance().getMatcher().getClass().getName());

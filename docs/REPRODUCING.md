@@ -17,6 +17,16 @@ not a confirmation of the recorded ones.
 
 The machine used for the cost measurements is recorded in `harness/results/machine.txt`.
 
+## Accuracy, speed and the refinement (current)
+
+`paper/paper.md`, section 8, lists the commands. In short: `harness/accuracy.sh` regenerates
+`results/accuracy/` (scorer output, ablation, split halves, bootstrap, `machine.txt`); `harness/dev_sweep.sh`
+regenerates the parameter sweeps; the speed run `t4` is `harness/select_fixtures.py` (manifest), `cli_bench`
+(cold process, tool table `harness/results/tools-t4.tsv`), `tools/omni_dump/src/bin/omni_time.rs` (OmniDiff in
+process), `harness/paired_speed.py` (interleaved, paired) and `harness/stage_summary.py` (summaries). The input
+tables are as recorded: the `t4` manifest was selected with a size-derived baseline instead of OmniDiff's own
+timings. `harness/results/machine-t4.txt` records the machine, the load average and the revisions.
+
 ## Tree edit distance against APTED
 
 `results/lines/ted-*.csv` with 17 columns are written by `tedbench`:
@@ -35,11 +45,12 @@ known producer in this repository.
 ## Accuracy scoring
 
 ```sh
-cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS OMNI_DUMP OUT
+cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS OMNI_DUMP OUT            # top-down
+DFOLD_REFINE=full cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS OMNI_DUMP OUT   # refined
 DFOLD_TED=1 cargo run --release --locked -p difffold --features ts --bin score_accuracy -- DIFFS - OUT
 ```
 
 `OMNI_DUMP` is the output of `tools/omni_dump`; `-` selects the difffold-only mode that wrote
-`SUMMARY-difffold-only.md` and `SUMMARY-ted-only.md`. With `DFOLD_TED` set the scorer uses `ted_mapping`
+`SUMMARY-difffold-only.md` (and, in `results/accuracy/previous-fork-run/`, `SUMMARY-ted-only.md`). With `DFOLD_TED` set the scorer uses `ted_mapping`
 (falling back to the top-down mapping above 20,000 nodes); `DFOLD_KINDS` and `DFOLD_MOVES` change that
 configuration and are not recorded in the committed `ted-only` files.

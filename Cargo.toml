@@ -41,7 +41,7 @@ required-features = ["ts"]
 
 [[bin]]
 name = "score_accuracy"
-path = "src/bin/score_accuracy.rs"
+path = "src/bin/score_accuracy/main.rs"
 required-features = ["ts"]
 
 [workspace]

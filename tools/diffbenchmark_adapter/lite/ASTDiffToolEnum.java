@@ -14,7 +14,7 @@ import org.refactoringminer.astDiff.models.ASTDiff;
  * Reduced tool registry used to build DiffBenchmark in this environment. The upstream enum also
  * lists IJM, MTDiff, GumTree 2.0, IASTMapper, RM 2.0 and Spoon, whose jars (libs/*.jar in the
  * upstream repository) are not available here. Constants and short names of the tools kept here are
- * identical to upstream, and DFT_TD and DFT_TED are the difffold additions (see the .patch file).
+ * identical to upstream, and DFT_TD, DFT_TED and DFT_RF are the difffold additions (see the .patch file).
  */
 public enum ASTDiffToolEnum implements IASTDiffTool {
     GOD("Ground Truth", null),
@@ -25,6 +25,7 @@ public enum ASTDiffToolEnum implements IASTDiffTool {
     DAT("Diff Auto Tuning", null),
     DFT_TD("difffold top-down", (benchmarkCase, query) -> new DifffoldASTDiffProvider("topdown", benchmarkCase, query)),
     DFT_TED("difffold tree edit distance", (benchmarkCase, query) -> new DifffoldASTDiffProvider("ted", benchmarkCase, query)),
+    DFT_RF("difffold top-down + cross-level refinement", (benchmarkCase, query) -> new DifffoldASTDiffProvider("refine", benchmarkCase, query)),
     ;
 
     private final ASTDiffProviderForBenchmark factory;

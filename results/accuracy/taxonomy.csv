@@ -22,7 +22,7 @@ defects4j,java-defects4j-chart-25-statisticalbarrenderer,java,3132,3119,13,0,68,
 defects4j,java-defects4j-chart-26-axis,java,6057,6050,7,0,12,0,6004,0,2,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-chart-3-timeseries,java,5958,5953,5,0,24,0,5958,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-chart-4-xyplot,java,28219,28210,9,0,12,0,28139,0,3,0,0,0,0,0,0,0,1
-defects4j,java-defects4j-chart-5-xyseries,java,2893,2885,8,4,22,0,2886,1,3,0,0,0,1,0,0,1,1
+defects4j,java-defects4j-chart-5-xyseries,java,2893,2886,7,4,22,0,2885,1,1,0,0,0,0,0,0,1,1
 defects4j,java-defects4j-chart-6-shapelist,java,491,485,6,8,91,0,491,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-chart-7-timeperiodvalues,java,2543,2518,25,0,0,0,2543,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-chart-8-week,java,2641,2634,7,4,1,0,2641,0,0,0,0,0,1,0,0,0,0
@@ -97,7 +97,7 @@ defects4j,java-defects4j-closure-110-node,java,14414,14409,5,0,25,0,14414,0,0,0,
 defects4j,java-defects4j-closure-110-scopedaliases,java,3997,3974,23,13,177,7,3974,0,12,0,0,1,1,1,0,0,1
 defects4j,java-defects4j-closure-111-closurereverseabstractinterpreter,java,2013,2003,10,0,16,0,2012,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-closure-112-typeinference,java,11140,11133,7,0,50,0,11132,0,1,0,0,0,0,0,0,0,1
-defects4j,java-defects4j-closure-113-processclosureprimitives,java,8403,8393,10,0,9,0,8400,0,3,0,0,0,1,0,0,0,1
+defects4j,java-defects4j-closure-113-processclosureprimitives,java,8403,8394,9,0,9,0,8399,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-closure-114-nameanalyzer,java,11416,11406,10,0,29,0,11397,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-closure-115-functioninjector,java,4762,4751,11,113,0,0,4762,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-closure-116-functioninjector,java,4762,4751,11,0,114,0,4762,0,0,0,0,0,1,0,0,0,0
@@ -110,7 +110,7 @@ defects4j,java-defects4j-closure-121-inlinevariables,java,4650,4640,10,0,21,1,46
 defects4j,java-defects4j-closure-122-irfactory,java,13450,13443,7,33,38,7,13450,0,0,0,0,0,1,1,0,0,0
 defects4j,java-defects4j-closure-123-codegenerator,java,9512,9501,11,4,6,0,9512,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-closure-124-exploitassigns,java,1214,1209,5,0,15,0,1202,0,1,0,0,0,0,0,0,0,1
-defects4j,java-defects4j-closure-125-typecheck,java,14149,14139,10,0,9,0,14146,0,3,0,0,0,1,0,0,0,1
+defects4j,java-defects4j-closure-125-typecheck,java,14149,14140,9,0,9,0,14145,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-closure-126-minimizeexitpoints,java,1618,1611,7,41,0,0,1618,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-closure-127-unreachablecodeelimination,java,1472,1458,14,0,104,1,1469,0,3,0,0,0,1,1,0,0,1
 defects4j,java-defects4j-closure-128-codegenerator,java,9360,9349,11,0,16,0,9360,0,0,0,0,1,1,0,0,0,0
@@ -178,8 +178,8 @@ defects4j,java-defects4j-closure-34-codeprinter,java,3398,3387,11,0,11,1,3391,0,
 defects4j,java-defects4j-closure-37-nodetraversal,java,3676,3668,8,0,2,0,3676,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-closure-38-codeconsumer,java,1340,1332,8,0,5,1,1337,0,3,0,0,0,1,1,0,0,1
 defects4j,java-defects4j-closure-44-codeconsumer,java,1300,1293,7,0,34,0,1295,5,0,0,0,0,1,0,0,1,1
-defects4j,java-defects4j-closure-52-codegenerator,java,8909,8902,7,0,13,0,8906,0,3,0,0,0,1,0,0,0,1
-defects4j,java-defects4j-closure-57-closurecodingconvention,java,2587,2573,14,0,15,0,2584,0,3,0,0,0,1,0,0,0,1
+defects4j,java-defects4j-closure-52-codegenerator,java,8909,8903,6,0,13,0,8905,0,1,0,0,0,0,0,0,0,1
+defects4j,java-defects4j-closure-57-closurecodingconvention,java,2587,2574,13,0,15,0,2583,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-closure-62-lightweightmessageformatter,java,1178,1166,12,0,0,0,1178,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-closure-65-codegenerator,java,8909,8894,15,0,0,0,8909,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-closure-66-typecheck,java,12577,12567,10,0,10,0,12576,1,0,0,0,0,1,0,0,1,1
@@ -205,7 +205,7 @@ defects4j,java-defects4j-codec-10-caverphone,java,1528,1517,11,0,0,0,1528,0,0,0,
 defects4j,java-defects4j-codec-12-basencodecinputstream,java,585,582,3,0,229,0,579,0,6,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-codec-16-base32,java,4378,4372,6,2,1,0,4378,0,0,0,0,0,1,1,0,0,0
 defects4j,java-defects4j-codec-17-stringutils,java,1079,1073,6,3,2,0,1070,0,1,0,0,0,0,0,0,0,1
-defects4j,java-defects4j-codec-2-base64,java,4731,4721,10,0,6,0,4728,0,3,0,0,0,1,0,0,0,1
+defects4j,java-defects4j-codec-2-base64,java,4731,4722,9,0,6,0,4727,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-codec-3-doublemetaphone,java,9147,9129,18,0,0,0,9147,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-codec-4-base64,java,5050,5042,8,0,0,0,5050,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-codec-6-base64inputstream,java,647,636,11,0,26,0,501,1,1,0,0,0,1,0,0,1,1
@@ -238,7 +238,7 @@ defects4j,java-defects4j-compress-42-ziparchiveentry,java,4076,4065,11,0,0,0,407
 defects4j,java-defects4j-compress-44-checksumcalculatinginputstream,java,390,385,5,0,50,0,390,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-csv-1-extendedbufferedreader,java,592,585,7,0,14,1,589,0,3,0,0,0,1,1,0,0,1
 defects4j,java-defects4j-csv-11-csvparser,java,2162,2149,13,0,6,0,2149,0,1,0,0,0,0,0,0,0,1
-defects4j,java-defects4j-csv-12-csvformat,java,3792,3786,6,0,7,0,3785,0,4,0,0,0,1,0,0,0,1
+defects4j,java-defects4j-csv-12-csvformat,java,3792,3787,5,0,7,0,3784,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-csv-13-csvformat,java,4778,4773,5,0,10,1,4747,0,16,0,0,0,1,1,0,0,1
 defects4j,java-defects4j-csv-14-csvformat,java,7156,7125,31,0,0,0,7156,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-csv-2-csvrecord,java,598,593,5,0,51,0,576,0,1,0,0,0,0,0,0,0,1
@@ -275,7 +275,7 @@ defects4j,java-defects4j-jacksondatabind-15-javatype,java,1625,1622,3,0,22,0,162
 defects4j,java-defects4j-jacksondatabind-15-stdserializer,java,1570,1557,13,0,14,1,1567,0,3,0,0,0,1,1,0,0,1
 defects4j,java-defects4j-jacksondatabind-16-annotationmap,java,754,743,11,0,2,0,746,0,1,0,0,1,0,0,0,0,1
 defects4j,java-defects4j-jacksondatabind-17-objectmapper,java,14112,14097,15,0,2,0,14095,0,1,0,0,1,0,0,0,0,1
-defects4j,java-defects4j-jacksondatabind-20-objectnode,java,3772,3764,8,0,20,0,3772,0,0,0,0,1,1,0,0,0,0
+defects4j,java-defects4j-jacksondatabind-20-objectnode,java,3772,3767,5,0,20,0,3772,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-jacksondatabind-25-basicdeserializerfactory,java,13928,13913,15,0,8,0,13927,0,1,0,0,1,1,0,0,0,1
 defects4j,java-defects4j-jacksondatabind-25-deserializercache,java,3413,3400,13,0,7,1,3406,0,4,0,0,0,1,1,0,0,1
 defects4j,java-defects4j-jacksondatabind-25-simpleabstracttyperesolver,java,495,489,6,7,15,0,494,0,1,0,0,0,0,0,0,0,1
@@ -356,7 +356,7 @@ defects4j,java-defects4j-jsoup-76-htmltreebuilderstate,java,17740,17718,22,0,17,
 defects4j,java-defects4j-jsoup-77-xmltreebuilder,java,1260,1251,9,0,0,0,1260,0,0,0,0,1,0,0,0,0,0
 defects4j,java-defects4j-jsoup-79-leafnode,java,591,586,5,13,36,0,591,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-jsoup-80-xmltreebuilder,java,1264,1255,9,0,19,0,1191,0,3,0,0,0,1,0,0,0,1
-defects4j,java-defects4j-jsoup-86-comment,java,548,538,10,0,6,0,542,0,4,0,0,0,1,0,0,0,1
+defects4j,java-defects4j-jsoup-86-comment,java,548,538,10,0,6,0,541,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-jsoup-87-tag,java,2420,2415,5,0,49,0,2420,0,0,0,0,0,1,0,0,0,0
 defects4j,java-defects4j-jsoup-88-attribute,java,1489,1483,6,0,7,0,1488,0,1,0,0,0,0,0,0,0,1
 defects4j,java-defects4j-jsoup-9-entities,java,22687,22678,9,0,2,0,22687,0,0,0,0,1,1,0,0,0,0
@@ -452,7 +452,7 @@ full,c-pocoproject-poco-replace-0-with-nullptr,c,1526,1498,28,3,6,0,1526,0,0,0,0
 full,c-relianoid-nftlb-zcu-log-to-u-log,c,1434,1386,48,0,0,0,1434,0,0,0,0,1,0,0,0,0,0
 full,c-sched-ext-scx-many-many-moves-some-deletes-some-adds,c,2570,2563,7,15,5,0,2447,0,0,34,0,1,1,0,1,0,0
 full,c-tripwire-tripwire-open-source-add-single-item-to-list,c,1201,1194,7,0,3,0,1201,0,0,0,0,0,1,1,0,0,0
-full,go-cloudflare-cfssl-change-zero-value-to-is-zero,go,1361,1353,8,10,4,0,1357,0,4,0,0,0,0,0,0,0,1
+full,go-cloudflare-cfssl-change-zero-value-to-is-zero,go,1358,1350,8,13,7,0,1357,0,1,0,0,0,0,0,0,0,1
 full,go-containers-storage-add-two-constants,go,7462,7460,2,0,10,0,7462,0,0,0,0,0,1,0,0,0,0
 full,go-cri-o-cri-o-change-importa,go,555,552,3,5,5,0,555,0,0,0,0,0,1,0,0,0,0
 full,go-darylhjd-mangadesk-remove-a-function-uptade-comments,go,2400,2397,3,30,0,0,2400,0,0,0,0,1,1,0,0,0,0
@@ -470,18 +470,18 @@ full,java-jflex-de-jflex-javadoc-update,java,367,365,2,0,0,0,367,0,0,0,0,1,0,0,0
 full,java-jopt-simple-jopt-simple-remove-import,java,536,535,1,13,0,0,536,0,0,0,0,0,1,0,0,0,0
 full,java-junit-pioneer-junit-pioneer-add-block-comment,java,640,639,1,0,1,0,640,0,0,0,0,0,1,0,0,0,0
 full,java-pdftk-java-pdftk-license-comment-change,java,1291,1289,2,0,0,0,1291,0,0,0,0,1,0,0,0,0,0
-full,java-pdftk-java-pdftk-real-change-all-across-the-file,java,4044,3743,301,369,505,5,3199,7,69,18,0,1,1,1,1,1,1
+full,java-pdftk-java-pdftk-real-change-all-across-the-file,java,4045,3744,301,368,504,5,3199,7,69,18,0,1,1,1,1,1,1
 full,java-zeroc-ice-ice-comment-only-update,java,118,114,4,0,0,0,118,0,0,0,0,1,0,0,0,0,0
 full,javascript-grobian-carbonapi-web-add-binary-expression-to-existing-assignment,javascript,2009,2006,3,0,5,1,1973,0,9,0,0,0,1,1,0,0,1
-full,javascript-home-sweet-gnome-dash-to-panel-change-set-style-arguments,javascript,13005,12981,24,13,114,0,12965,0,7,0,0,0,1,0,0,0,1
+full,javascript-home-sweet-gnome-dash-to-panel-change-set-style-arguments,javascript,13005,12982,23,13,114,0,12965,0,5,0,0,0,1,0,0,0,1
 full,javascript-jquery-ui-rails-jquery-ui-rails-add-strict-and-move-function-call-parenthesis,javascript,200,191,9,0,12,0,4,1,2,0,0,0,1,0,0,1,1
 full,javascript-jquery-ui-rails-jquery-ui-rails-update-text-in-string,javascript,476,461,15,0,0,0,476,0,0,0,0,1,0,0,0,0,0
 full,javascript-jquery-ui-rails-jquery-ui-rails-update-text-in-string-2,javascript,476,461,15,0,0,0,476,0,0,0,0,1,0,0,0,0,0
 full,javascript-usebruno-bruno-add-class-to-classname-attribute,javascript,1923,1901,22,0,0,0,1923,0,0,0,0,1,0,0,0,0,0
 full,javascript-usebruno-bruno-style-change,javascript,93,88,5,0,22,1,93,0,0,0,0,0,1,1,0,0,0
-full,javascript-xpra-org-xpra-html5-small-change,javascript,45423,45402,21,4,0,4,45421,0,2,0,0,1,1,1,0,0,1
+full,javascript-xpra-org-xpra-html5-small-change,javascript,45423,45402,21,4,0,4,45420,0,1,0,0,1,0,1,0,0,1
 full,python-aajanki-yle-dl-tiny-change,python,341,326,15,3,0,0,341,0,0,0,0,1,1,0,0,0,0
-full,python-aboutcode-org-license-expression-excellent-test-case,python,13404,13256,148,150,133,0,13368,1,9,1,0,1,1,1,1,1,1
+full,python-aboutcode-org-license-expression-excellent-test-case,python,13405,13256,149,149,132,0,13368,1,9,1,0,1,1,1,1,1,1
 full,python-bolero-murakami-sprout-change-copyright-year,python,1356,1354,2,0,0,0,1356,0,0,0,0,1,0,0,0,0,0
 full,python-cloudflare-cloudflare-python-comment-only-changes,python,443,416,27,0,0,0,443,0,0,0,0,1,0,0,0,0,0
 full,python-espressomd-espresso-fix-comment-typo,python,3650,3646,4,0,0,0,3650,0,0,0,0,1,0,0,0,0,0
@@ -570,9 +570,9 @@ small,c-freeciv-add-parameter-to-function,c,121,116,5,0,9,1,121,0,0,0,0,0,1,1,0,
 small,c-htop-remove-function-declaration,c,570,568,2,27,0,0,570,0,0,0,0,0,1,0,0,0,0
 small,c-linux-small-bugfix,c,23959,23948,11,0,38,10,23843,0,5,0,0,0,1,1,0,0,1
 small,c-linux-small-change,c,5911,5888,23,0,76,0,5902,0,3,0,0,0,1,0,0,0,1
-small,c-linux-small-change-struct-to-char,c,11358,11328,30,15,23,0,11351,0,7,0,0,0,1,0,0,0,1
+small,c-linux-small-change-struct-to-char,c,11358,11329,29,15,23,0,11350,0,5,0,0,0,1,0,0,0,1
 small,c-microsoft-terminal-add-function,c,5477,5476,1,0,12,0,5477,0,0,0,0,0,1,1,0,0,0
-small,c-nginx-add-typedef,c,5501,5451,50,5,134,0,5473,3,13,1,0,0,1,0,1,1,1
+small,c-nginx-add-typedef,c,5501,5452,49,5,134,0,5472,3,11,1,0,0,1,0,1,1,1
 small,c-postgres-real-logic-change,c,7428,7385,43,139,30,0,7354,2,1,0,0,1,1,1,0,1,1
 small,go-caddy-rename-type,go,507,421,86,0,0,0,507,0,0,0,0,1,0,0,0,0,0
 small,go-gin-add-function,go,312,308,4,0,14,0,312,0,0,0,0,0,1,0,0,0,0
@@ -586,8 +586,8 @@ small,go-prometheus-single-comment-change,go,213,211,2,0,0,0,213,0,0,0,0,1,0,0,0
 small,go-user-slices-library,go,5760,5743,17,54,14,0,5757,0,3,0,0,0,1,0,0,0,1
 small,java-genymobile-scrcpy-change-some-android-version-constant,java,989,973,16,4,13,2,983,0,6,0,0,0,1,1,0,0,1
 small,java-genymobile-scrcpy-refactor-for-loop-in-a-function,java,1399,1377,22,0,245,0,1357,3,0,0,0,1,1,0,0,1,1
-small,java-genymobile-scrcpy-switch-from-three-exceptions-to-one,java,2173,2140,33,31,0,0,2173,0,0,0,0,1,1,1,0,0,0
-small,java-nextcloud-android-add-if-branch-with-reused-return,java,17922,17884,38,0,83,0,17918,1,1,0,0,1,1,0,0,1,1
+small,java-genymobile-scrcpy-switch-from-three-exceptions-to-one,java,2167,2140,27,22,0,6,2167,0,0,0,0,0,1,1,0,0,0
+small,java-nextcloud-android-add-if-branch-with-reused-return,java,17922,17885,37,0,83,0,17921,0,1,0,0,1,1,0,0,0,1
 small,java-nextcloud-android-add-two-function-calls,java,14331,14318,13,0,26,0,14331,0,0,0,0,0,1,0,0,0,0
 small,java-protobuf-add-two-annotations,java,4067,4060,7,0,6,0,4067,0,0,0,0,0,1,0,0,0,0
 small,java-protocolbuffers-protobuf-add-a-method,java,4054,4051,3,0,30,0,4054,0,0,0,0,0,1,0,0,0,0
@@ -603,10 +603,9 @@ small,javascript-typescript-add-strict-3,javascript,1832,1831,1,0,6,0,1832,0,0,0
 small,javascript-typescript-add-use-strict,javascript,127,126,1,0,6,0,127,0,0,0,0,0,1,0,0,0,0
 small,javascript-typescript-interesting-small-edit-refactor,javascript,34,31,3,17,4,0,32,0,2,0,0,0,1,1,0,0,1
 small,javascript-typescript-use-strict-2,javascript,196,195,1,0,6,0,196,0,0,0,0,0,1,0,0,0,0
-small,javascript-typescript-very-interesting-brokn-code,javascript,44,40,4,0,0,0,44,0,0,0,0,1,0,0,0,0,0
 small,python-ansible-ansible-field-rename,python,10431,10420,11,0,0,0,10431,0,0,0,0,1,0,0,0,0,0
 small,python-ansible-ansible-ridiculously-long-yaml-in-string-constant-and-actual-code-changes,python,10308,10296,12,4,683,1,10229,0,2,0,0,1,1,1,0,0,1
-small,python-django-django-update-unit-tests-actual-logic-change,python,3234,3152,82,251,973,0,3231,0,1,0,0,0,1,1,0,0,1
+small,python-django-django-update-unit-tests-actual-logic-change,python,3231,3150,81,245,973,3,3231,0,0,0,0,0,1,1,0,0,0
 small,python-langflow-ai-langflow-actual-change-of-logic,python,2508,2494,14,209,75,1,2508,0,0,0,0,0,1,1,0,0,0
 small,python-openhands-openhands-change-string-constant,python,464,452,12,0,0,0,464,0,0,0,0,1,0,0,0,0,0
 small,python-paddlepaddle-paddleocr-formatting-only-change,python,5094,5094,0,0,0,0,5094,0,0,0,0,0,0,0,0,0,0
@@ -640,7 +639,7 @@ small,typescript-microsoft-playwright-add-two-test-cases,typescript,2569,2568,1,
 small,typescript-microsoft-typescript-add-dot-js-to-import-paths,typescript,1404,1394,10,0,0,0,1404,0,0,0,0,1,0,0,0,0,0
 small,typescript-microsoft-typescript-add-target-comment,typescript,318,317,1,0,1,0,318,0,0,0,0,0,1,0,0,0,0
 small,typescript-microsoft-typescript-comment-change,typescript,51,49,2,0,0,0,51,0,0,0,0,1,0,0,0,0,0
-small,typescript-n8n-io-n8n-remove-and-add-imports,typescript,789,785,4,13,3,0,788,0,1,0,0,0,0,1,0,0,1
+small,typescript-n8n-io-n8n-remove-and-add-imports,typescript,790,786,4,12,2,0,788,0,1,0,0,0,0,1,0,0,1
 small,typescript-typescript-add-target-comment,typescript,135,134,1,0,1,0,135,0,0,0,0,0,1,0,0,0,0
 small,typescript-typescript-add-target-comment-2,typescript,96,95,1,0,1,0,96,0,0,0,0,0,1,0,0,0,0
 small,typescript-typescript-add-target-comment-3,typescript,33,32,1,0,1,0,33,0,0,0,0,0,1,0,0,0,0
@@ -830,7 +829,6 @@ stratified,javascript-microsoft-typescript-add-use-strict-2,javascript,22,21,1,0
 stratified,javascript-microsoft-typescript-concat-to-template,javascript,44,41,3,14,6,0,33,0,3,0,0,0,0,0,0,0,1
 stratified,javascript-microsoft-typescript-errors,javascript,7720,7709,11,0,0,0,7720,0,0,0,0,1,0,0,0,0,0
 stratified,javascript-microsoft-typescript-refactor,javascript,106,105,1,31,0,0,72,0,4,0,0,0,0,0,0,0,1
-stratified,javascript-microsoft-typescript-remove-one-line,javascript,1343,1342,1,1,0,0,1343,0,0,0,0,0,1,0,0,0,0
 stratified,javascript-microsoft-typescript-small-change,javascript,36,33,3,2,2,0,27,0,2,0,0,0,0,0,0,0,1
 stratified,javascript-microsoft-typescript-small-change-2,javascript,138,137,1,30,6,0,138,0,0,0,0,0,1,0,0,0,0
 stratified,javascript-microsoft-typescript-small-change-3,javascript,90,86,4,11,2,0,74,0,2,0,0,0,0,0,0,0,1
@@ -838,7 +836,6 @@ stratified,javascript-microsoft-typescript-use-strict,javascript,96,95,1,0,6,0,9
 stratified,javascript-microsoft-typescript-use-strict-2,javascript,120,119,1,0,6,0,120,0,0,0,0,0,1,0,0,0,0
 stratified,javascript-microsoft-typescript-use-strict-3,javascript,100,99,1,0,6,0,100,0,0,0,0,0,1,0,0,0,0
 stratified,javascript-microsoft-typescript-use-strict-4,javascript,48,47,1,0,6,0,48,0,0,0,0,0,1,0,0,0,0
-stratified,javascript-microsoft-typescript-use-strict-5,javascript,1507,1493,14,0,5,0,1507,0,0,0,0,0,1,1,0,0,0
 stratified,javascript-microsoft-typescript-use-strict-6,javascript,427,425,2,0,6,0,427,0,0,0,0,0,1,0,0,0,0
 stratified,javascript-microsoft-typescript-use-strict-7,javascript,9976,9975,1,0,6,0,9976,0,0,0,0,0,1,0,0,0,0
 stratified,javascript-microsoft-typescript-use-strict-8,javascript,178,177,1,0,6,0,178,0,0,0,0,0,1,0,0,0,0
@@ -942,7 +939,7 @@ stratified,rust-vercel-next-remove-mod,rust,7,6,1,6,0,0,7,0,0,0,0,0,1,0,0,0,0
 stratified,rust-vercel-next-simple-identifier-change,rust,2627,2621,6,0,0,0,2627,0,0,0,0,1,0,0,0,0,0
 stratified,rust-vercel-nextjs-add-a-function,rust,670,667,3,0,46,0,670,0,0,0,0,0,1,1,0,0,0
 stratified,rust-zed-industries-zed-a-lot-of-removed,rust,521,497,24,140,26,0,453,0,10,0,0,0,1,0,0,0,1
-stratified,rust-zed-industries-zed-add-and-one-small-delete,rust,11881,11838,43,26,81,0,11831,0,4,0,0,0,1,1,0,0,1
+stratified,rust-zed-industries-zed-add-and-one-small-delete,rust,11881,11840,41,26,81,0,11829,0,2,0,0,0,1,1,0,0,1
 stratified,rust-zed-industries-zed-add-mod,rust,31,30,1,0,6,0,31,0,0,0,0,0,1,0,0,0,0
 stratified,rust-zed-industries-zed-add-only,rust,56119,56114,5,0,41,0,56119,0,0,0,0,0,1,0,0,0,0
 stratified,rust-zed-industries-zed-add-only-2,rust,123783,123751,32,0,20,0,123783,0,0,0,0,0,1,1,0,0,0

@@ -1,9 +1,9 @@
 class,fixtures,decisions,difffold_fails,omnidiff_fails
-local_edit,281,568,42,49
-sibling_ins_del,670,42249,2739,1237
-repeated_children,231,3392,1274,895
-reorder,38,1044,1009,101
-cross_parent_move,57,1104,896,213
-wrap_unwrap,334,20790,12475,1164
-wholesale_rewrite,4,3983,190,144
-context,997,5036030,1278,1054
+local_edit,278,559,44,46
+sibling_ins_del,659,42186,2447,1185
+repeated_children,230,3375,1083,875
+reorder,38,1044,175,99
+cross_parent_move,56,1101,154,210
+wrap_unwrap,333,20845,2035,1112
+wholesale_rewrite,4,3983,124,128
+context,994,5033129,772,1006

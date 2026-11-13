@@ -7,6 +7,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 
 ## [Unreleased]
 
+### Added (cross-level refinement)
+
+- `difffold::refine`: a mapping repair pass over the top-down result (exact-subtree move and reorder
+  detection, tentative-pair validation, container matching, recovery, leaf descent and retargeting).
+  `Options::SEED` (top-down minus kind-changing pairs) and `Options::FULL`; `Options::parse` for ablations.
+  The refined mapping is a heuristic repair, not an optimum of any objective. Tests: `tests/refine.rs`.
+- `difffold::ts` (feature `ts`): the tree-sitter front end shared by the research binaries.
+- `score_accuracy`: `DFOLD_REFINE`, `DFOLD_SPLIT=dev|test|all`; split into `src/bin/score_accuracy/`.
+- `dfold-cli --algo difffold-refine`; `ted_map --algo refine`; `tools/omni_dump/src/bin/omni_time.rs`;
+  `harness/bootstrap_ci.py`, `harness/stage_summary.py`.
+- Results re-run on the public OmniDiff corpus (commit `ee5ee5b`); the earlier results moved to
+  `results/accuracy/previous-fork-run/`.
+
 ### Changed
 
 - Documentation: README restated around three engines (`lines`, top-down `diff`, general `ted`) with a
@@ -17,6 +30,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
   as members, sharing one `Cargo.lock`. `corpus/` is excluded (its sources are incomplete).
 - `tree-sitter-language` is pinned to 0.1.7 to keep the declared MSRV of Rust 1.89.
 - Formatting (rustfmt) and clippy fixes; `cargo clippy -- -D warnings` passes.
+- `paper/paper.md` rewritten as a focused paper; draft 0.2 is archived in `notes/archive/`.
+- `abi_cutoff` builds against tree-sitter 0.26 (`Node::child` takes `u32`).
 
 ### Added
 

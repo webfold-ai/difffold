@@ -8,7 +8,7 @@ publish = false
 difffold = { path = ".." }
 similar = "3"
 imara-diff = { version = "0.2", optional = true }
-imara-diff-01 = { package = "imara-diff", version = "0.1", optional = true }
+imara-diff-01 = { package = "imara-diff", version = "0.1.8", optional = true }
 fast_rsync = "0.2"
 qbsdiff = "1"
 flate2 = "1"
@@ -22,9 +22,10 @@ tree-sitter-c = "0.24"
 
 
 [features]
-# `imara-diff` is the line-diff baseline. Both of its APIs are supported, and either can be built:
-# 0.2 (`Diff::compute`, the default) and 0.1 (`diff` with a sink). With both on, 0.2 is used.
-default = ["imara-02"]
+# `imara-diff` is the line-diff baseline. Both of its APIs are supported and either can be built:
+# 0.1 (`diff` with a sink, the default: the benchmark results were produced on 0.1.8) and 0.2
+# (`Diff::compute`). With both on, 0.2 is used.
+default = ["imara-01"]
 imara-02 = ["dep:imara-diff"]
 imara-01 = ["dep:imara-diff-01"]
 
