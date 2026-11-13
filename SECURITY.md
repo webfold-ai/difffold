@@ -18,7 +18,7 @@ Report it privately through GitHub's private vulnerability reporting:
 
 <https://github.com/webfold-ai/difffold/security/advisories/new>
 
-If you cannot use GitHub, email **security@twn.systems**.
+If you cannot use GitHub, email **security@webfold.ai**.
 
 Include, where you can:
 
