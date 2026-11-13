@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 difffold = { path = ".." }
 similar = "3"
-imara-diff = "0.2"
+imara-diff = "0.1.8"
 fast_rsync = "0.2"
 qbsdiff = "1"
 flate2 = "1"
