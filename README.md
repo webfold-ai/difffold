@@ -382,7 +382,10 @@ followed by the cross-level refinement (`refine`, `Options::FULL`; `DFOLD_REFINE
 (`results/accuracy/gumtree-4.0.0-beta4/`; `tools/gumtree_eval/`). Scoped scoring (judges only the nodes GumTree's JDT tree can
 express, so it is lenient to GumTree): changed-span F1 0.958 (`gumtree-simple`, the default), 0.961 (`gumtree-hybrid-id`), 0.846 (`gumtree-classic`);
 perfect fixtures 74.2%, 74.0%, 31.3%. On the same Java fixtures difffold (refined) scores 0.965 and 75.9%, OmniDiff 0.978 and 83.9%. No intervals were
-computed for this comparison. RefactoringMiner was not re-run on this corpus; its earlier indicative scoring is in
+computed for this comparison. **DiffBenchmark's Defects4J oracle** (996 files of 800 bugs, a second annotation of overlapping inputs; `results/diffbenchmark/rerun-refine/`): perfect files
+(FP = FN = 0) RefactoringMiner 88.5%, GumTree 3.0 simple 65.2%, difffold refined 64.4%, difffold top-down 45.1%, GumTree 3.0 greedy 21.0%; the refined-vs-simple raw F1 difference
+(+0.00011) has an interval that includes zero. The oracle was derived from RefactoringMiner's output. See the paper, section 6.3, for the duplicate-record caveat in the benchmark's own summary.
+RefactoringMiner was not re-run on the OmniDiff corpus; its earlier indicative scoring is in
 `notes/lanes/GUMTREE-RM.md` (a different GumTree snapshot and a different corpus snapshot).
 
 ### Provenance of the recorded results
