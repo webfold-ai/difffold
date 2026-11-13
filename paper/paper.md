@@ -480,28 +480,28 @@ mappings plus program elements), reported here raw, without the adjustment for m
 positive or negative ("perfect").
 
 <!-- DFB:begin -->
-The run reached 550 of the 800 bugs and 710 of the 996 oracle files at the time of writing (the driver processes bugs in alphabetical project order, so the subset is the first projects, not a random sample; it was resumed once after the disk filled, and `conversion.csv` therefore covers only the resumed part).
+The run covers all 800 bugs and all 996 oracle files (it was interrupted twice, by a full disk and by an out-of-memory kill, and resumed from its append-only outputs; `conversion.csv` therefore counts only the last resumed part, 250 bugs). Table 8 reports counts recomputed from the per-file records.
 
-Table 8. DiffBenchmark Defects4J oracle, 710 files, raw counts. Source: `results/diffbenchmark/rerun-refine/SUMMARY.md` (from `records-NO_FILTER.csv`).
+Table 8. DiffBenchmark Defects4J oracle, 996 files, raw counts. Source: `results/diffbenchmark/rerun-refine/SUMMARY.md`, computed by `harness/dfb_summary.py` from `records-NO_FILTER.csv` in the same directory.
 
 | tool | TP raw | FP | FN | precision (raw) | recall (raw) | F1 (raw) [95% interval] | perfect files |
 |---|---|---|---|---|---|---|---|
-| RMD | 445056 | 104 | 182 | 0.9998 | 0.9996 | 0.9997 [0.9996, 0.9998] | 635 (89.4%) |
-| GTG | 442826 | 722 | 2412 | 0.9984 | 0.9946 | 0.9965 [0.9960, 0.9969] | 142 (20.0%) |
-| GTS | 444551 | 525 | 687 | 0.9988 | 0.9985 | 0.9986 [0.9983, 0.9989] | 474 (66.8%) |
-| DFT_TD | 443793 | 1168 | 1445 | 0.9974 | 0.9968 | 0.9971 [0.9963, 0.9977] | 330 (46.5%) |
-| DFT_RF | 444804 | 665 | 434 | 0.9985 | 0.9990 | 0.9988 [0.9984, 0.9990] | 479 (67.5%) |
+| RMD | 596954 | 140 | 315 | 0.9998 | 0.9995 | 0.9996 [0.9995, 0.9997] | 881 (88.5%) |
+| GTG | 593907 | 1139 | 3362 | 0.9981 | 0.9944 | 0.9962 [0.9958, 0.9966] | 209 (21.0%) |
+| GTS | 596209 | 761 | 1060 | 0.9987 | 0.9982 | 0.9985 [0.9982, 0.9987] | 649 (65.2%) |
+| DFT_TD | 595302 | 1686 | 1967 | 0.9972 | 0.9967 | 0.9969 [0.9963, 0.9975] | 449 (45.1%) |
+| DFT_RF | 596565 | 987 | 704 | 0.9983 | 0.9988 | 0.9986 [0.9983, 0.9988] | 641 (64.4%) |
 
 Paired F1 difference of DFT_RF to each other tool (same resamples):
 
 | tool | difference | 95% interval |
 |---|---|---|
-| RMD | -0.00091 | [-0.00123, -0.00066] |
-| GTG | +0.00229 | [+0.00201, +0.00260] |
-| GTS | +0.00013 | [-0.00004, +0.00030] |
-| DFT_TD | +0.00170 | [+0.00124, +0.00223] |
+| RMD | -0.00103 | [-0.00129, -0.00081] |
+| GTG | +0.00236 | [+0.00209, +0.00265] |
+| GTS | +0.00011 | [-0.00005, +0.00027] |
+| DFT_TD | +0.00164 | [+0.00123, +0.00210] |
 
-Perfect files (no false positive or negative): difffold refined 67.5%, difffold top-down 46.5%, GumTree 3.0 simple 66.8%, GumTree 3.0 greedy 20.0%, RefactoringMiner 89.4%. The refinement lifts the perfect-file rate of the top-down engine by 21.0 points on this oracle and puts it level with GumTree simple (raw F1 difference +0.00013, interval [-0.00004, +0.00030]; it includes zero); it remains below RefactoringMiner (difference -0.00091, interval [-0.00123, -0.00066]), from whose output the oracle was built. Raw F1 differences are tiny because almost all mappings are shared by every tool; the perfect-file rate and the paired intervals are the informative columns. Calibration against the earlier recorded run on all 996 files (`results/diffbenchmark/summary-NO_FILTER.csv`, `notes/lanes/DIFFBENCHMARK.md`): RefactoringMiner 881 perfect files (88.5%), GumTree simple 649 (65.2%), greedy 209 (21.0%), difffold top-down 449 (45.1%); the partial run lands within a few points of these for every tool, so the harness reproduces. This is a second annotation of overlapping inputs and a partial run, the adapter's conversion between tree-sitter and JDT trees is part of what is measured, and the oracle favours RefactoringMiner.
+Perfect files (no false positive or negative): RefactoringMiner 88.5%, GumTree 3.0 simple 65.2%, difffold refined 64.4%, difffold top-down 45.1%, GumTree 3.0 greedy 21.0%. The refinement lifts the perfect-file rate of the top-down engine by 19.3 points on this oracle and puts it level with GumTree simple in raw F1 (difference +0.00011, interval [-0.00005, +0.00027], which includes zero; GumTree simple has 8 more perfect files, 649 against 641). It remains below RefactoringMiner (difference -0.00103, interval [-0.00129, -0.00081]), from whose output the oracle was built. The benchmark's own summary (`summary-NO_FILTER.csv` in the same directory) reports 884, 209, 652, 452 and 644 perfect files, three more than Table 8 for every tool but GreedyGumTree: three files (`Jsoup/87` twice, `Jsoup/92`) were in flight when the run was killed and were run again, so their records appear twice (15 identical duplicate rows, which the benchmark's summarizer adds up and `harness/dfb_summary.py` collapses). Table 8 counts each file once. Raw F1 differences are tiny because almost all mappings are shared by every tool; the perfect-file rate and the paired intervals are the informative columns. The perfect-file counts of RefactoringMiner, both GumTree matchers and difffold top-down are identical to the earlier recorded run on all 996 files (881, 209, 649, 449; `results/diffbenchmark/summary-NO_FILTER.csv`), so the harness reproduces. Conversion of difffold's mappings onto JDT trees in the resumed part: the refined mapping converts 664,335 pairs with 9 cross-type drops and no conflicts, against 663,004 and 683 cross-type drops for top-down (`conversion.csv`). This is a second annotation of overlapping inputs, the adapter's conversion between tree-sitter and JDT trees is part of what is measured, and the oracle favours RefactoringMiner.
 <!-- DFB:end -->
 
 
