@@ -62,7 +62,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement through the
 project's private channel described in [SECURITY.md](SECURITY.md) (GitHub
 private vulnerability reporting), or by contacting a maintainer listed in the
-repository's CODEOWNERS file, or by email to **hello@twn.systems**. All complaints will be reviewed and investigated
+repository's CODEOWNERS file, or by email to **hello@webfold.ai**. All complaints will be reviewed and investigated
 promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
