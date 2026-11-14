@@ -13,7 +13,7 @@ publish = false
 ts = ["dep:tree-sitter", "dep:tree-sitter-java", "dep:tree-sitter-go", "dep:tree-sitter-c", "dep:tree-sitter-python", "dep:tree-sitter-javascript", "dep:tree-sitter-typescript", "dep:tree-sitter-rust", "dep:serde_json"]
 
 [dependencies]
-apeiron = { git = "https://github.com/webfold-ai/apeiron", rev = "07ab506" }
+apeiron = { git = "https://github.com/webfold-ai/apeiron", rev = "1c3d4a1da565cde409f6f3cb343086aa6853eb9c" }
 tree-sitter = { version = "0.26", optional = true }
 tree-sitter-java = { version = "0.23", optional = true }
 tree-sitter-go = { version = "0.25", optional = true }
@@ -46,7 +46,7 @@ required-features = ["ts"]
 
 [workspace]
 resolver = "2"
-members = ["gitcompat", "harness/rust", "linebench"]
+members = ["gitcompat", "harness/rust", "linebench", "difffold_bindings"]
 # Excluded, not built: corpus/ (src/lib.rs and both bins are missing from the tree); proof/* are
 # Lean extraction tools with their own [workspace]; tools/omni_dump depends on an absolute local
 # OmniDiff checkout; tools/xdiff-baseline (git2) has its own lock file so git2 stays out of the root lock.
